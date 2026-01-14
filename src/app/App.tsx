@@ -35,6 +35,10 @@ export default function App() {
     setCurrentScreen('landing');
   };
 
+  const handleGoHome = () => {
+    setCurrentScreen('landing');
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {currentScreen === 'landing' && (
@@ -57,15 +61,15 @@ export default function App() {
       )}
       
       {currentScreen === 'dashboard' && userType === 'manager' && (
-        <ManagerDashboard onLogout={handleLogout} />
+        <ManagerDashboard onLogout={handleLogout} onHome={handleGoHome} />
       )}
       
       {currentScreen === 'dashboard' && userType === 'author' && (
-        <AuthorDashboard onLogout={handleLogout} />
+        <AuthorDashboard onLogout={handleLogout} onHome={handleGoHome} />
       )}
       
       {currentScreen === 'dashboard' && userType === 'admin' && (
-        <AdminDashboard onLogout={handleLogout} />
+        <AdminDashboard onLogout={handleLogout} onHome={handleGoHome} />
       )}
     </div>
   );

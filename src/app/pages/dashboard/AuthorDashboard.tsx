@@ -51,10 +51,12 @@ import { ThemeToggle } from "../../components/ui/theme-toggle";
 
 interface AuthorDashboardProps {
   onLogout: () => void;
+  onHome?: () => void;
 }
 
 export function AuthorDashboard({
   onLogout,
+  onHome,
 }: AuthorDashboardProps) {
   const [activeMenu, setActiveMenu] = useState("home");
   const [settingsCategory, setSettingsCategory] =
@@ -109,7 +111,11 @@ export function AuthorDashboard({
 
         {/* Logo */}
         <div className="p-6 border-b border-sidebar-border">
-          <div className="flex items-center gap-3">
+          <button
+            onClick={onHome}
+            className="flex items-center gap-3 w-full text-left hover:bg-sidebar-accent rounded-lg p-2 transition-colors"
+            aria-label="홈으로 이동"
+          >
             <div
               className="w-10 h-10 rounded-lg flex items-center justify-center"
               style={{ backgroundColor: "var(--role-primary)" }}
@@ -127,7 +133,7 @@ export function AuthorDashboard({
                 작가 스튜디오
               </div>
             </div>
-          </div>
+          </button>
         </div>
 
         {/* Navigation Menu */}
@@ -264,7 +270,7 @@ export function AuthorDashboard({
                     setShowProfileDropdown(false);
                     onLogout();
                   }}
-                  className="w-full flex items-center gap-3 px-4 py-2 text-destructive hover:bg-destructive/10 transition-colors bg-[rgba(0,0,0,0)]"
+                  className="w-full flex items-center gap-3 px-4 py-2 bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors rounded-lg"
                 >
                   <LogOut className="w-4 h-4" />
                   <span className="text-sm">로그아웃</span>
@@ -313,7 +319,7 @@ export function AuthorDashboard({
             <div className="border-t border-sidebar-border my-2"></div>
             <button
               onClick={onLogout}
-              className="w-full flex items-center gap-3 px-4 py-2 text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+              className="w-full flex items-center gap-3 px-4 py-2 bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-lg transition-colors"
             >
               <LogOut className="w-4 h-4" />
               <span className="text-sm">로그아웃</span>
@@ -610,7 +616,6 @@ function ManuscriptsTab() {
         <Input
           placeholder="파일 검색..."
           className="max-w-md"
-          icon={<Search className="w-4 h-4" />}
         />
         <Button className="bg-blue-600 hover:bg-blue-700 text-white">
           <Upload className="w-4 h-4 mr-2" />새 파일 업로드

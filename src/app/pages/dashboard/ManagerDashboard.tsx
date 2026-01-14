@@ -51,10 +51,12 @@ import { ThemeToggle } from "../../components/ui/theme-toggle";
 
 interface ManagerDashboardProps {
   onLogout: () => void;
+  onHome?: () => void;
 }
 
 export function ManagerDashboard({
   onLogout,
+  onHome,
 }: ManagerDashboardProps) {
   const [activeMenu, setActiveMenu] = useState("home");
   const [showProfileDropdown, setShowProfileDropdown] =
@@ -101,7 +103,11 @@ export function ManagerDashboard({
         )}
 
         <div className="p-6 border-b border-sidebar-border">
-          <div className="flex items-center gap-3">
+          <button
+            onClick={onHome}
+            className="flex items-center gap-3 w-full text-left hover:bg-sidebar-accent rounded-lg p-2 transition-colors"
+            aria-label="홈으로 이동"
+          >
             <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'var(--role-primary)' }}>
               <Brain className="w-6 h-6 text-white" />
             </div>
@@ -113,7 +119,7 @@ export function ManagerDashboard({
                 운영자 포털
               </div>
             </div>
-          </div>
+          </button>
         </div>
 
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
@@ -285,7 +291,7 @@ export function ManagerDashboard({
                     setShowProfileDropdown(false);
                     onLogout();
                   }}
-                  className="w-full flex items-center gap-3 px-4 py-2 text-destructive hover:bg-destructive/10 transition-colors"
+                  className="w-full flex items-center gap-3 px-4 py-2 bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors rounded-lg"
                 >
                   <LogOut className="w-4 h-4" />
                   <span className="text-sm">로그아웃</span>
@@ -325,7 +331,7 @@ export function ManagerDashboard({
             <div className="border-t border-sidebar-border my-2"></div>
             <button
               onClick={onLogout}
-              className="w-full flex items-center gap-3 px-4 py-2 text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+              className="w-full flex items-center gap-3 px-4 py-2 bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-lg transition-colors"
             >
               <LogOut className="w-4 h-4" />
               <span className="text-sm">로그아웃</span>
@@ -387,13 +393,13 @@ export function ManagerDashboard({
                 </Button>
 
                 {showActivityDropdown && (
-                  <div className="absolute right-0 top-full mt-2 w-96 bg-card border border-border rounded-lg shadow-xl py-2 z-50">
+                  <div className="absolute right-0 top-full mt-2 w-[calc(100vw-2rem)] sm:w-96 max-w-[32rem] bg-card border border-border rounded-lg shadow-xl py-2 z-50">
                     <div className="px-4 py-3 border-b border-border">
                       <h3 className="text-sm font-semibold text-foreground">
                         최근 활동
                       </h3>
                     </div>
-                    <div className="max-h-96 overflow-auto">
+                    <div className="max-h-[60vh] overflow-auto">
                       <div className="p-3 hover:bg-accent cursor-pointer transition-colors">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">

@@ -112,7 +112,7 @@
   ); /* 밝은 회색 (완전 흰색보다 눈이 편함) */
 
   /* 컨테이너 (카드, 모달 등) */
-  --card: rgba(18, 18, 20, 1);
+  --card: rgba(24, 24, 28, 1);
   --card-foreground: rgba(248, 250, 252, 1);
 
   --popover: rgba(18, 18, 20, 1);
@@ -300,9 +300,28 @@
       font-family: "Inter", sans-serif;
       font-size: var(--text-h1);
       font-weight: var(--font-weight-extrabold);
-      line-height: 1.5;
     }
+  }
+}
 
+/* Dark mode high-contrast cursor for visibility */
+@layer base {
+  .dark {
+    cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><path d='M4 4 L22 15 L14 15 L18 28 L14 30 L10 18 L4 20 Z' fill='%23ffffff' stroke='%23000000' stroke-width='2'/></svg>") 0 0, auto;
+  }
+  .dark a,
+  .dark button,
+  .dark [role='button'],
+  .dark input,
+  .dark select,
+  .dark textarea {
+    cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><path d='M4 4 L22 15 L14 15 L18 28 L14 30 L10 18 L4 20 Z' fill='%23ffffff' stroke='%23000000' stroke-width='2'/></svg>") 2 2, pointer;
+  }
+}
+@layer base {
+  :where(
+    :not(:has([class*=" text-"]), :not(:has([class^="text-"])))
+  ) {
     h2 {
       font-family: "Inter", sans-serif;
       font-size: var(--text-h2);
@@ -359,7 +378,7 @@ html {
 }
 
 /* Responsive Typography */
-@media (max-width: 768px) {
+@media (max-width: 768px) {     
   :root {
     --text-h1: 2rem; /* 32px on mobile */
     --text-h2: 1.5rem; /* 24px on mobile */

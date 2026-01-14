@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { useState, useEffect } from "react";
+import axios from 'axios';
 
 interface LandingPageProps {
   onSignInClick: () => void;
@@ -30,6 +31,25 @@ export function LandingPage({
     if (darkMode) {
       document.documentElement.classList.add('dark');
     }
+
+    // cors 테스트 ---------------------------------------------------
+    const apiUrl = 'http://localhost:8080/api/test';
+
+    axios.get(apiUrl, {
+      withCredentials: true, // 쿠키 전송 활성화
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer your_token_here'
+      }
+    })
+    .then(response => {
+      console.log('Success:', response.data);
+    })
+    .catch(error => {
+      console.error('Error:', error);
+    });
+    // cors 테스트 ---------------------------------------------------
+
   }, []);
 
   const toggleDarkMode = () => {

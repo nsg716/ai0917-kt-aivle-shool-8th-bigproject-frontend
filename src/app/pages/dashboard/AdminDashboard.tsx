@@ -36,10 +36,12 @@ import { ThemeToggle } from "../../components/ui/theme-toggle";
 
 interface AdminDashboardProps {
   onLogout: () => void;
+  onHome?: () => void;
 }
 
 export function AdminDashboard({
   onLogout,
+  onHome,
 }: AdminDashboardProps) {
   const [activeMenu, setActiveMenu] = useState("home");
   const [showProfileDropdown, setShowProfileDropdown] =
@@ -87,19 +89,29 @@ export function AdminDashboard({
 
         {/* Logo */}
         <div className="p-6 border-b border-sidebar-border">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'var(--role-primary)' }}>
+          <button
+            onClick={onHome}
+            className="flex items-center gap-3 w-full text-left hover:bg-sidebar-accent rounded-lg p-2 transition-colors"
+            aria-label="홈으로 이동"
+          >
+            <div
+              className="w-10 h-10 rounded-lg flex items-center justify-center"
+              style={{ backgroundColor: 'var(--role-primary)' }}
+            >
               <Brain className="w-6 h-6 text-white dark:text-black" />
             </div>
             <div>
               <div className="text-base font-semibold text-sidebar-foreground">
                 IPSUM
               </div>
-              <div className="text-xs font-medium" style={{ color: 'var(--role-primary)' }}>
+              <div
+                className="text-xs font-medium"
+                style={{ color: 'var(--role-primary)' }}
+              >
                 관리자
               </div>
             </div>
-          </div>
+          </button>
         </div>
 
         {/* Navigation Menu */}
@@ -181,7 +193,7 @@ export function AdminDashboard({
                     onLogout();
                     setShowProfileDropdown(false);
                   }}
-                  className="w-full flex items-center gap-3 px-4 py-2 text-destructive hover:bg-destructive/10 transition-colors"
+                  className="w-full flex items-center gap-3 px-4 py-2 bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors rounded-lg"
                 >
                   <LogOut className="w-4 h-4" />
                   <span className="text-sm">로그아웃</span>
@@ -206,7 +218,7 @@ export function AdminDashboard({
             
             <button
               onClick={onLogout}
-              className="w-full flex items-center gap-3 px-4 py-2 text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+              className="w-full flex items-center gap-3 px-4 py-2 bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-lg transition-colors"
             >
               <LogOut className="w-4 h-4" />
               <span className="text-sm">로그아웃</span>
@@ -258,13 +270,13 @@ export function AdminDashboard({
 
                 {/* Activity Dropdown */}
                 {showActivityDropdown && (
-                  <div className="absolute top-full right-0 mt-2 w-96 bg-card border border-border rounded-lg shadow-lg z-50">
+                  <div className="absolute top-full right-0 mt-2 w-[calc(100vw-2rem)] sm:w-96 max-w-[32rem] bg-card border border-border rounded-lg shadow-lg z-50">
                     <div className="p-4 border-b border-border">
                       <h3 className="text-sm font-semibold text-foreground">
                         시스템 알림
                       </h3>
                     </div>
-                    <div className="p-4 space-y-4 max-h-96 overflow-y-auto">
+                    <div className="p-4 space-y-4 max-h-[60vh] overflow-y-auto">
                       <div className="flex items-center gap-4">
                         <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
                           <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
