@@ -1,31 +1,53 @@
-import { Brain, Lock, User, ArrowLeft } from "lucide-react";
-import { Button } from "../../components/ui/button";
-import { Input } from "../../components/ui/input";
-import { Label } from "../../components/ui/label";
-import { Checkbox } from "../../components/ui/checkbox";
-import { useState } from "react";
+import { Brain, Lock, User, ArrowLeft } from 'lucide-react';
+import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { Checkbox } from '../../components/ui/checkbox';
+import { useState } from 'react';
+import axios from 'axios';
+import NaverLogin from '../../components/NaverLogin/NaverLoginButton';
 
 interface LoginPageProps {
-  onLogin: (userType: "manager" | "author" | "admin") => void;
+  onLogin: (userType: 'manager' | 'author' | 'admin') => void;
   onBack: () => void;
   onSignup: () => void;
 }
 
-export function LoginPage({
-  onLogin,
-  onBack,
-  onSignup,
-}: LoginPageProps) {
-  const [username, setUsername] = useState("");
+export function LoginPage({ onLogin, onBack, onSignup }: LoginPageProps) {
+  const [username, setUsername] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onLogin("manager");
+    onLogin('manager');
   };
 
   const handleAdminLogin = (e: React.MouseEvent) => {
     e.preventDefault();
-    onLogin("admin");
+    onLogin('admin');
+  };
+
+  const handleNaverLogin = async () => {
+    try {
+      const res = await axios.get('/api/v1/auth/naver/login', {
+        withCredentials: true,
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const data = res?.data as any;
+      if (data?.redirectUrl) {
+        window.location.href = data.redirectUrl as string;
+        return;
+      }
+      const userRole = data?.user_role as
+        | 'manager'
+        | 'author'
+        | 'admin'
+        | undefined;
+      if (userRole) {
+        onLogin(userRole);
+      }
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   return (
@@ -45,9 +67,7 @@ export function LoginPage({
           <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-lg mb-6">
             <Brain className="w-8 h-8 text-primary-foreground" />
           </div>
-          <h1 className="text-3xl text-foreground mb-2">
-            로그인
-          </h1>
+          <h1 className="text-3xl text-foreground mb-2">로그인</h1>
           <p className="text-muted-foreground">
             IP 관리 플랫폼에 오신 것을 환영합니다
           </p>
@@ -58,10 +78,7 @@ export function LoginPage({
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* ID Input */}
             <div className="space-y-2">
-              <Label
-                htmlFor="username"
-                className="text-foreground"
-              >
+              <Label htmlFor="username" className="text-foreground">
                 아이디
               </Label>
               <div className="relative">
@@ -79,10 +96,7 @@ export function LoginPage({
 
             {/* Password Input */}
             <div className="space-y-2">
-              <Label
-                htmlFor="password"
-                className="text-foreground"
-              >
+              <Label htmlFor="password" className="text-foreground">
                 비밀번호
               </Label>
               <div className="relative">
@@ -99,10 +113,7 @@ export function LoginPage({
             {/* Remember Me & Find Links */}
             <div className="flex items-center justify-between pt-1">
               <div className="flex items-center gap-2">
-                <Checkbox
-                  id="remember"
-                  className="border-border w-4 h-4"
-                />
+                <Checkbox id="remember" className="border-border w-4 h-4" />
                 <label
                   htmlFor="remember"
                   className="text-sm text-muted-foreground cursor-pointer text-[14px]"
@@ -150,24 +161,11 @@ export function LoginPage({
           </div>
 
           {/* Naver Login */}
-          <Button
-            type="button"
-            className="w-full h-12 bg-[#03C75A] hover:bg-[#02B350] text-white border-0 rounded-lg"
-            onClick={() => onLogin("author")}
-          >
-            <svg
-              className="w-5 h-5 mr-2"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-            >
-              <path d="M16.273 12.845L7.376 0H0v24h7.726V11.156L16.624 24H24V0h-7.727v12.845z" />
-            </svg>
-            네이버로 시작하기
-          </Button>
+          <NaverLogin />
 
           {/* Sign Up Link */}
           <div className="mt-6 text-center text-sm text-muted-foreground">
-            아직 계정이 없으신가요?{" "}
+            아직 계정이 없으신가요?{' '}
             <button
               onClick={onSignup}
               className="text-foreground hover:underline font-medium"
