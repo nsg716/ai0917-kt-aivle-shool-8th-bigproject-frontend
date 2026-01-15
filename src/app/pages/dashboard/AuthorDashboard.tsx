@@ -842,8 +842,8 @@ function SettingsTab({
             value={settingsCategory}
             onValueChange={setSettingsCategory}
           >
-            <div className="border-b border-border px-6 py-4 flex items-center justify-between">
-              <TabsList className="bg-transparent">
+            <div className="border-b border-border px-6 py-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <TabsList className="bg-transparent flex flex-wrap gap-2">
                 <TabsTrigger
                   value="characters"
                   className="data-[state=active]:bg-blue-50 dark:data-[state=active]:bg-blue-900/20 data-[state=active]:text-blue-700 dark:data-[state=active]:text-blue-400 px-6"
@@ -868,7 +868,7 @@ function SettingsTab({
               </TabsList>
               <Button
                 size="sm"
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white"
               >
                 <Plus className="w-4 h-4 mr-2" />새 항목 추가
               </Button>

@@ -826,7 +826,7 @@ function WorkAnalysisScreen() {
 
       {/* Grid View */}
       {viewMode === "grid" && (
-        <div className="grid grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {works.map((work) => (
             <Card
               key={work.id}
@@ -1346,17 +1346,17 @@ function IPExpansionScreen() {
   return (
     <div className="space-y-6">
       {/* Toolbar */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="relative">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 w-full">
+          <div className="relative flex-1 sm:flex-initial">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <Input
               placeholder="원작명, 작가명 검색..."
-              className="pl-10 w-80"
+              className="pl-10 w-full sm:w-72 md:w-80"
             />
           </div>
 
-          <select className="px-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 bg-white">
+          <select className="px-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 bg-white flex-1 sm:flex-initial">
             <option value="all">전체 카테고리</option>
             <option value="movie">영화</option>
             <option value="drama">드라마</option>
@@ -1367,14 +1367,14 @@ function IPExpansionScreen() {
           <Button
             variant="outline"
             size="sm"
-            className="border-slate-200"
+            className="border-slate-200 flex-1 sm:flex-initial"
           >
             <ArrowUpDown className="w-4 h-4 mr-2" />
             최신순
           </Button>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full justify-end md:w-auto">
           <Button
             className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
             onClick={() => setShowCreateDialog(true)}
@@ -1393,7 +1393,7 @@ function IPExpansionScreen() {
       </div>
 
       {/* Grid View */}
-      <div className="grid grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         <Card className="border-slate-200 hover:shadow-lg transition-all cursor-pointer">
           <CardContent className="p-4">
             <div className="aspect-[3/4] bg-gradient-to-br from-red-500 to-red-600 rounded-lg mb-3 flex items-center justify-center">
@@ -2084,27 +2084,27 @@ function AuthorManagementScreen() {
   return (
     <div className="space-y-6">
       {/* Toolbar */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="relative">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 w-full">
+          <div className="relative flex-1 sm:flex-initial">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <Input
               placeholder="작가명 검색..."
-              className="pl-10 w-80"
+              className="pl-10 w-full sm:w-72 md:w-80"
             />
           </div>
 
           <Button
             variant="outline"
             size="sm"
-            className="border-slate-200"
+            className="border-slate-200 flex-1 sm:flex-initial"
           >
             <ArrowUpDown className="w-4 h-4 mr-2" />
             이름순
           </Button>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full justify-end md:w-auto">
           <Button
             variant={viewMode === "grid" ? "default" : "ghost"}
             size="sm"
@@ -2124,7 +2124,7 @@ function AuthorManagementScreen() {
 
       {/* Grid View */}
       {viewMode === "grid" && (
-        <div className="grid grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
           {[
             "김민지",
             "이재원",
@@ -2276,17 +2276,17 @@ function ThreeDAssetsScreen() {
   return (
     <div className="space-y-6">
       {/* Toolbar */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="relative">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 w-full">
+          <div className="relative flex-1 sm:flex-initial">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <Input
               placeholder="에셋명, 카테고리 검색..."
-              className="pl-10 w-80"
+              className="pl-10 w-full sm:w-72 md:w-80"
             />
           </div>
 
-          <select className="px-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 bg-white">
+          <select className="px-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 bg-white flex-1 sm:flex-initial">
             <option value="all">전체 카테고리</option>
             <option value="interior">실내</option>
             <option value="exterior">실외</option>
@@ -2297,14 +2297,14 @@ function ThreeDAssetsScreen() {
           <Button
             variant="outline"
             size="sm"
-            className="border-slate-200"
+            className="border-slate-200 flex-1 sm:flex-initial"
           >
             <ArrowUpDown className="w-4 h-4 mr-2" />
             최신순
           </Button>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 w-full justify-end md:w-auto">
           <Button className="bg-blue-600 hover:bg-blue-700 text-white">
             <Plus className="w-4 h-4 mr-2" />새 에셋 업로드
           </Button>
