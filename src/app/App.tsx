@@ -48,6 +48,7 @@ export default function App() {
     setUserType(type);
     // 2. 저장
     localStorage.setItem('userRole', type);
+    localStorage.setItem('accessToken', 'dev');
     // 3. 이동 (replace: true로 인증 기록 제거)
     navigate('/', { replace: true });
   };

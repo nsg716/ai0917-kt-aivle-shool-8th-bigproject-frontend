@@ -31,6 +31,7 @@ import {
 } from "../../components/ui/card";
 import { Badge } from "../../components/ui/badge";
 import { Input } from "../../components/ui/input";
+import { Textarea } from "../../components/ui/textarea";
 import { useState } from "react";
 import { ThemeToggle } from "../../components/ui/theme-toggle";
 
@@ -681,6 +682,88 @@ function HomeTab() {
 
 // Notices Tab Component
 function NoticesTab() {
+  const [notices, setNotices] = useState<
+    { title: string; date: string; status: "published" | "draft"; views: number; content?: string }[]
+  >([
+    {
+      title: "Lorem ipsum dolor sit amet consectetur",
+      date: "2026.01.08",
+      status: "published",
+      views: 1523,
+    },
+    {
+      title: "Sed do eiusmod tempor incididunt",
+      date: "2026.01.08",
+      status: "published",
+      views: 892,
+    },
+    {
+      title: "Ut enim ad minim veniam quis nostrud",
+      date: "2026.01.07",
+      status: "published",
+      views: 654,
+    },
+    {
+      title: "Duis aute irure dolor in reprehenderit",
+      date: "2025.12.24",
+      status: "draft",
+      views: 0,
+    },
+    {
+      title: "Excepteur sint occaecat cupidatat",
+      date: "2025.12.23",
+      status: "published",
+      views: 2341,
+    },
+  ]);
+  const [showModal, setShowModal] = useState(false);
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+
+  const openCreate = () => {
+    setEditingIndex(null);
+    setTitle("");
+    setContent("");
+    setShowModal(true);
+  };
+
+  const openEdit = (idx: number) => {
+    const n = notices[idx];
+    setEditingIndex(idx);
+    setTitle(n.title);
+    setContent(n.content || "");
+    setShowModal(true);
+  };
+
+  const onConfirm = () => {
+    if (!title.trim()) return;
+    const today = new Date();
+    const dateStr = `${today.getFullYear()}.${String(today.getMonth() + 1).padStart(2, "0")}.${String(
+      today.getDate()
+    ).padStart(2, "0")}`;
+    if (editingIndex === null) {
+      setNotices([
+        { title, content, date: dateStr, status: "published", views: 0 },
+        ...notices,
+      ]);
+    } else {
+      const next = [...notices];
+      next[editingIndex] = {
+        ...next[editingIndex],
+        title,
+        content,
+      };
+      setNotices(next);
+    }
+    setShowModal(false);
+  };
+
+  const onDelete = (idx: number) => {
+    const next = notices.filter((_, i) => i !== idx);
+    setNotices(next);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0">
@@ -689,51 +772,19 @@ function NoticesTab() {
             <Megaphone className="w-6 h-6 text-blue-600 dark:text-blue-400" />
           </div>
           <div>
-            <h2 className="text-lg text-foreground font-semibold">
-              공지사항
-            </h2>
+            <h2 className="text-lg text-foreground font-semibold">공지사항</h2>
           </div>
         </div>
-        <Button className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white">
-          <Megaphone className="w-4 h-4 mr-2" />새 공지사항 작성
+        <Button onClick={openCreate} className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white">
+          <Megaphone className="w-4 h-4 mr-2" />
+          새 공지사항 작성
         </Button>
       </div>
 
       <Card className="border-border">
         <CardContent className="p-0">
           <div className="divide-y divide-border">
-            {[
-              {
-                title: "Lorem ipsum dolor sit amet consectetur",
-                date: "2026.01.08",
-                status: "published",
-                views: 1523,
-              },
-              {
-                title: "Sed do eiusmod tempor incididunt",
-                date: "2026.01.08",
-                status: "published",
-                views: 892,
-              },
-              {
-                title: "Ut enim ad minim veniam quis nostrud",
-                date: "2026.01.07",
-                status: "published",
-                views: 654,
-              },
-              {
-                title: "Duis aute irure dolor in reprehenderit",
-                date: "2025.12.24",
-                status: "draft",
-                views: 0,
-              },
-              {
-                title: "Excepteur sint occaecat cupidatat",
-                date: "2025.12.23",
-                status: "published",
-                views: 2341,
-              },
-            ].map((notice, idx) => (
+            {notices.map((notice, idx) => (
               <div
                 key={idx}
                 className="flex flex-col md:flex-row md:items-center justify-between p-4 md:p-5 hover:bg-muted/50 cursor-pointer transition-colors gap-4 md:gap-0"
@@ -748,14 +799,9 @@ function NoticesTab() {
                         {notice.title}
                       </span>
                       {notice.status === "published" ? (
-                        <Badge className="bg-green-500 text-white text-xs shrink-0">
-                          게시됨
-                        </Badge>
+                        <Badge className="bg-green-500 text-white text-xs shrink-0">게시됨</Badge>
                       ) : (
-                        <Badge
-                          variant="outline"
-                          className="border-border text-muted-foreground text-xs shrink-0"
-                        >
+                        <Badge variant="outline" className="border-border text-muted-foreground text-xs shrink-0">
                           임시저장
                         </Badge>
                       )}
@@ -767,17 +813,14 @@ function NoticesTab() {
                   </div>
                 </div>
                 <div className="flex gap-2 justify-end w-full md:w-auto pl-14 md:pl-0">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="border-border"
-                  >
+                  <Button size="sm" variant="outline" className="border-border" onClick={() => openEdit(idx)}>
                     수정
                   </Button>
                   <Button
                     size="sm"
                     variant="outline"
                     className="border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+                    onClick={() => onDelete(idx)}
                   >
                     삭제
                   </Button>
@@ -787,6 +830,42 @@ function NoticesTab() {
           </div>
         </CardContent>
       </Card>
+
+      {showModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="w-full max-w-md bg-card border border-border rounded-lg shadow-lg">
+            <div className="p-4 sm:p-5 border-b border-border flex items-center justify-between">
+              <h3 className="text-base sm:text-lg font-semibold text-foreground">
+                {editingIndex === null ? "새 공지사항 작성" : "공지사항 수정"}
+              </h3>
+              <button
+                onClick={() => setShowModal(false)}
+                className="p-1 rounded-md text-muted-foreground hover:bg-muted transition-colors"
+              >
+                <CloseIcon className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-4 sm:p-5 space-y-3 sm:space-y-4">
+              <div className="space-y-1">
+                <div className="text-xs sm:text-sm text-muted-foreground">제목</div>
+                <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <div className="text-xs sm:text-sm text-muted-foreground">공지사항 내용</div>
+                <Textarea value={content} onChange={(e) => setContent(e.target.value)} className="min-h-32" />
+              </div>
+            </div>
+            <div className="p-4 sm:p-5 border-t border-border flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowModal(false)} className="px-3 sm:px-4 text-sm">
+                취소
+              </Button>
+              <Button onClick={onConfirm} className="px-3 sm:px-4 text-sm bg-blue-600 hover:bg-blue-700 text-white">
+                확인
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

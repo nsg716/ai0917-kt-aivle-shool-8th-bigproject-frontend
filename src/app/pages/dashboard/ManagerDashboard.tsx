@@ -48,6 +48,7 @@ import { Input } from "../../components/ui/input";
 import { Badge } from "../../components/ui/badge";
 import { useState } from "react";
 import { ThemeToggle } from "../../components/ui/theme-toggle";
+import { Textarea } from "../../components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -2475,6 +2476,92 @@ function ThreeDAssetsScreen() {
 
 // Notice Screen
 function NoticeScreen() {
+  const [notices, setNotices] = useState<
+    { title: string; desc: string; date: string; author: string; isNew?: boolean }[]
+  >([
+    {
+      title: "Lorem ipsum dolor sit amet consectetur",
+      desc: "Consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore.",
+      date: "2026.01.08",
+      author: "Admin",
+      isNew: true,
+    },
+    {
+      title: "Sed do eiusmod tempor incididunt",
+      desc: "Ut labore et dolore magna aliqua enim ad minim veniam quis nostrud.",
+      date: "2026.01.08",
+      author: "Tech Team",
+      isNew: true,
+    },
+    {
+      title: "Ut enim ad minim veniam quis nostrud",
+      desc: "Exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
+      date: "2026.01.08",
+      author: "Education",
+      isNew: true,
+    },
+    {
+      title: "Duis aute irure dolor in reprehenderit",
+      desc: "Voluptate velit esse cillum dolore eu fugiat nulla pariatur.",
+      date: "2025.12.24",
+      author: "Admin",
+    },
+    {
+      title: "Excepteur sint occaecat cupidatat",
+      desc: "Non proident sunt in culpa qui officia deserunt mollit anim.",
+      date: "2025.12.23",
+      author: "Admin",
+    },
+    {
+      title: "Laborum deserunt mollit anim id est",
+      desc: "Sed ut perspiciatis unde omnis iste natus error sit voluptatem.",
+      date: "2025.12.20",
+      author: "Admin",
+    },
+  ]);
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+
+  const openCreate = () => {
+    setEditingIndex(null);
+    setTitle("");
+    setContent("");
+    setOpen(true);
+  };
+
+  const openEdit = (idx: number) => {
+    const n = notices[idx];
+    setEditingIndex(idx);
+    setTitle(n.title);
+    setContent(n.desc);
+    setOpen(true);
+  };
+
+  const onConfirm = () => {
+    if (!title.trim()) return;
+    const today = new Date();
+    const dateStr = `${today.getFullYear()}.${String(today.getMonth() + 1).padStart(2, "0")}.${String(
+      today.getDate()
+    ).padStart(2, "0")}`;
+    if (editingIndex === null) {
+      setNotices([
+        { title, desc: content, date: dateStr, author: "Admin", isNew: true },
+        ...notices,
+      ]);
+    } else {
+      const next = [...notices];
+      next[editingIndex] = { ...next[editingIndex], title, desc: content };
+      setNotices(next);
+    }
+    setOpen(false);
+  };
+
+  const onDelete = (idx: number) => {
+    setNotices(notices.filter((_, i) => i !== idx));
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -2491,154 +2578,74 @@ function NoticeScreen() {
             </p>
           </div>
         </div>
+        <Button onClick={openCreate} className="bg-blue-600 text-white hover:bg-blue-700">
+          <Megaphone className="w-4 h-4 mr-2" />
+          새 공지사항 작성
+        </Button>
       </div>
 
       <Card className="border-slate-200">
         <CardContent className="p-0">
           <div className="divide-y divide-slate-100">
-            <div className="flex items-center justify-between p-5 hover:bg-slate-50 cursor-pointer transition-colors">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-base text-slate-900">
-                    Lorem ipsum dolor sit amet consectetur
-                  </span>
-                  <Badge className="bg-orange-500 text-white text-xs">
-                    N
-                  </Badge>
+            {notices.map((n, idx) => (
+              <div
+                key={idx}
+                className="flex items-center justify-between p-5 hover:bg-slate-50 cursor-pointer transition-colors"
+              >
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-base text-slate-900">{n.title}</span>
+                    {n.isNew && <Badge className="bg-orange-500 text-white text-xs">N</Badge>}
+                  </div>
+                  <p className="text-sm text-slate-600">{n.desc}</p>
                 </div>
-                <p className="text-sm text-slate-600">
-                  Consectetur adipiscing elit sed do eiusmod
-                  tempor incididunt ut labore.
-                </p>
-              </div>
-              <div className="ml-6 text-right">
-                <div className="text-sm text-slate-900 mb-1">
-                  2026.01.08
-                </div>
-                <div className="text-xs text-slate-500">
-                  Admin
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between p-5 hover:bg-slate-50 cursor-pointer transition-colors">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-base text-slate-900">
-                    Sed do eiusmod tempor incididunt
-                  </span>
-                  <Badge className="bg-orange-500 text-white text-xs">
-                    N
-                  </Badge>
-                </div>
-                <p className="text-sm text-slate-600">
-                  Ut labore et dolore magna aliqua enim ad minim
-                  veniam quis nostrud.
-                </p>
-              </div>
-              <div className="ml-6 text-right">
-                <div className="text-sm text-slate-900 mb-1">
-                  2026.01.08
-                </div>
-                <div className="text-xs text-slate-500">
-                  Tech Team
+                <div className="ml-6 text-right">
+                  <div className="text-sm text-slate-900 mb-1">{n.date}</div>
+                  <div className="text-xs text-slate-500">{n.author}</div>
+                  <div className="mt-2 flex gap-2 justify-end">
+                    <Button variant="outline" size="sm" className="border-slate-300" onClick={() => openEdit(idx)}>
+                      수정
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-red-300 text-red-600 hover:bg-red-50"
+                      onClick={() => onDelete(idx)}
+                    >
+                      삭제
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </div>
-
-            <div className="flex items-center justify-between p-5 hover:bg-slate-50 cursor-pointer transition-colors">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-base text-slate-900">
-                    Ut enim ad minim veniam quis nostrud
-                  </span>
-                  <Badge className="bg-orange-500 text-white text-xs">
-                    N
-                  </Badge>
-                </div>
-                <p className="text-sm text-slate-600">
-                  Exercitation ullamco laboris nisi ut aliquip
-                  ex ea commodo consequat.
-                </p>
-              </div>
-              <div className="ml-6 text-right">
-                <div className="text-sm text-slate-900 mb-1">
-                  2026.01.08
-                </div>
-                <div className="text-xs text-slate-500">
-                  Education
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between p-5 hover:bg-slate-50 cursor-pointer transition-colors">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-base text-slate-900">
-                    Duis aute irure dolor in reprehenderit
-                  </span>
-                </div>
-                <p className="text-sm text-slate-600">
-                  Voluptate velit esse cillum dolore eu fugiat
-                  nulla pariatur.
-                </p>
-              </div>
-              <div className="ml-6 text-right">
-                <div className="text-sm text-slate-900 mb-1">
-                  2025.12.24
-                </div>
-                <div className="text-xs text-slate-500">
-                  Admin
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between p-5 hover:bg-slate-50 cursor-pointer transition-colors">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-base text-slate-900">
-                    Excepteur sint occaecat cupidatat
-                  </span>
-                </div>
-                <p className="text-sm text-slate-600">
-                  Non proident sunt in culpa qui officia
-                  deserunt mollit anim.
-                </p>
-              </div>
-              <div className="ml-6 text-right">
-                <div className="text-sm text-slate-900 mb-1">
-                  2025.12.23
-                </div>
-                <div className="text-xs text-slate-500">
-                  Admin
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between p-5 hover:bg-slate-50 cursor-pointer transition-colors">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-base text-slate-900">
-                    Laborum deserunt mollit anim id est
-                  </span>
-                </div>
-                <p className="text-sm text-slate-600">
-                  Sed ut perspiciatis unde omnis iste natus
-                  error sit voluptatem.
-                </p>
-              </div>
-              <div className="ml-6 text-right">
-                <div className="text-sm text-slate-900 mb-1">
-                  2025.12.20
-                </div>
-                <div className="text-xs text-slate-500">
-                  Admin
-                </div>
-              </div>
-            </div>
+            ))}
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingIndex === null ? "새 공지사항 작성" : "공지사항 수정"}</DialogTitle>
+            <DialogDescription>제목과 내용을 입력하세요</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="제목" />
+            </div>
+            <div>
+              <Textarea value={content} onChange={(e) => setContent(e.target.value)} className="min-h-32" placeholder="공지사항 내용" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>
+              취소
+            </Button>
+            <Button className="bg-blue-600 text-white hover:bg-blue-700" onClick={onConfirm}>
+              확인
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Pagination */}
       <div className="flex items-center justify-center gap-2">
