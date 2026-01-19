@@ -2477,7 +2477,7 @@ function ThreeDAssetsScreen() {
 // Notice Screen
 function NoticeScreen() {
   const [notices, setNotices] = useState<
-    { title: string; desc: string; date: string; author: string; isNew?: boolean }[]
+    { title: string; desc: string; date: string; author: string; isNew?: boolean; files?: { name: string; url: string; type: string }[] }[]
   >([
     {
       title: "Lorem ipsum dolor sit amet consectetur",
@@ -2523,11 +2523,22 @@ function NoticeScreen() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [files, setFiles] = useState<{ name: string; url: string; type: string }[]>([]);
+  const [viewOpen, setViewOpen] = useState(false);
+  const [viewIndex, setViewIndex] = useState<number | null>(null);
+  const [viewNotice, setViewNotice] = useState<{
+    title: string;
+    desc: string;
+    date: string;
+    author: string;
+    files?: { name: string; url: string; type: string }[];
+  } | null>(null);
 
   const openCreate = () => {
     setEditingIndex(null);
     setTitle("");
     setContent("");
+    setFiles([]);
     setOpen(true);
   };
 
@@ -2536,6 +2547,7 @@ function NoticeScreen() {
     setEditingIndex(idx);
     setTitle(n.title);
     setContent(n.desc);
+    setFiles(n.files || []);
     setOpen(true);
   };
 
@@ -2546,13 +2558,10 @@ function NoticeScreen() {
       today.getDate()
     ).padStart(2, "0")}`;
     if (editingIndex === null) {
-      setNotices([
-        { title, desc: content, date: dateStr, author: "Admin", isNew: true },
-        ...notices,
-      ]);
+      setNotices([{ title, desc: content, date: dateStr, author: "운영자", isNew: true, files: files.length ? files : undefined }, ...notices]);
     } else {
       const next = [...notices];
-      next[editingIndex] = { ...next[editingIndex], title, desc: content };
+      next[editingIndex] = { ...next[editingIndex], title, desc: content, files: files.length ? files : undefined };
       setNotices(next);
     }
     setOpen(false);
@@ -2591,29 +2600,23 @@ function NoticeScreen() {
               <div
                 key={idx}
                 className="flex items-center justify-between p-5 hover:bg-slate-50 cursor-pointer transition-colors"
+                onClick={() => {
+                  setViewIndex(idx);
+                  setViewNotice(n);
+                  setViewOpen(true);
+                }}
               >
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-base text-slate-900">{n.title}</span>
-                    {n.isNew && <Badge className="bg-orange-500 text-white text-xs">N</Badge>}
-                  </div>
-                  <p className="text-sm text-slate-600">{n.desc}</p>
-                </div>
-                <div className="ml-6 text-right">
-                  <div className="text-sm text-slate-900 mb-1">{n.date}</div>
-                  <div className="text-xs text-slate-500">{n.author}</div>
-                  <div className="mt-2 flex gap-2 justify-end">
-                    <Button variant="outline" size="sm" className="border-slate-300" onClick={() => openEdit(idx)}>
-                      수정
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-red-300 text-red-600 hover:bg-red-50"
-                      onClick={() => onDelete(idx)}
-                    >
-                      삭제
-                    </Button>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-500">{idx + 1}</span>
+                      <span className="text-[16px] text-slate-900 font-normal break-words">{n.title}</span>
+                      {n.isNew && <Badge className="bg-orange-500 text-white text-xs">N</Badge>}
+                    </div>
+                    <div className="flex flex-col items-end shrink-0">
+                      <div className="text-sm text-slate-900">{n.date}</div>
+                      <div className="text-xs text-slate-500">{n.author === "Admin" ? "관리자" : "운영자"}</div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -2623,17 +2626,70 @@ function NoticeScreen() {
       </Card>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>{editingIndex === null ? "새 공지사항 작성" : "공지사항 수정"}</DialogTitle>
             <DialogDescription>제목과 내용을 입력하세요</DialogDescription>
           </DialogHeader>
-          <div className="space-y-3">
+          <div className="space-y-1 max-h-[60vh] overflow-y-auto pr-2">
+            <Card className="border-slate-200">
+              <CardHeader className="px-3 py-0 space-y-0">
+                <CardTitle className="text-sm">제목</CardTitle>
+              </CardHeader>
+              <CardContent className="py-0 px-3">
+                <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="제목" />
+              </CardContent>
+            </Card>
+            <Card className="border-slate-200">
+              <CardHeader className="px-3 py-0 space-y-0">
+                <CardTitle className="text-sm">내용</CardTitle>
+              </CardHeader>
+              <CardContent className="py-0 px-3">
+                <Textarea value={content} onChange={(e) => setContent(e.target.value)} className="min-h-32" placeholder="공지사항 내용" />
+              </CardContent>
+            </Card>
             <div>
-              <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="제목" />
-            </div>
-            <div>
-              <Textarea value={content} onChange={(e) => setContent(e.target.value)} className="min-h-32" placeholder="공지사항 내용" />
+              <div className="text-xs text-slate-500">파일 업로드</div>
+              <Input
+                type="file"
+                accept="image/*,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt"
+                multiple
+                onChange={(e) => {
+                  const selected = Array.from(e.target.files || []);
+                  const mapped = selected.map((f) => ({ name: f.name, url: URL.createObjectURL(f), type: f.type }));
+                  setFiles((prev) => [...prev, ...mapped]);
+                }}
+              />
+              <div className="text-xs text-slate-500">{files.length ? `${files.length}개 파일 선택됨` : "선택된 파일 없음"}</div>
+              {files.length > 0 && (
+                <div className="mt-2 space-y-2">
+                  {files.map((f, i) => (
+                    <div key={`${f.name}-${i}`} className="relative inline-block">
+                      {f.type.startsWith("image") ? (
+                        <img src={f.url} alt={f.name} className="w-full max-h-48 object-contain rounded-md border border-slate-200" />
+                      ) : (
+                        <a href={f.url} download={f.name} className="inline-flex items-center text-sm text-blue-600 underline">
+                          파일 다운로드: {f.name}
+                        </a>
+                      )}
+                      <button
+                        className="absolute -top-2 -right-2 h-6 w-6 rounded-full border border-slate-300 bg-white text-slate-600 flex items-center justify-center hover:bg-slate-100"
+                        onClick={() => {
+                          setFiles((prev) => prev.filter((_, idx) => idx !== i));
+                        }}
+                        aria-label="파일 제거"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                  <div className="flex gap-2">
+                    <Button variant="outline" className="border-slate-300" onClick={() => setFiles([])}>
+                      모두 제거
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
           <DialogFooter>
@@ -2642,6 +2698,76 @@ function NoticeScreen() {
             </Button>
             <Button className="bg-blue-600 text-white hover:bg-blue-700" onClick={onConfirm}>
               확인
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={viewOpen} onOpenChange={setViewOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader className="text-center sm:text-center">
+            <DialogTitle>공지사항</DialogTitle>
+          </DialogHeader>
+          {viewNotice && (
+            <div className="p-0 sm:p-0">
+              <div className="flex items-center gap-2">
+                {viewIndex !== null && <span className="text-xs text-slate-500">{viewIndex + 1}</span>}
+                <div className="text-xl text-slate-900 font-semibold">{viewNotice.title}</div>
+              </div>
+              <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-2">
+                {viewNotice.files && viewNotice.files.length > 0 && (
+                  <div className="space-y-2">
+                    {viewNotice.files.map((f, i) =>
+                      f.type.startsWith("image") ? (
+                        <img
+                          key={`${f.name}-${i}`}
+                          src={f.url}
+                          alt={f.name}
+                          className="w-full max-h-64 object-contain rounded-md border border-slate-200 shadow-sm"
+                        />
+                      ) : (
+                        <a
+                          key={`${f.name}-${i}`}
+                          href={f.url}
+                          download={f.name}
+                          className="inline-flex items-center text-sm text-blue-600 underline"
+                        >
+                          파일 다운로드: {f.name}
+                        </a>
+                      )
+                    )}
+                  </div>
+                )}
+                <div className="text-sm text-slate-900 whitespace-pre-wrap">{viewNotice.desc}</div>
+              </div>
+              <div className="mt-4 text-xs text-slate-500 text-left">{viewNotice.date} • {viewNotice.author}</div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (viewIndex !== null) {
+                  openEdit(viewIndex);
+                  setViewOpen(false);
+                }
+              }}
+            >
+              수정
+            </Button>
+            <Button
+              variant="outline"
+              className="border-red-300 text-red-600 hover:bg-red-50"
+              onClick={() => {
+                if (viewIndex !== null) {
+                  onDelete(viewIndex);
+                  setViewOpen(false);
+                }
+              }}
+            >
+              삭제
+            </Button>
+            <Button variant="outline" onClick={() => setViewOpen(false)}>
+              닫기
             </Button>
           </DialogFooter>
         </DialogContent>
