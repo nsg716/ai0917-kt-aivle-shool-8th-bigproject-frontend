@@ -1,4 +1,12 @@
-import { Brain, Users, Globe, ArrowRight, Menu, X, BookMarked } from 'lucide-react';
+import {
+  Brain,
+  Users,
+  Globe,
+  ArrowRight,
+  Menu,
+  X,
+  BookMarked,
+} from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { useState, useEffect } from 'react';
 import { ThemeToggle } from '../../components/ui/theme-toggle';
@@ -15,7 +23,7 @@ export function LandingPage({ onSignInClick }: LandingPageProps) {
   useEffect(() => {
     // cors 테스트 ---------------------------------------------------
     axios
-      .get(`${import.meta.env.VITE_BACKEND_URL}/hello`, {
+      .get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/hello`, {
         withCredentials: true, // 쿠키 전송 활성화
         headers: {
           'Content-Type': 'application/json',

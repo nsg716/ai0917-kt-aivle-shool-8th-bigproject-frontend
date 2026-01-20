@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Brain, Mail, ArrowLeft } from 'lucide-react';
+import { Brain, ArrowLeft, Loader2 } from 'lucide-react'; // 로딩 아이콘 추가
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
@@ -16,37 +16,62 @@ export function SignupPage({ onSignupComplete, onBack }: SignupPageProps) {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  // 1. URL 파라미터에서 데이터 추출
+  // 1. URL에서는 오직 'token'만 추출합니다.
   const token = searchParams.get('token');
-  const naverEmail = searchParams.get('email');
-  const naverName = searchParams.get('name');
-  const naverMobile = searchParams.get('mobile');
 
-  // 2. 보안 로직: 토큰이 없으면 비정상 접근으로 간주
-  useEffect(() => {
-    if (!token) {
-      alert('네이버 인증 정보가 없습니다. 다시 로그인 해주세요.');
-      navigate('/login', { replace: true });
-    }
-  }, [token, navigate]);
-
-  // 초기 상태 설정
+  // 상태 관리
+  const [isLoading, setIsLoading] = useState(true);
   const [formData, setFormData] = useState({
-    name: naverName ?? '',
-    email: naverEmail ?? '',
+    name: '',
+    email: '',
     password: '',
     passwordConfirm: '',
-    mobile: naverMobile ?? '',
-    gender: searchParams.get('gender') ?? '',
-    birthday: searchParams.get('birthday') ?? '',
-    birthYear: searchParams.get('birthYear') ?? '',
+    mobile: '',
+    gender: '',
+    birthday: '',
+    birthYear: '',
   });
 
   const [termsAgree, setTermsAgree] = useState(false);
   const [privacyAgree, setPrivacyAgree] = useState(false);
 
-  // 토큰 검사 중일 때 깜빡임 방지
-  if (!token) return null;
+  // 2. 페이지 로드 시 토큰으로 사용자 정보 가져오기
+  useEffect(() => {
+    if (!token) {
+      alert('네이버 인증 정보가 없습니다. 다시 로그인 해주세요.');
+      navigate('/login', { replace: true });
+      return;
+    }
+
+    const fetchUserProfile = async () => {
+      try {
+        const backendUrl = import.meta.env.VITE_BACKEND_URL.replace(/\/$/, '');
+        // Bearer 토큰을 헤더에 실어 내 정보 요청
+        const response = await axios.get(`${backendUrl}/api/v1/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        const user = response.data;
+        setFormData((prev) => ({
+          ...prev,
+          name: user.name ?? '',
+          email: user.email ?? '',
+          mobile: user.mobile ?? '',
+          gender: user.gender ?? '',
+          birthday: user.birthday ?? '',
+          birthYear: user.birthYear ?? '',
+        }));
+      } catch (err) {
+        console.error('프로필 로드 실패:', err);
+        alert('사용자 정보를 불러오는데 실패했습니다.');
+        navigate('/login');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUserProfile();
+  }, [token, navigate]);
 
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -86,6 +111,15 @@ export function SignupPage({ onSignupComplete, onBack }: SignupPageProps) {
     }
   };
 
+  // 로딩 중일 때 표시할 화면
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-10 h-10 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4 py-10 md:px-6 md:py-12">
       <div className="w-full max-w-md">
@@ -105,15 +139,14 @@ export function SignupPage({ onSignupComplete, onBack }: SignupPageProps) {
             프로필 완성
           </h1>
           <p className="text-muted-foreground text-sm">
-            네이버 인증이 완료되었습니다. <br /> 추가 정보를 입력하여 작가
-            가입을 완료하세요.
+            네이버 인증이 완료되었습니다. <br /> 추가 정보를 입력하여 가입을
+            완료하세요.
           </p>
         </div>
 
         <div className="bg-card border border-border rounded-3xl p-6 md:p-8 shadow-sm">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-4">
-              {/* 이메일 (수정 불가) */}
               <div className="space-y-2">
                 <Label className="text-xs font-bold ml-1">인증된 이메일</Label>
                 <Input
@@ -123,12 +156,8 @@ export function SignupPage({ onSignupComplete, onBack }: SignupPageProps) {
                 />
               </div>
 
-              {/* 비밀번호 설정 */}
               <div className="space-y-2">
-                <Label
-                  htmlFor="password font-bold"
-                  className="text-xs font-bold ml-1"
-                >
+                <Label htmlFor="password" className="text-xs font-bold ml-1">
                   비밀번호 설정
                 </Label>
                 <Input
@@ -173,8 +202,7 @@ export function SignupPage({ onSignupComplete, onBack }: SignupPageProps) {
                   id="name"
                   value={formData.name}
                   onChange={(e) => handleChange('name', e.target.value)}
-                  readOnly={Boolean(naverName)}
-                  className={`h-12 ${naverName ? 'bg-muted cursor-not-allowed' : ''}`}
+                  className="h-12"
                 />
               </div>
               <div className="space-y-2">
@@ -191,7 +219,6 @@ export function SignupPage({ onSignupComplete, onBack }: SignupPageProps) {
               </div>
             </div>
 
-            {/* 약관 동의 */}
             <div className="space-y-3 pt-2">
               <div className="flex items-center gap-3">
                 <Checkbox
