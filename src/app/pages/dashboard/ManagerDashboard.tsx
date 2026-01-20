@@ -13,43 +13,35 @@ import {
   ChevronRight,
   ChevronDown,
   Bell,
-  Database,
-  Sparkles,
-  Film,
   LogOut,
   Settings,
   User,
-} from "lucide-react";
-import { Button } from "../../components/ui/button";
-import { useState } from "react";
-import { ThemeToggle } from "../../components/ui/theme-toggle";
+} from 'lucide-react';
+import { Button } from '../../components/ui/button';
+import { useState } from 'react';
+import { ThemeToggle } from '../../components/ui/theme-toggle';
 
-import { ManagerHome } from "./manager/ManagerHome";
-import { ManagerWorkAnalysis } from "./manager/ManagerWorkAnalysis";
-import { ManagerIPTrend } from "./manager/ManagerIPTrend";
-import { ManagerIPExpansion } from "./manager/ManagerIPExpansion";
-import { ManagerAuthorManagement } from "./manager/ManagerAuthorManagement";
-import { Manager3DAssets } from "./manager/Manager3DAssets";
-import { ManagerNotice } from "./manager/ManagerNotice";
-import { ManagerContestTemplates } from "./manager/ManagerContestTemplates";
-import { ManagerMyPage } from "./manager/ManagerMyPage";
-import { ManagerSettings } from "./manager/ManagerSettings";
+import { ManagerHome } from './manager/ManagerHome';
+import { ManagerWorkAnalysis } from './manager/ManagerWorkAnalysis';
+import { ManagerIPTrend } from './manager/ManagerIPTrend';
+import { ManagerIPExpansion } from './manager/ManagerIPExpansion';
+import { ManagerAuthorManagement } from './manager/ManagerAuthorManagement';
+import { Manager3DAssets } from './manager/Manager3DAssets';
+import { ManagerNotice } from './manager/ManagerNotice';
+import { ManagerContestTemplates } from './manager/ManagerContestTemplates';
+import { ManagerMyPage } from './manager/ManagerMyPage';
+import { ManagerSettings } from './manager/ManagerSettings';
 
 interface ManagerDashboardProps {
   onLogout: () => void;
   onHome?: () => void;
 }
 
-export function ManagerDashboard({
-  onLogout,
-  onHome,
-}: ManagerDashboardProps) {
-  const [activeMenu, setActiveMenu] = useState("home");
-  const [showProfileDropdown, setShowProfileDropdown] =
-    useState(false);
+export function ManagerDashboard({ onLogout, onHome }: ManagerDashboardProps) {
+  const [activeMenu, setActiveMenu] = useState('home');
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [showActivityDropdown, setShowActivityDropdown] =
-    useState(false);
+  const [showActivityDropdown, setShowActivityDropdown] = useState(false);
 
   const handleMenuClick = (menu: string) => {
     setActiveMenu(menu);
@@ -74,7 +66,7 @@ export function ManagerDashboard({
 
       {/* Sidebar */}
       <aside
-        className={`${sidebarOpen ? "w-full md:w-64" : "w-0"} bg-sidebar border-r border-sidebar-border flex flex-col overflow-hidden fixed md:relative h-full z-40`}
+        className={`${sidebarOpen ? 'w-full md:w-64' : 'w-0'} bg-sidebar border-r border-sidebar-border flex flex-col overflow-hidden fixed md:relative h-full z-40`}
       >
         {/* Close Button */}
         {sidebarOpen && (
@@ -94,14 +86,18 @@ export function ManagerDashboard({
             className="flex items-center gap-3 w-full text-left hover:bg-sidebar-accent rounded-lg p-2 transition-colors"
             aria-label="홈으로 이동"
           >
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'var(--role-primary)' }}>
+            <div
+              className="w-10 h-10 rounded-lg flex items-center justify-center"
+              style={{ backgroundColor: 'var(--role-primary)' }}
+            >
               <Brain className="w-6 h-6 text-white" />
             </div>
             <div>
-              <div className="text-sidebar-foreground font-semibold">
-                IPSUM
-              </div>
-              <div className="text-xs font-medium" style={{ color: 'var(--role-primary)' }}>
+              <div className="text-sidebar-foreground font-semibold">IPSUM</div>
+              <div
+                className="text-xs font-medium"
+                style={{ color: 'var(--role-primary)' }}
+              >
                 운영자 포털
               </div>
             </div>
@@ -111,117 +107,139 @@ export function ManagerDashboard({
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {/* Home - Hidden on mobile */}
           <button
-            onClick={() => handleMenuClick("home")}
+            onClick={() => handleMenuClick('home')}
             className={`w-full hidden md:flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
-              activeMenu === "home"
-                ? "text-white dark:text-black"
-                : "text-sidebar-foreground hover:bg-sidebar-accent"
+              activeMenu === 'home'
+                ? 'text-white dark:text-black'
+                : 'text-sidebar-foreground hover:bg-sidebar-accent'
             }`}
-            style={activeMenu === "home" ? { backgroundColor: 'var(--role-primary)' } : {}}
+            style={
+              activeMenu === 'home'
+                ? { backgroundColor: 'var(--role-primary)' }
+                : {}
+            }
           >
             <LayoutDashboard className="w-5 h-5" />
             <span className="text-sm font-medium">홈</span>
           </button>
 
           <button
-            onClick={() => handleMenuClick("ip-expansion")}
+            onClick={() => handleMenuClick('ip-expansion')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
-              activeMenu === "ip-expansion"
-                ? "text-white dark:text-black"
-                : "text-sidebar-foreground hover:bg-sidebar-accent"
+              activeMenu === 'ip-expansion'
+                ? 'text-white dark:text-black'
+                : 'text-sidebar-foreground hover:bg-sidebar-accent'
             }`}
-            style={activeMenu === "ip-expansion" ? { backgroundColor: 'var(--role-primary)' } : {}}
+            style={
+              activeMenu === 'ip-expansion'
+                ? { backgroundColor: 'var(--role-primary)' }
+                : {}
+            }
           >
             <Zap className="w-5 h-5" />
             <span className="text-sm font-medium">IP 확장</span>
           </button>
 
           <button
-            onClick={() => handleMenuClick("3d-assets")}
+            onClick={() => handleMenuClick('3d-assets')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
-              activeMenu === "3d-assets"
-                ? "text-white dark:text-black"
-                : "text-sidebar-foreground hover:bg-sidebar-accent"
+              activeMenu === '3d-assets'
+                ? 'text-white dark:text-black'
+                : 'text-sidebar-foreground hover:bg-sidebar-accent'
             }`}
-            style={activeMenu === "3d-assets" ? { backgroundColor: 'var(--role-primary)' } : {}}
+            style={
+              activeMenu === '3d-assets'
+                ? { backgroundColor: 'var(--role-primary)' }
+                : {}
+            }
           >
             <Grid3x3 className="w-5 h-5" />
-            <span className="text-sm font-medium">
-              3D 배경 에셋
-            </span>
+            <span className="text-sm font-medium">3D 배경 에셋</span>
           </button>
 
           <button
-            onClick={() => handleMenuClick("work-analysis")}
+            onClick={() => handleMenuClick('work-analysis')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
-              activeMenu === "work-analysis"
-                ? "text-white dark:text-black"
-                : "text-sidebar-foreground hover:bg-sidebar-accent"
+              activeMenu === 'work-analysis'
+                ? 'text-white dark:text-black'
+                : 'text-sidebar-foreground hover:bg-sidebar-accent'
             }`}
-            style={activeMenu === "work-analysis" ? { backgroundColor: 'var(--role-primary)' } : {}}
+            style={
+              activeMenu === 'work-analysis'
+                ? { backgroundColor: 'var(--role-primary)' }
+                : {}
+            }
           >
             <BarChart3 className="w-5 h-5" />
-            <span className="text-sm font-medium">
-              작품 분석
-            </span>
+            <span className="text-sm font-medium">작품 분석</span>
           </button>
 
           <button
-            onClick={() => handleMenuClick("ip-trend-analysis")}
+            onClick={() => handleMenuClick('ip-trend-analysis')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
-              activeMenu === "ip-trend-analysis"
-                ? "text-white dark:text-black"
-                : "text-sidebar-foreground hover:bg-sidebar-accent"
+              activeMenu === 'ip-trend-analysis'
+                ? 'text-white dark:text-black'
+                : 'text-sidebar-foreground hover:bg-sidebar-accent'
             }`}
-            style={activeMenu === "ip-trend-analysis" ? { backgroundColor: 'var(--role-primary)' } : {}}
+            style={
+              activeMenu === 'ip-trend-analysis'
+                ? { backgroundColor: 'var(--role-primary)' }
+                : {}
+            }
           >
             <TrendingUp className="w-5 h-5" />
-            <span className="text-sm font-medium">
-              IP 트렌드 분석
-            </span>
+            <span className="text-sm font-medium">IP 트렌드 분석</span>
           </button>
 
           <button
-            onClick={() => handleMenuClick("contest-templates")}
+            onClick={() => handleMenuClick('contest-templates')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
-              activeMenu === "contest-templates"
-                ? "text-white dark:text-black"
-                : "text-sidebar-foreground hover:bg-sidebar-accent"
+              activeMenu === 'contest-templates'
+                ? 'text-white dark:text-black'
+                : 'text-sidebar-foreground hover:bg-sidebar-accent'
             }`}
-            style={activeMenu === "contest-templates" ? { backgroundColor: 'var(--role-primary)' } : {}}
+            style={
+              activeMenu === 'contest-templates'
+                ? { backgroundColor: 'var(--role-primary)' }
+                : {}
+            }
           >
             <Award className="w-5 h-5" />
-            <span className="text-sm font-medium">
-              공모전 템플릿
-            </span>
+            <span className="text-sm font-medium">공모전 템플릿</span>
           </button>
 
           <button
-            onClick={() => handleMenuClick("author-management")}
+            onClick={() => handleMenuClick('author-management')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
-              activeMenu === "author-management"
-                ? "text-white dark:text-black"
-                : "text-sidebar-foreground hover:bg-sidebar-accent"
+              activeMenu === 'author-management'
+                ? 'text-white dark:text-black'
+                : 'text-sidebar-foreground hover:bg-sidebar-accent'
             }`}
-            style={activeMenu === "author-management" ? { backgroundColor: 'var(--role-primary)' } : {}}
+            style={
+              activeMenu === 'author-management'
+                ? { backgroundColor: 'var(--role-primary)' }
+                : {}
+            }
           >
             <Users className="w-5 h-5" />
             <span className="text-sm font-medium">작가</span>
           </button>
 
           <button
-            onClick={() => handleMenuClick("notice")}
+            onClick={() => handleMenuClick('notice')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
-              activeMenu === "notice"
-                ? "text-white"
-                : "text-sidebar-foreground hover:bg-sidebar-accent"
+              activeMenu === 'notice'
+                ? 'text-white'
+                : 'text-sidebar-foreground hover:bg-sidebar-accent'
             }`}
-            style={activeMenu === "notice" ? { backgroundColor: 'var(--role-primary)' } : {}}
+            style={
+              activeMenu === 'notice'
+                ? { backgroundColor: 'var(--role-primary)' }
+                : {}
+            }
           >
             <Megaphone className="w-5 h-5" />
-            <span className="text-sm font-medium">
-              공지사항
-            </span>
+            <span className="text-sm font-medium">공지사항</span>
           </button>
         </nav>
 
@@ -230,22 +248,23 @@ export function ManagerDashboard({
           {/* Desktop: Dropdown style */}
           <div className="hidden md:block relative">
             <button
-              onClick={() =>
-                setShowProfileDropdown(!showProfileDropdown)
-              }
+              onClick={() => setShowProfileDropdown(!showProfileDropdown)}
               className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-sidebar-accent transition-colors"
             >
-              <div className="w-8 h-8 rounded-full flex items-center justify-center text-white dark:text-black text-sm" style={{ backgroundColor: 'var(--role-primary)' }}>
-                김
+              <div
+                className="w-8 h-8 rounded-full flex items-center justify-center text-white dark:text-black text-sm"
+                style={{ backgroundColor: 'var(--role-primary)' }}
+              >
+                매
               </div>
               <div className="flex-1 min-w-0 text-left">
                 <div className="text-sm text-sidebar-foreground truncate">
-                  김민수
+                  매니저님
                 </div>
-                <div className="text-xs text-muted-foreground">PD</div>
+                <div className="text-xs text-muted-foreground">Manager</div>
               </div>
               <ChevronDown
-                className={`w-4 h-4 text-muted-foreground transition-transform ${showProfileDropdown ? "rotate-180" : ""}`}
+                className={`w-4 h-4 text-muted-foreground transition-transform ${showProfileDropdown ? 'rotate-180' : ''}`}
               />
             </button>
 
@@ -253,7 +272,7 @@ export function ManagerDashboard({
               <div className="absolute bottom-full left-4 right-4 mb-2 bg-card border border-border rounded-lg shadow-lg py-1">
                 <button
                   onClick={() => {
-                    handleMenuClick("mypage");
+                    handleMenuClick('mypage');
                     setShowProfileDropdown(false);
                   }}
                   className="w-full flex items-center gap-3 px-4 py-2 text-foreground hover:bg-accent transition-colors"
@@ -263,7 +282,7 @@ export function ManagerDashboard({
                 </button>
                 <button
                   onClick={() => {
-                    handleMenuClick("settings");
+                    handleMenuClick('settings');
                     setShowProfileDropdown(false);
                   }}
                   className="w-full flex items-center gap-3 px-4 py-2 text-foreground hover:bg-accent transition-colors"
@@ -289,7 +308,10 @@ export function ManagerDashboard({
           {/* Mobile: Expanded style */}
           <div className="md:hidden space-y-2">
             <div className="flex items-center gap-3 px-4 py-3 bg-sidebar-accent rounded-lg">
-              <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm" style={{ backgroundColor: 'var(--role-primary)' }}>
+              <div
+                className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm"
+                style={{ backgroundColor: 'var(--role-primary)' }}
+              >
                 김
               </div>
               <div className="flex-1 min-w-0">
@@ -299,16 +321,16 @@ export function ManagerDashboard({
                 <div className="text-xs text-muted-foreground">PD</div>
               </div>
             </div>
-            
+
             <button
-              onClick={() => handleMenuClick("mypage")}
+              onClick={() => handleMenuClick('mypage')}
               className="w-full flex items-center gap-3 px-4 py-2 text-sidebar-foreground hover:bg-sidebar-accent rounded-lg transition-colors"
             >
               <User className="w-4 h-4" />
               <span className="text-sm">마이페이지</span>
             </button>
             <button
-              onClick={() => handleMenuClick("settings")}
+              onClick={() => handleMenuClick('settings')}
               className="w-full flex items-center gap-3 px-4 py-2 text-sidebar-foreground hover:bg-sidebar-accent rounded-lg transition-colors"
             >
               <Settings className="w-4 h-4" />
@@ -328,7 +350,7 @@ export function ManagerDashboard({
 
       {/* Overlay for mobile when sidebar is open */}
       {sidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 z-30 md:hidden"
           onClick={() => setSidebarOpen(false)}
         />
@@ -338,26 +360,25 @@ export function ManagerDashboard({
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
         <header className="bg-card border-b border-border px-4 md:px-8 py-4">
-          <div className={`flex items-center justify-between ${!sidebarOpen ? 'ml-16' : ''}`}>
+          <div
+            className={`flex items-center justify-between ${!sidebarOpen ? 'ml-16' : ''}`}
+          >
             <div>
               {/* Breadcrumb */}
               <div className="flex items-center gap-2 text-sm">
                 <span className="text-muted-foreground">홈</span>
                 <ChevronRight className="w-4 h-4 text-muted-foreground" />
                 <span className="text-foreground">
-                  {activeMenu === "home" && "대시보드"}
-                  {activeMenu === "work-analysis" &&
-                    "작품 분석"}
-                  {activeMenu === "3d-assets" && "3D 배경 에셋"}
-                  {activeMenu === "ip-trend-analysis" &&
-                    "IP 트렌드 분석"}
-                  {activeMenu === "ip-expansion" && "IP 확장"}
-                  {activeMenu === "author-management" && "작가"}
-                  {activeMenu === "contest-templates" &&
-                    "공모전 템플릿"}
-                  {activeMenu === "notice" && "공지사항"}
-                  {activeMenu === "mypage" && "마이페이지"}
-                  {activeMenu === "settings" && "설정"}
+                  {activeMenu === 'home' && '대시보드'}
+                  {activeMenu === 'work-analysis' && '작품 분석'}
+                  {activeMenu === '3d-assets' && '3D 배경 에셋'}
+                  {activeMenu === 'ip-trend-analysis' && 'IP 트렌드 분석'}
+                  {activeMenu === 'ip-expansion' && 'IP 확장'}
+                  {activeMenu === 'author-management' && '작가'}
+                  {activeMenu === 'contest-templates' && '공모전 템플릿'}
+                  {activeMenu === 'notice' && '공지사항'}
+                  {activeMenu === 'mypage' && '마이페이지'}
+                  {activeMenu === 'settings' && '설정'}
                 </span>
               </div>
             </div>
@@ -369,11 +390,7 @@ export function ManagerDashboard({
                   variant="ghost"
                   size="icon"
                   className="text-muted-foreground"
-                  onClick={() =>
-                    setShowActivityDropdown(
-                      !showActivityDropdown,
-                    )
-                  }
+                  onClick={() => setShowActivityDropdown(!showActivityDropdown)}
                 >
                   <Bell className="w-5 h-5" />
                 </Button>
@@ -385,82 +402,8 @@ export function ManagerDashboard({
                         최근 활동
                       </h3>
                     </div>
-                    <div className="max-h-[60vh] overflow-auto">
-                      <div className="p-2.5 sm:p-3 hover:bg-accent cursor-pointer transition-colors">
-                        <div className="flex items-center gap-3">
-                          <div className="w-7 h-7 sm:w-8 sm:h-8 bg-blue-500 rounded-lg flex items-center justify-center">
-                            <Database className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-xs sm:text-sm text-foreground">
-                              새 설정집 등록
-                            </div>
-                            <div className="text-[11px] sm:text-xs text-muted-foreground truncate">
-                              "암흑의 영역 연대기" - 김민지 작가
-                            </div>
-                          </div>
-                          <div className="text-[11px] sm:text-xs text-muted-foreground">
-                            5분 전
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="p-2.5 sm:p-3 hover:bg-accent cursor-pointer transition-colors">
-                        <div className="flex items-center gap-3">
-                          <div className="w-7 h-7 sm:w-8 sm:h-8 bg-purple-500 rounded-lg flex items-center justify-center">
-                            <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-xs sm:text-sm text-foreground">
-                              스핀오프 초안 생성 완료
-                            </div>
-                            <div className="text-[11px] sm:text-xs text-muted-foreground truncate">
-                              "별빛 아카데미: 사이드 스토리"
-                            </div>
-                          </div>
-                          <div className="text-[11px] sm:text-xs text-muted-foreground">
-                            15분 전
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="p-2.5 sm:p-3 hover:bg-accent cursor-pointer transition-colors">
-                        <div className="flex items-center gap-3">
-                          <div className="w-7 h-7 sm:w-8 sm:h-8 bg-green-500 rounded-lg flex items-center justify-center">
-                            <Film className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-xs sm:text-sm text-foreground">
-                              영화 각색 제안 승인
-                            </div>
-                            <div className="text-[11px] sm:text-xs text-muted-foreground truncate">
-                              "운명의 검" 극장용 각색
-                            </div>
-                          </div>
-                          <div className="text-[11px] sm:text-xs text-muted-foreground">
-                            1시간 전
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="p-2.5 sm:p-3 hover:bg-accent cursor-pointer transition-colors">
-                        <div className="flex items-center gap-3">
-                          <div className="w-7 h-7 sm:w-8 sm:h-8 bg-orange-500 rounded-lg flex items-center justify-center">
-                            <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-xs sm:text-sm text-foreground">
-                              새 작가 등록
-                            </div>
-                            <div className="text-[11px] sm:text-xs text-muted-foreground truncate">
-                              이재원 작가 가입 승인
-                            </div>
-                          </div>
-                          <div className="text-[11px] sm:text-xs text-muted-foreground">
-                            2시간 전
-                          </div>
-                        </div>
-                      </div>
+                    <div className="p-4 text-center text-sm text-muted-foreground">
+                      새로운 알림이 없습니다.
                     </div>
                   </div>
                 )}
@@ -471,16 +414,16 @@ export function ManagerDashboard({
 
         {/* Content Area */}
         <main className="flex-1 overflow-auto p-4 md:p-8">
-          {activeMenu === "home" && <ManagerHome />}
-          {activeMenu === "work-analysis" && <ManagerWorkAnalysis />}
-          {activeMenu === "3d-assets" && <Manager3DAssets />}
-          {activeMenu === "notice" && <ManagerNotice />}
-          {activeMenu === "ip-trend-analysis" && <ManagerIPTrend />}
-          {activeMenu === "ip-expansion" && <ManagerIPExpansion />}
-          {activeMenu === "author-management" && <ManagerAuthorManagement />}
-          {activeMenu === "contest-templates" && <ManagerContestTemplates />}
-          {activeMenu === "mypage" && <ManagerMyPage />}
-          {activeMenu === "settings" && <ManagerSettings />}
+          {activeMenu === 'home' && <ManagerHome />}
+          {activeMenu === 'work-analysis' && <ManagerWorkAnalysis />}
+          {activeMenu === '3d-assets' && <Manager3DAssets />}
+          {activeMenu === 'notice' && <ManagerNotice />}
+          {activeMenu === 'ip-trend-analysis' && <ManagerIPTrend />}
+          {activeMenu === 'ip-expansion' && <ManagerIPExpansion />}
+          {activeMenu === 'author-management' && <ManagerAuthorManagement />}
+          {activeMenu === 'contest-templates' && <ManagerContestTemplates />}
+          {activeMenu === 'mypage' && <ManagerMyPage />}
+          {activeMenu === 'settings' && <ManagerSettings />}
         </main>
       </div>
     </div>
