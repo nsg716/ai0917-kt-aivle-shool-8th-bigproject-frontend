@@ -4,13 +4,10 @@ import {
   Bell,
   ChevronDown,
   LogOut,
-  Users,
   Megaphone,
   ChevronRight,
   Menu,
   Shield,
-  AlertCircle,
-  CheckCircle,
   ChevronsLeft,
 } from 'lucide-react';
 import { Button } from '../../components/ui/button';
@@ -268,48 +265,8 @@ export function AdminDashboard({ onLogout, onHome }: AdminDashboardProps) {
                         시스템 알림
                       </h3>
                     </div>
-                    <div className="p-3 sm:p-4 space-y-3 sm:space-y-4 max-h-[60vh] overflow-y-auto">
-                      <div className="flex items-center gap-3 sm:gap-4">
-                        <div className="w-9 h-9 sm:w-10 sm:h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
-                          <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 dark:text-green-400" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-xs sm:text-sm text-foreground mb-0.5 sm:mb-1">
-                            서버 상태 정상
-                          </div>
-                          <div className="text-[11px] sm:text-xs text-muted-foreground">
-                            5분 전
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-3 sm:gap-4">
-                        <div className="w-9 h-9 sm:w-10 sm:h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
-                          <Users className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-xs sm:text-sm text-foreground mb-0.5 sm:mb-1">
-                            신규 사용자 5명 가입
-                          </div>
-                          <div className="text-[11px] sm:text-xs text-muted-foreground">
-                            1시간 전
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-3 sm:gap-4">
-                        <div className="w-9 h-9 sm:w-10 sm:h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
-                          <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600 dark:text-yellow-400" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-xs sm:text-sm text-foreground mb-0.5 sm:mb-1">
-                            데이터베이스 백업 필요
-                          </div>
-                          <div className="text-[11px] sm:text-xs text-muted-foreground">
-                            3시간 전
-                          </div>
-                        </div>
-                      </div>
+                    <div className="p-4 text-center text-sm text-muted-foreground">
+                      새로운 알림이 없습니다.
                     </div>
                   </div>
                 )}

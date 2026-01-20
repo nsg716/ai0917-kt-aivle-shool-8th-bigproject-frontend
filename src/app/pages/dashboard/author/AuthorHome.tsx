@@ -2,14 +2,14 @@ import {
   BookOpen,
   Database,
   CheckCircle,
-  Megaphone,
-} from "lucide-react";
+  Megaphone
+} from 'lucide-react';
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-} from "../../..//components/ui/card";
+} from "../../../components/ui/card";
 import { Badge } from "../../../components/ui/badge";
 
 export function AuthorHome() {
@@ -24,9 +24,7 @@ export function AuthorHome() {
                 <BookOpen className="w-6 h-6 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
-                <div className="text-2xl text-foreground font-bold">
-                  3
-                </div>
+                <div className="text-2xl text-foreground font-bold">3</div>
                 <div className="text-sm text-muted-foreground">
                   진행 중인 작품
                 </div>
@@ -42,9 +40,7 @@ export function AuthorHome() {
                 <Database className="w-6 h-6 text-purple-600 dark:text-purple-400" />
               </div>
               <div>
-                <div className="text-2xl text-foreground font-bold">
-                  5
-                </div>
+                <div className="text-2xl text-foreground font-bold">5</div>
                 <div className="text-sm text-muted-foreground">
                   생성된 설정집
                 </div>
@@ -60,12 +56,8 @@ export function AuthorHome() {
                 <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
               </div>
               <div>
-                <div className="text-2xl text-foreground font-bold">
-                  2
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  완결 작품
-                </div>
+                <div className="text-2xl text-foreground font-bold">2</div>
+                <div className="text-sm text-muted-foreground">완결 작품</div>
               </div>
             </div>
           </CardContent>
@@ -79,54 +71,13 @@ export function AuthorHome() {
             <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
               <Megaphone className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             </div>
-            <CardTitle className="text-foreground">
-              공지사항
-            </CardTitle>
+            <CardTitle className="text-foreground">공지사항</CardTitle>
           </div>
         </CardHeader>
         <CardContent className="p-0">
           <div className="divide-y divide-border">
-            <div className="flex items-center justify-between p-4 hover:bg-muted/50 cursor-pointer transition-colors">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-sm text-foreground">
-                    Lorem ipsum dolor sit amet consectetur
-                  </span>
-                  <Badge className="bg-orange-500 text-white text-xs">
-                    N
-                  </Badge>
-                </div>
-              </div>
-              <span className="text-sm text-muted-foreground">
-                2026.01.08
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between p-4 hover:bg-muted/50 cursor-pointer transition-colors">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-sm text-foreground">
-                    Sed do eiusmod tempor incididunt
-                  </span>
-                  <Badge className="bg-orange-500 text-white text-xs">
-                    N
-                  </Badge>
-                </div>
-              </div>
-              <span className="text-sm text-muted-foreground">
-                2026.01.08
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between p-4 hover:bg-muted/50 cursor-pointer transition-colors">
-              <div className="flex-1">
-                <span className="text-sm text-foreground">
-                  Duis aute irure dolor in reprehenderit
-                </span>
-              </div>
-              <span className="text-sm text-muted-foreground">
-                2025.12.24
-              </span>
+            <div className="p-8 text-center text-muted-foreground">
+              등록된 공지사항이 없습니다.
             </div>
           </div>
         </CardContent>

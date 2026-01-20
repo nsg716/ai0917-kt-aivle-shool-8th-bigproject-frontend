@@ -2,22 +2,30 @@ import {
   Brain,
   BookOpen,
   Database,
+  Megaphone,
   Bell,
   ChevronDown,
-  FileText,
   LogOut,
-  Megaphone,
-  ChevronRight,
-  User,
-  Settings,
-  Home,
   Menu,
   ChevronsLeft,
+  Home,
+  User,
+  Settings,
+  ChevronRight,
+  FileText,
 } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { useState } from 'react';
 import { ThemeToggle } from '../../components/ui/theme-toggle';
+import { AuthorHome } from './author/AuthorHome';
+import { AuthorManuscripts } from './author/AuthorManuscripts';
+import { AuthorSettings } from './author/AuthorSettings';
+import { AuthorNotice } from './author/AuthorNotice';
+import { AuthorMyPage } from './author/AuthorMyPage';
+import { AuthorAccount } from './author/AuthorAccount';
+
+// Import sub-components
 import { AuthorHome } from './author/AuthorHome';
 import { AuthorManuscripts } from './author/AuthorManuscripts';
 import { AuthorSettings } from './author/AuthorSettings';
@@ -32,7 +40,9 @@ interface AuthorDashboardProps {
 
 export function AuthorDashboard({ onLogout, onHome }: AuthorDashboardProps) {
   const [activeMenu, setActiveMenu] = useState('home');
-  const [settingsCategory, setSettingsCategory] = useState('characters');
+  const [settingsCategory, setSettingsCategory] = useState<
+    'characters' | 'world' | 'narrative'
+  >('characters');
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [showNotificationDropdown, setShowNotificationDropdown] =
     useState(false);
