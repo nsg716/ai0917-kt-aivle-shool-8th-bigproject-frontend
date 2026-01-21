@@ -19,6 +19,17 @@ export default defineConfig(({ mode }) => {
       port: 5173,
       // 2. 5173이 사용 중일 때 자동으로 다른 포트로 넘어가지 않도록 설정
       strictPort: true,
+
+      // --- 프록시 설정 ---
+      proxy: {
+        // 프론트엔드에서 /api로 시작하는 요청을 백엔드로 전달
+        '/api': {
+          // .env의 VITE_BACKEND_URL을 사용하고, 없을 경우 로컬 백엔드 기본값 사용
+          target: env.VITE_BACKEND_URL || 'http://localhost:8080',
+          changeOrigin: true,
+          secure: false,
+        },
+      },
     },
     build: {
       // Vercel 배포를 위한 빌드 최적화 설정

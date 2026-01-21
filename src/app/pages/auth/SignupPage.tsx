@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import {
   ArrowLeft,
   Loader2,
   Check,
-  X,
   ShieldCheck,
-  RefreshCw,
   Eye,
   EyeOff,
 } from 'lucide-react';
@@ -13,8 +13,13 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Checkbox } from '../../components/ui/checkbox';
-import { useNavigate } from 'react-router-dom';
-import apiClient from '../../api/axios';
+import {
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+} from '../../components/ui/dialog';
+
+import { authService } from '../../services/authService';
 
 export function SignupPage({
   onSignupComplete,
@@ -24,13 +29,11 @@ export function SignupPage({
   onBack: () => void;
 }) {
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // 이메일 인증 관련 상태
   const [emailCode, setEmailCode] = useState('');
   const [isCodeSent, setIsCodeSent] = useState(false);
   const [isEmailVerified, setIsEmailVerified] = useState(false);
-  const [isVerifying, setIsVerifying] = useState(false);
 
   // 비밀번호 표시 상태
   const [showPwd, setShowPwd] = useState(false);
@@ -64,70 +67,95 @@ export function SignupPage({
 
   const strengthScore = getStrengthScore(formData.sitePwd);
 
+  // 1. Pending Data Query
+  const {
+    data: pendingData,
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: ['signupPending'],
+    queryFn: authService.getPendingSignup,
+    retry: false,
+  });
+
   useEffect(() => {
-    if (!token) {
-      alert('네이버 인증 정보가 없습니다. 다시 로그인 해주세요.');
-      navigate('/login', { replace: true });
-      return;
+    if (isError) {
+      navigate('/login');
     }
+  }, [isError, navigate]);
 
-    const fetchUserProfile = async () => {
-      try {
-        const res = await apiClient.get('/api/v1/signup/naver/pending');
-        setFormData((prev) => ({
-          ...prev,
-          name: res.data.name ?? '',
-          mobile: res.data.mobile ?? '',
-        }));
-      } catch (err) {
-        navigate('/login');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    loadPending();
-  }, [navigate]);
+  useEffect(() => {
+    if (pendingData) {
+      setFormData((prev) => ({
+        ...prev,
+        name: pendingData.name ?? '',
+        mobile: pendingData.mobile ?? '',
+      }));
+    }
+  }, [pendingData]);
 
-  const handleRequestEmailCode = async () => {
-    if (!formData.siteEmail.includes('@')) return;
-    try {
-      await apiClient.post('/api/v1/signup/email/request', {
-        email: formData.siteEmail,
-      });
+  // 2. Email Code Request Mutation
+  const requestEmailCodeMutation = useMutation({
+    mutationFn: authService.requestEmailCode,
+    onSuccess: () => {
       setIsCodeSent(true);
-    } catch (err) {
-      alert('발송 실패');
-    }
+      setEmailCode(''); // 이전 코드 초기화
+      alert('인증번호가 발송되었습니다. 메일함을 확인해주세요.');
+    },
+    onError: () => {
+      alert('인증번호 발송에 실패했습니다.');
+    },
+  });
+
+  const handleRequestEmailCode = () => {
+    if (!formData.siteEmail.includes('@'))
+      return alert('올바른 이메일을 입력해주세요.');
+
+    requestEmailCodeMutation.mutate({ email: formData.siteEmail });
   };
 
-  const handleVerifyEmailCode = async () => {
-    try {
-      const res = await apiClient.post('/api/v1/signup/email/verify', {
-        email: formData.siteEmail,
-        code: emailCode,
-      });
-      if (res.data.ok) setIsEmailVerified(true);
-    } catch (err) {
-      alert('인증 실패');
-    }
+  // 3. Email Code Verify Mutation
+  const verifyEmailCodeMutation = useMutation({
+    mutationFn: authService.verifyEmailCode,
+    onSuccess: (data) => {
+      if (data.ok) {
+        setIsEmailVerified(true);
+      } else {
+        alert('인증번호가 일치하지 않습니다. 다시 확인해주세요.');
+      }
+    },
+    onError: () => {
+      alert('인증 확인 중 오류가 발생했습니다.');
+    },
+  });
+
+  const handleVerifyEmailCode = () => {
+    if (emailCode.length < 4) return;
+    verifyEmailCodeMutation.mutate({
+      email: formData.siteEmail,
+      code: emailCode,
+    });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // 4. Complete Signup Mutation
+  const completeSignupMutation = useMutation({
+    mutationFn: authService.completeSignup,
+    onSuccess: (data) => {
+      if (data.ok) onSignupComplete();
+    },
+    onError: (err: any) => {
+      alert(err.response?.data?.message || '가입 중 오류가 발생했습니다.');
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!pwdValidation.length || !pwdValidation.special || !pwdValidation.match)
-      return;
-    setIsSubmitting(true);
-    try {
-      const res = await apiClient.post('/api/v1/signup/naver/complete', {
-        siteEmail: formData.siteEmail,
-        sitePwd: formData.sitePwd,
-      });
-      if (res.data.ok) onSignupComplete();
-    } catch (err) {
-      alert('가입 처리 중 오류가 발생했습니다.');
-    } finally {
-      setIsSubmitting(false);
-    }
+    if (!isEmailVerified) return alert('먼저 이메일 인증을 완료해주세요.');
+
+    completeSignupMutation.mutate({
+      siteEmail: formData.siteEmail,
+      sitePwd: formData.sitePwd,
+    });
   };
 
   if (isLoading)
@@ -191,9 +219,16 @@ export function SignupPage({
                   type="button"
                   variant="outline"
                   onClick={handleRequestEmailCode}
+                  disabled={requestEmailCodeMutation.isPending}
                   className="h-12 px-4 font-bold rounded-xl border-slate-200 hover:bg-slate-50 transition-colors"
                 >
-                  {isCodeSent ? '재발송' : '인증요청'}
+                  {requestEmailCodeMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : isCodeSent ? (
+                    '재발송'
+                  ) : (
+                    '인증요청'
+                  )}
                 </Button>
               )}
             </div>
@@ -209,10 +244,16 @@ export function SignupPage({
                 <Button
                   type="button"
                   onClick={handleVerifyEmailCode}
-                  disabled={isVerifying || emailCode.length < 4}
+                  disabled={
+                    verifyEmailCodeMutation.isPending || emailCode.length < 4
+                  }
                   className="h-12 px-6 font-bold bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
                 >
-                  확인
+                  {verifyEmailCodeMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    '확인'
+                  )}
                 </Button>
               </div>
             )}
@@ -363,11 +404,13 @@ export function SignupPage({
               !pwdValidation.match ||
               !pwdValidation.length ||
               !pwdValidation.special ||
-              isSubmitting
+              !agreements.terms ||
+              !agreements.privacy ||
+              completeSignupMutation.isPending
             }
             className="w-full h-14 bg-slate-900 text-white rounded-[18px] font-bold text-base shadow-xl shadow-slate-100 disabled:bg-slate-200 disabled:shadow-none disabled:text-slate-400 transition-all active:scale-[0.98] hover:bg-slate-800"
           >
-            {isSubmitting ? (
+            {completeSignupMutation.isPending ? (
               <Loader2 className="w-5 h-5 animate-spin" />
             ) : (
               '가입 완료하기'
