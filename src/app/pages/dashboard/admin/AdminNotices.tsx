@@ -1,6 +1,5 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useCallback } from 'react';
+import apiClient from '../../../api/axios';
 import {
   Megaphone,
   X as CloseIcon,
@@ -42,8 +41,6 @@ interface PageResponse {
 }
 
 export function AdminNotices() {
-  const navigate = useNavigate();
-
   const [notices, setNotices] = useState<Notice[]>([]);
   const [loading, setLoading] = useState(false);
   const [keyword, setKeyword] = useState('');
@@ -58,32 +55,10 @@ export function AdminNotices() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [existingFileName, setExistingFileName] = useState<string | null>(null);
 
-  const authAxios = useMemo(() => {
-    const instance = axios.create({
-      baseURL: import.meta.env.VITE_BACKEND_URL || '',
-    });
-    instance.interceptors.request.use((config) => {
-      const token = localStorage.getItem('accessToken');
-      if (token) config.headers.Authorization = `Bearer ${token}`;
-      return config;
-    });
-    instance.interceptors.response.use(
-      (res) => res,
-      (err) => {
-        if (err.response?.status === 403) {
-          alert('관리자 권한이 없습니다.');
-          navigate('/');
-        }
-        return Promise.reject(err);
-      },
-    );
-    return instance;
-  }, [navigate]);
-
   const fetchNotices = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await authAxios.get<PageResponse>('/api/v1/admin/notice', {
+      const res = await apiClient.get<PageResponse>('/api/v1/admin/notice', {
         params: { keyword, page, size: 10 },
       });
       setNotices(res.data.content);
@@ -94,7 +69,7 @@ export function AdminNotices() {
     } finally {
       setLoading(false);
     }
-  }, [authAxios, keyword, page]);
+  }, [keyword, page]);
 
   useEffect(() => {
     fetchNotices();
@@ -117,9 +92,9 @@ export function AdminNotices() {
     try {
       setLoading(true);
       if (editingId) {
-        await authAxios.patch(`/api/v1/admin/notice/${editingId}`, formData);
+        await apiClient.patch(`/api/v1/admin/notice/${editingId}`, formData);
       } else {
-        await authAxios.post('/api/v1/admin/notice', formData);
+        await apiClient.post('/api/v1/admin/notice', formData);
       }
       alert('공지사항이 저장되었습니다.');
       closeModal();
@@ -134,7 +109,7 @@ export function AdminNotices() {
   const handleDelete = async (id: number) => {
     if (!confirm('정말 삭제하시겠습니까?')) return;
     try {
-      await authAxios.delete(`/api/v1/admin/notice/${id}`);
+      await apiClient.delete(`/api/v1/admin/notice/${id}`);
       fetchNotices();
     } catch (e) {
       alert('삭제 실패');
@@ -145,7 +120,7 @@ export function AdminNotices() {
   const handleDeleteFile = async () => {
     if (!editingId || !confirm('첨부파일을 삭제하시겠습니까?')) return;
     try {
-      await authAxios.delete(`/api/v1/admin/notice/${editingId}/file`);
+      await apiClient.delete(`/api/v1/admin/notice/${editingId}/file`);
       setExistingFileName(null);
       alert('파일이 삭제되었습니다.');
       fetchNotices();
@@ -156,7 +131,7 @@ export function AdminNotices() {
 
   const handleDownload = async (id: number, filename: string) => {
     try {
-      const res = await authAxios.get(`/api/v1/admin/notice/${id}/download`, {
+      const res = await apiClient.get(`/api/v1/admin/notice/${id}/download`, {
         responseType: 'blob',
       });
       const url = window.URL.createObjectURL(new Blob([res.data]));

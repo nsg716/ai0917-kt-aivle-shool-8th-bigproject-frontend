@@ -1,348 +1,299 @@
 import React, { useState, useEffect } from 'react';
-<<<<<<< HEAD
-<<<<<<< HEAD
-import { Brain, ArrowLeft, Loader2 } from 'lucide-react'; // 로딩 아이콘 추가
-=======
-import { Brain, ArrowLeft } from 'lucide-react';
->>>>>>> jsh
-=======
-import { Brain, ArrowLeft } from 'lucide-react';
->>>>>>> dcd977f2e06e7a209a76633384f34b365222eef0
+import {
+  ArrowLeft,
+  Loader2,
+  Check,
+  X,
+  ShieldCheck,
+  Mail,
+  Lock,
+  Smartphone,
+} from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
-import axios from 'axios';
-import { Link, useNavigate } from 'react-router-dom';
 import { Checkbox } from '../../components/ui/checkbox';
+import { useNavigate } from 'react-router-dom';
+import apiClient from '../../api/axios';
 
-interface SignupPageProps {
+export function SignupPage({
+  onSignupComplete,
+  onBack,
+}: {
   onSignupComplete: () => void;
   onBack: () => void;
-}
-
-type PendingProfile = {
-  naverId: string;
-  name: string;
-  gender: string;
-  birthday: string;
-  birthYear: string;
-  mobile: string;
-};
-
-export function SignupPage({ onSignupComplete, onBack }: SignupPageProps) {
+}) {
   const navigate = useNavigate();
-  const backendUrl = import.meta.env.VITE_BACKEND_URL?.replace(/\/$/, '');
-
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // ✅ 서버(pendingSignup 쿠키)에서 받아온 네이버 정보
-  const [pending, setPending] = useState<PendingProfile | null>(null);
+  const [emailCode, setEmailCode] = useState('');
+  const [isCodeSent, setIsCodeSent] = useState(false);
+  const [isEmailVerified, setIsEmailVerified] = useState(false);
 
-  // ✅ 사용자가 입력할 값 (사이트 계정)
   const [formData, setFormData] = useState({
     siteEmail: '',
     sitePwd: '',
     sitePwdConfirm: '',
-    mobile: '',
     name: '',
+    mobile: '',
   });
 
-  const [termsAgree, setTermsAgree] = useState(false);
-  const [privacyAgree, setPrivacyAgree] = useState(false);
-
-  const handleChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+  // 비밀번호 검증 상태
+  const pwdValidation = {
+    length: formData.sitePwd.length >= 8,
+    special: /[!@#$%^&*(),.?":{}|<> ]/.test(formData.sitePwd),
+    match:
+      formData.sitePwd !== '' && formData.sitePwd === formData.sitePwdConfirm,
   };
 
-  // ✅ 1) 페이지 로딩 시 pending 프로필 가져오기
   useEffect(() => {
     const loadPending = async () => {
       try {
-        const res = await axios.get(
-          `${backendUrl}/api/v1/signup/naver/pending`,
-          {
-            withCredentials: true, // ⭐ pendingSignup 쿠키 보내기
-          },
-        );
-
-        const p: PendingProfile = res.data;
-
-        setPending(p);
-
-        // 화면 기본값 채우기
+        const res = await apiClient.get('/api/v1/signup/naver/pending');
         setFormData((prev) => ({
           ...prev,
-          name: p.name ?? '',
-          mobile: p.mobile ?? '',
+          name: res.data.name ?? '',
+          mobile: res.data.mobile ?? '',
         }));
       } catch (err) {
-        console.error(err);
-        alert(
-          '네이버 인증 정보(pending)가 없습니다. 네이버 로그인을 다시 진행해주세요.',
-        );
-        navigate('/login', { replace: true });
+        navigate('/login');
       } finally {
         setIsLoading(false);
       }
     };
-
     loadPending();
-  }, [backendUrl, navigate]);
+  }, [navigate]);
 
-  // ✅ 2) 가입 완료 요청
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!termsAgree || !privacyAgree) {
-      alert('필수 약관에 동의해주세요.');
-      return;
-    }
-
-    if (!formData.siteEmail.trim()) {
-      alert('이메일을 입력해주세요.');
-      return;
-    }
-
-    if (!formData.sitePwd.trim()) {
-      alert('비밀번호를 입력해주세요.');
-      return;
-    }
-
-    if (formData.sitePwd !== formData.sitePwdConfirm) {
-      alert('비밀번호가 일치하지 않습니다.');
-      return;
-    }
-
+  const handleRequestEmailCode = async () => {
+    if (!formData.siteEmail.includes('@')) return;
     try {
-      // ✅ 백엔드 SignupController 경로에 맞춤
-      const res = await axios.post(
-        `${backendUrl}/api/v1/signup/naver/complete`,
-        {
-          siteEmail: formData.siteEmail,
-          sitePwd: formData.sitePwd,
-        },
-        {
-          withCredentials: true, // ⭐ pendingSignup 쿠키 포함
-        },
-      );
-
-      if (res.status === 200 || res.status === 201) {
-        alert('회원가입 신청이 완료되었습니다. (로그인 쿠키가 발급되었습니다)');
-        onSignupComplete();
-      }
+      await apiClient.post('/api/v1/signup/email/request', {
+        email: formData.siteEmail,
+      });
+      setIsCodeSent(true);
     } catch (err) {
-      console.error(err);
-      alert(
-        '회원가입 처리 중 오류가 발생했습니다. (이메일 인증 여부/중복 이메일 등을 확인)',
-      );
+      alert('발송 실패');
     }
   };
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-  // 로딩 중일 때 표시할 화면
-  if (isLoading) {
+  const handleVerifyEmailCode = async () => {
+    try {
+      const res = await apiClient.post('/api/v1/signup/email/verify', {
+        email: formData.siteEmail,
+        code: emailCode,
+      });
+      if (res.data.ok) setIsEmailVerified(true);
+    } catch (err) {
+      alert('인증 실패');
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pwdValidation.length || !pwdValidation.special || !pwdValidation.match)
+      return;
+    setIsSubmitting(true);
+    try {
+      const res = await apiClient.post('/api/v1/signup/naver/complete', {
+        siteEmail: formData.siteEmail,
+        sitePwd: formData.sitePwd,
+      });
+      if (res.data.ok) onSignupComplete();
+    } catch (err) {
+      alert('가입 처리 중 오류가 발생했습니다.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (isLoading)
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-10 h-10 animate-spin text-primary" />
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <Loader2 className="w-6 h-6 animate-spin text-slate-200" />
       </div>
     );
-  }
-=======
-  if (isLoading) return null; // 로딩중 깜빡임 방지
-  if (!pending) return null;
->>>>>>> jsh
-=======
-  if (isLoading) return null; // 로딩중 깜빡임 방지
-  if (!pending) return null;
->>>>>>> dcd977f2e06e7a209a76633384f34b365222eef0
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4 py-10 md:px-6 md:py-12">
-      <div className="w-full max-w-md">
-        <button
-          onClick={onBack}
-          className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8 transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span className="text-sm font-medium">로그인으로 돌아가기</span>
-        </button>
-
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-2xl shadow-lg mb-6">
-            <Brain className="w-8 h-8 text-primary-foreground" />
+    <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6 py-12 antialiased text-slate-900">
+      <div className="w-full max-w-[380px] space-y-10">
+        {/* Header */}
+        <header className="space-y-4">
+          <button
+            onClick={onBack}
+            className="p-0 h-auto text-slate-400 hover:text-slate-900 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <div className="space-y-1">
+            <h1 className="text-2xl font-semibold tracking-tight">
+              계정 만들기
+            </h1>
+            <p className="text-sm text-slate-500">
+              네이버 인증이 확인되었습니다. 나머지 정보를 입력해주세요.
+            </p>
           </div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">
-            프로필 완성
-          </h1>
-          <p className="text-muted-foreground text-sm">
-<<<<<<< HEAD
-<<<<<<< HEAD
-            네이버 인증이 완료되었습니다. <br /> 추가 정보를 입력하여 가입을
-            완료하세요.
-=======
-            네이버 인증이 완료되었습니다. <br /> 추가 정보를 입력하여 작가 가입을 완료하세요.
->>>>>>> jsh
-=======
-            네이버 인증이 완료되었습니다. <br /> 추가 정보를 입력하여 작가
-            가입을 완료하세요.
->>>>>>> dcd977f2e06e7a209a76633384f34b365222eef0
-          </p>
-        </div>
+        </header>
 
-        <div className="bg-card border border-border rounded-3xl p-6 md:p-8 shadow-sm">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-4">
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-              {/* ✅ 사이트 이메일 입력 */}
->>>>>>> jsh
-=======
-              {/* ✅ 사이트 이메일 입력 */}
->>>>>>> dcd977f2e06e7a209a76633384f34b365222eef0
-              <div className="space-y-2">
-                <Label className="text-xs font-bold ml-1">이메일</Label>
+        <form onSubmit={handleSubmit} className="space-y-8">
+          {/* Section 1: Email Verification */}
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label
+                htmlFor="email"
+                className="text-[13px] font-medium text-slate-700"
+              >
+                이메일 주소
+              </Label>
+              <div className="flex gap-2">
                 <Input
-                  value={formData.siteEmail}
-                  onChange={(e) => handleChange('siteEmail', e.target.value)}
-                  className="h-12"
+                  id="email"
+                  type="email"
                   placeholder="name@example.com"
-                  required
-                />
-              </div>
-
-<<<<<<< HEAD
-<<<<<<< HEAD
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-xs font-bold ml-1">
-                  비밀번호 설정
-                </Label>
-=======
-              {/* ✅ 비밀번호 설정 */}
-              <div className="space-y-2">
-                <Label className="text-xs font-bold ml-1">비밀번호 설정</Label>
->>>>>>> jsh
-=======
-              {/* ✅ 비밀번호 설정 */}
-              <div className="space-y-2">
-                <Label className="text-xs font-bold ml-1">비밀번호 설정</Label>
->>>>>>> dcd977f2e06e7a209a76633384f34b365222eef0
-                <Input
-                  type="password"
-                  placeholder="8자 이상 입력하세요"
-                  value={formData.sitePwd}
-                  onChange={(e) => handleChange('sitePwd', e.target.value)}
-                  className="h-12"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-xs font-bold ml-1">비밀번호 확인</Label>
-                <Input
-                  type="password"
-                  value={formData.sitePwdConfirm}
+                  value={formData.siteEmail}
                   onChange={(e) =>
-                    handleChange('sitePwdConfirm', e.target.value)
+                    setFormData({ ...formData, siteEmail: e.target.value })
                   }
-                  className="h-12"
-                  required
+                  disabled={isEmailVerified}
+                  className="h-11 rounded-md border-slate-200 focus-visible:ring-slate-400"
                 />
+                {!isEmailVerified && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleRequestEmailCode}
+                    className="h-11 px-4 text-xs font-semibold border-slate-200"
+                  >
+                    {isCodeSent ? '재요청' : '인증'}
+                  </Button>
+                )}
               </div>
             </div>
 
-            <hr className="border-border/60" />
+            {isCodeSent && !isEmailVerified && (
+              <div className="flex gap-2 animate-in fade-in slide-in-from-top-1">
+                <Input
+                  placeholder="인증코드 6자리"
+                  value={emailCode}
+                  onChange={(e) => setEmailCode(e.target.value)}
+                  className="h-11 border-slate-200"
+                />
+                <Button
+                  type="button"
+                  onClick={handleVerifyEmailCode}
+                  className="h-11 px-6 font-bold bg-slate-900 text-white"
+                >
+                  확인
+                </Button>
+              </div>
+            )}
+            {isEmailVerified && (
+              <p className="text-[12px] text-blue-600 font-medium flex items-center gap-1.5">
+                <Check className="w-3.5 h-3.5" /> 이메일 인증이 완료되었습니다.
+              </p>
+            )}
+          </div>
 
-            {/* ✅ 네이버에서 온 값 (읽기용) */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-<<<<<<< HEAD
-<<<<<<< HEAD
-                <Label htmlFor="name" className="text-xs font-bold ml-1">
-                  이름
-                </Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => handleChange('name', e.target.value)}
-                  className="h-12"
-                />
-=======
-                <Label className="text-xs font-bold ml-1">이름</Label>
-                <Input value={formData.name} readOnly className="h-12 bg-muted cursor-not-allowed" />
->>>>>>> jsh
-=======
-                <Label className="text-xs font-bold ml-1">이름</Label>
-                <Input
-                  value={formData.name}
-                  readOnly
-                  className="h-12 bg-muted cursor-not-allowed"
-                />
->>>>>>> dcd977f2e06e7a209a76633384f34b365222eef0
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs font-bold ml-1">연락처</Label>
-                <Input
-                  value={formData.mobile}
-                  onChange={(e) => handleChange('mobile', e.target.value)}
-                  className="h-12"
-                  required
-                />
-              </div>
+          {/* Section 2: Password with Validation */}
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-[13px] font-medium text-slate-700">
+                비밀번호 설정
+              </Label>
+              <Input
+                type="password"
+                placeholder="비밀번호 입력"
+                value={formData.sitePwd}
+                onChange={(e) =>
+                  setFormData({ ...formData, sitePwd: e.target.value })
+                }
+                className="h-11 border-slate-200 focus-visible:ring-slate-400"
+              />
+              <Input
+                type="password"
+                placeholder="비밀번호 재입력"
+                value={formData.sitePwdConfirm}
+                onChange={(e) =>
+                  setFormData({ ...formData, sitePwdConfirm: e.target.value })
+                }
+                className="h-11 border-slate-200 focus-visible:ring-slate-400"
+              />
             </div>
 
-            <div className="space-y-3 pt-2">
-              <div className="flex items-center gap-3">
-                <Checkbox
-                  id="terms"
-                  checked={termsAgree}
-                  onCheckedChange={(v) => setTermsAgree(Boolean(v))}
-                />
-                <label
-                  htmlFor="terms"
-                  className="text-[13px] text-muted-foreground flex-1 cursor-pointer"
-                >
-                  서비스 이용약관 동의 (필수)
-                </label>
-                <Link
-                  to="/terms"
-                  className="text-xs text-primary hover:underline font-medium"
-                >
-                  보기
-                </Link>
-              </div>
-              <div className="flex items-center gap-3">
-                <Checkbox
-                  id="privacy"
-                  checked={privacyAgree}
-                  onCheckedChange={(v) => setPrivacyAgree(Boolean(v))}
-                />
-                <label
-                  htmlFor="privacy"
-                  className="text-[13px] text-muted-foreground flex-1 cursor-pointer"
-                >
-                  개인정보처리방침 동의 (필수)
-                </label>
-                <Link
-                  to="/privacy"
-                  className="text-xs text-primary hover:underline font-medium"
-                >
-                  보기
-                </Link>
-              </div>
+            {/* Password Checklist */}
+            <div className="grid grid-cols-2 gap-y-2 px-1">
+              <ValidationItem isValid={pwdValidation.length} text="8자 이상" />
+              <ValidationItem
+                isValid={pwdValidation.special}
+                text="특수문자 포함"
+              />
+              <ValidationItem
+                isValid={pwdValidation.match}
+                text="비밀번호 일치"
+              />
             </div>
+          </div>
 
-            <Button
-              type="submit"
-              className="w-full h-13 text-base font-bold shadow-md active:scale-[0.98] transition-all"
-              disabled={!termsAgree || !privacyAgree}
-            >
-              IP.AI 작가 신청 완료
-            </Button>
-          </form>
-        </div>
+          {/* Section 3: Identity (ReadOnly) */}
+          <div className="pt-2 border-t border-slate-100 space-y-4">
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-slate-400 font-medium">이름</span>
+              <span className="text-slate-900 font-semibold">
+                {formData.name}
+              </span>
+            </div>
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-slate-400 font-medium">휴대폰 번호</span>
+              <span className="text-slate-900 font-semibold">
+                {formData.mobile}
+              </span>
+            </div>
+          </div>
+
+          <Button
+            type="submit"
+            disabled={
+              !isEmailVerified ||
+              !pwdValidation.match ||
+              !pwdValidation.length ||
+              !pwdValidation.special ||
+              isSubmitting
+            }
+            className="w-full h-12 bg-slate-900 text-white hover:bg-slate-800 rounded-md font-semibold transition-all active:scale-[0.98]"
+          >
+            {isSubmitting ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              '가입 완료하기'
+            )}
+          </Button>
+        </form>
+
+        <footer className="text-center">
+          <p className="text-[12px] text-slate-400 font-medium">
+            가입 시 서비스{' '}
+            <span className="underline cursor-pointer">이용약관</span> 및{' '}
+            <span className="underline cursor-pointer">개인정보처리방침</span>에
+            동의하게 됩니다.
+          </p>
+        </footer>
       </div>
+    </div>
+  );
+}
+
+// 비밀번호 검증 아이템 컴포넌트
+function ValidationItem({ isValid, text }: { isValid: boolean; text: string }) {
+  return (
+    <div
+      className={`flex items-center gap-1.5 text-[12px] font-medium transition-colors ${isValid ? 'text-blue-600' : 'text-slate-300'}`}
+    >
+      {isValid ? (
+        <Check className="w-3.5 h-3.5" />
+      ) : (
+        <X className="w-3.5 h-3.5" />
+      )}
+      {text}
     </div>
   );
 }
