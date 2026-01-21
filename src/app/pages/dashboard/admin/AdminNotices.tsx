@@ -86,12 +86,9 @@ export function AdminNotices() {
   const fetchNotices = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await authAxios.get<PageResponse>(
-        `${import.meta.env.VITE_BACKEND_URL}/api/v1/admin/notice`,
-        {
-          params: { keyword, page, size: 10 },
-        },
-      );
+      const res = await authAxios.get<PageResponse>('/api/v1/admin/notice', {
+        params: { keyword, page, size: 10 },
+      });
       setNotices(res.data.content);
       setTotalElements(res.data.totalElements);
     } catch (error) {
@@ -115,15 +112,9 @@ export function AdminNotices() {
 
     try {
       if (editingId) {
-        await authAxios.patch(
-          `${import.meta.env.VITE_BACKEND_URL}/api/v1/admin/notice/${editingId}`,
-          formData,
-        );
+        await authAxios.patch(`/api/v1/admin/notice/${editingId}`, formData);
       } else {
-        await authAxios.post(
-          `${import.meta.env.VITE_BACKEND_URL}/api/v1/admin/notice`,
-          formData,
-        );
+        await authAxios.post(`/api/v1/admin/notice`, formData);
       }
       closeModal();
       fetchNotices();
@@ -136,9 +127,7 @@ export function AdminNotices() {
   const handleDelete = async (id: number) => {
     if (!confirm('정말 삭제하시겠습니까?')) return;
     try {
-      await authAxios.delete(
-        `${import.meta.env.VITE_BACKEND_URL}/api/v1/admin/notice/${id}`,
-      );
+      await authAxios.delete(`/api/v1/admin/notice/${id}`);
       fetchNotices();
     } catch (e) {
       alert('삭제 실패');
@@ -148,12 +137,9 @@ export function AdminNotices() {
   // 4. 다운로드
   const handleDownload = async (id: number, filename: string) => {
     try {
-      const res = await authAxios.get(
-        `${import.meta.env.VITE_BACKEND_URL}/api/v1/admin/notice/${id}/download`,
-        {
-          responseType: 'blob',
-        },
-      );
+      const res = await authAxios.get(`/api/v1/admin/notice/${id}/download`, {
+        responseType: 'blob',
+      });
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const link = document.createElement('a');
       link.href = url;
