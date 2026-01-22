@@ -84,3 +84,9 @@
 
 3.  **나만의 비밀 저장소 (Private Repo)**
     - `개인자료` 폴더 안에서만 따로 `git init`을 해서 **GitHub Private Repository**에 올리는 방법도 있습니다. (고급 스킬!)
+
+### 🔧 관리자 권한 관리 기능 복구 (Admin Permission Fix)
+
+- **`AdminPermissions.tsx` 정상화**:
+  - 기존 코드(`adminpermission2.tsx`)의 UI/UX 요소(모바일 뷰, 수정 모달 등)를 현재 프로젝트 아키텍처(TanStack Query, Service Layer)에 맞게 통합했습니다.
+  - 누락되었던 `handleUpdate` 핸들러와 관련 상태(`editRole`)를 구현하여 컴파일 에러를 해결했습니다.

@@ -62,8 +62,8 @@ export function LoginPage({ onLogin, onBack }: LoginPageProps) {
     try {
       // 백엔드 AuthController 구조에 맞춘 로그인 요청
       const res = await authService.login({
-        email,
-        password,
+        siteEmail: email,
+        sitePwd: password,
       });
 
       // 백엔드 응답에서 Role 추출 (HttpOnly 쿠키는 헤더에 저장됨)

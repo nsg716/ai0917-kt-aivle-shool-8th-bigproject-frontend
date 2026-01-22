@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Shield,
   Users,
@@ -21,7 +21,10 @@ import { Input } from '../../../components/ui/input';
 import { cloneElement } from 'react';
 import { adminService } from '../../../services/adminService';
 import { UserRole } from '../../../types/common';
-import { UserCreateRequestDto, UserListResponseDto } from '../../../types/admin';
+import {
+  UserCreateRequestDto,
+  UserListResponseDto,
+} from '../../../types/admin';
 
 // Role Labels and Helpers
 const ROLE_LABELS: Record<UserRole, string> = {
@@ -50,22 +53,32 @@ const getGradient = (role: UserRole) => {
 
 export function AdminPermissions() {
   const queryClient = useQueryClient();
-  
+
   // Local State
   const [keyword, setKeyword] = useState('');
   const [roleFilter, setRoleFilter] = useState<UserRole | ''>('');
   const [page, setPage] = useState(0);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<UserListResponseDto | null>(null);
+  const [selectedUser, setSelectedUser] = useState<UserListResponseDto | null>(
+    null,
+  );
+  const [editRole, setEditRole] = useState<UserRole>('Manager');
   const [newForm, setNewForm] = useState<UserCreateRequestDto>({
     name: '',
     email: '',
     role: 'Manager',
     siteEmail: '',
     sitePwd: '',
-    mobile: ''
+    mobile: '',
   });
+
+  // Effects
+  useEffect(() => {
+    if (selectedUser) {
+      setEditRole(selectedUser.role);
+    }
+  }, [selectedUser]);
 
   // Queries
   const { data: summary } = useQuery({
@@ -87,11 +100,33 @@ export function AdminPermissions() {
       queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
       queryClient.invalidateQueries({ queryKey: ['adminSummary'] });
       setShowCreateModal(false);
-      setNewForm({ name: '', email: '', role: 'Manager', siteEmail: '', sitePwd: '', mobile: '' });
+      setNewForm({
+        name: '',
+        email: '',
+        role: 'Manager',
+        siteEmail: '',
+        sitePwd: '',
+        mobile: '',
+      });
       alert('사용자가 추가되었습니다.');
     },
     onError: () => {
       alert('사용자 추가에 실패했습니다.');
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, role }: { id: number; role: UserRole }) =>
+      adminService.updateUserRole(id, role),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
+      queryClient.invalidateQueries({ queryKey: ['adminSummary'] });
+      setShowEditModal(false);
+      setSelectedUser(null);
+      alert('사용자 권한이 수정되었습니다.');
+    },
+    onError: () => {
+      alert('권한 수정에 실패했습니다.');
     },
   });
 
@@ -118,6 +153,11 @@ export function AdminPermissions() {
       return alert('관리자 권한은 삭제할 수 없습니다.');
     if (!confirm(`${user.name}님의 모든 권한을 회수하시겠습니까?`)) return;
     deleteMutation.mutate(user.id);
+  };
+
+  const handleUpdate = (role: UserRole) => {
+    if (!selectedUser) return;
+    updateMutation.mutate({ id: selectedUser.id, role });
   };
 
   return (
@@ -195,14 +235,14 @@ export function AdminPermissions() {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
+          {/* Desktop Table View */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-muted/50 text-muted-foreground">
                 <tr>
                   <th className="p-4 text-left font-medium">사용자</th>
                   <th className="p-4 text-left font-medium">이메일</th>
                   <th className="p-4 text-left font-medium">역할</th>
-                  {/* Status column removed */}
                   <th className="p-4 text-center font-medium">관리</th>
                 </tr>
               </thead>
@@ -231,7 +271,6 @@ export function AdminPermissions() {
                           {ROLE_LABELS[user.role]}
                         </Badge>
                       </td>
-                      {/* Status cell removed */}
                       <td className="p-4 text-center space-x-1">
                         <Button
                           variant="ghost"
@@ -268,6 +307,63 @@ export function AdminPermissions() {
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="md:hidden divide-y divide-border">
+            {users.length > 0 ? (
+              users.map((user) => (
+                <div key={user.id} className="p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`w-10 h-10 bg-gradient-to-br ${getGradient(user.role)} rounded-full flex items-center justify-center text-white text-sm font-semibold`}
+                      >
+                        {user.name[0]}
+                      </div>
+                      <div>
+                        <div className="font-medium text-foreground">
+                          {user.name}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {user.email}
+                        </div>
+                      </div>
+                    </div>
+                    <Badge className={`${getRoleBadge(user.role)} border-none`}>
+                      {ROLE_LABELS[user.role]}
+                    </Badge>
+                  </div>
+                  <div className="flex justify-end gap-2 pt-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8"
+                      disabled={user.role === 'Admin'}
+                      onClick={() => {
+                        setSelectedUser(user);
+                        setShowEditModal(true);
+                      }}
+                    >
+                      권한 수정
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 text-destructive hover:text-destructive"
+                      disabled={user.role === 'Admin'}
+                      onClick={() => handleDelete(user)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="p-8 text-center text-muted-foreground">
+                사용자가 없습니다.
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -334,6 +430,70 @@ export function AdminPermissions() {
                   disabled={createMutation.isPending}
                 >
                   {createMutation.isPending ? '처리중...' : '사용자 추가'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Edit User Modal */}
+      {showEditModal && selectedUser && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-md shadow-2xl animate-in fade-in zoom-in duration-200">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>권한 수정</CardTitle>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowEditModal(false)}
+              >
+                <CloseIcon className="w-4 h-4" />
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                <div
+                  className={`w-10 h-10 rounded-full bg-gradient-to-br ${getGradient(selectedUser.role)} flex items-center justify-center text-white font-bold text-sm`}
+                >
+                  {selectedUser.name[0]}
+                </div>
+                <div>
+                  <div className="font-medium">{selectedUser.name}</div>
+                  <div className="text-sm text-muted-foreground">
+                    {selectedUser.email}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">역할 변경</label>
+                <select
+                  className="w-full border rounded-md p-2 bg-background"
+                  value={editRole}
+                  onChange={(e) => setEditRole(e.target.value as UserRole)}
+                >
+                  <option value="Manager">매니저 (Manager)</option>
+                  <option value="Author">작가 (Author)</option>
+                </select>
+                <p className="text-xs text-muted-foreground">
+                  * 관리자(Admin) 권한은 변경할 수 없습니다.
+                </p>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowEditModal(false)}
+                >
+                  취소
+                </Button>
+                <Button
+                  onClick={() => handleUpdate(editRole)}
+                  className="bg-purple-600 hover:bg-purple-700"
+                  disabled={updateMutation.isPending}
+                >
+                  {updateMutation.isPending ? '저장 중...' : '변경 사항 저장'}
                 </Button>
               </div>
             </CardContent>

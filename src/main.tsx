@@ -10,9 +10,9 @@ async function enableMocking() {
   if (import.meta.env.MODE !== 'development') {
     return;
   }
-  
+
   // Set this to true to enable MSW
-  const ENABLE_MSW = false; 
+  const ENABLE_MSW = false;
 
   if (ENABLE_MSW) {
     const { worker } = await import('./mocks/browser');

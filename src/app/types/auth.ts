@@ -49,8 +49,8 @@ export interface SignupCompleteResponse {
 }
 
 export interface LoginRequest {
-  email?: string;
-  password?: string;
+  siteEmail?: string;
+  sitePwd?: string;
   // For other login methods if needed
 }
 
