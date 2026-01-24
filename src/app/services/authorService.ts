@@ -1,14 +1,22 @@
 import apiClient from '../api/axios';
 import axios from 'axios';
 import {
+  AuthorDashboardSummaryDto,
+  AuthorMyPageDto,
+  AuthorNoticeDto,
+  ContestTemplateDto,
   ExtractSettingRequest,
   ExtractSettingResponse,
-  AuthorDashboardSummaryDto,
-  WorkResponseDto,
+  IPMatchingDto,
+  IPProposalDto,
+  LorebookDto,
+  LorebookCharacterDto,
   WorkCreateRequestDto,
-  WorkUpdateRequestDto,
+  WorkResponseDto,
   WorkStatus,
-  AuthorNoticeDto
+  WorkUpdateRequestDto,
+  EpisodeDto,
+  EpisodeDetailDto,
 } from '../types/author';
 import { PageResponse } from '../types/common';
 
@@ -41,7 +49,7 @@ export const authorService = {
   getDashboardSummary: async (integrationId: string) => {
     const response = await apiClient.get<AuthorDashboardSummaryDto>(
       '/api/v1/author/dashboard/summary',
-      { params: { integrationId } }
+      { params: { integrationId } },
     );
     return response.data;
   },
@@ -49,15 +57,59 @@ export const authorService = {
   getDashboardNotices: async (page = 0, size = 5) => {
     const response = await apiClient.get<PageResponse<AuthorNoticeDto>>(
       '/api/v1/author/dashboard/notice',
-      { params: { page, size } }
+      { params: { page, size } },
     );
     return response.data;
   },
 
   // Works
   getWorks: async (integrationId: string) => {
+    // CSV defines /api/v1/author/works
+    // integrationId might not be needed if session is used, or as query param
     const response = await apiClient.get<WorkResponseDto[]>(
-      `/api/v1/author/works/${integrationId}`
+      '/api/v1/author/works',
+    );
+    return response.data;
+  },
+
+  getWorkDetail: async (workId: string) => {
+    const response = await apiClient.get<WorkResponseDto>(
+      `/api/v1/author/works/${workId}`,
+    );
+    return response.data;
+  },
+
+  getEpisodes: async (workId: string) => {
+    const response = await apiClient.get<EpisodeDto[]>(
+      `/api/v1/author/works/${workId}/episodes`,
+    );
+    return response.data;
+  },
+
+  getEpisodeDetail: async (workId: string, episodeId: string) => {
+    const response = await apiClient.get<EpisodeDetailDto>(
+      `/api/v1/author/works/${workId}/episodes/${episodeId}`,
+    );
+    return response.data;
+  },
+
+  createEpisode: async (workId: string, title: string) => {
+    const response = await apiClient.post<EpisodeDto>(
+      `/api/v1/author/works/${workId}/episodes`,
+      { title },
+    );
+    return response.data;
+  },
+
+  updateEpisode: async (
+    workId: string,
+    episodeId: string,
+    content: string,
+    title?: string,
+  ) => {
+    const response = await apiClient.put<EpisodeDetailDto>(
+      `/api/v1/author/works/${workId}/episodes/${episodeId}`,
+      { content, title },
     );
     return response.data;
   },
@@ -68,7 +120,10 @@ export const authorService = {
   },
 
   updateWork: async (data: WorkUpdateRequestDto) => {
-    const response = await apiClient.patch<number>('/api/v1/author/works', data);
+    const response = await apiClient.patch<number>(
+      '/api/v1/author/works',
+      data,
+    );
     return response.data;
   },
 
@@ -76,12 +131,74 @@ export const authorService = {
     const response = await apiClient.patch<number>(
       `/api/v1/author/works/${id}/status`,
       null,
-      { params: { status } }
+      { params: { status } },
     );
     return response.data;
   },
 
   deleteWork: async (id: number) => {
     await apiClient.delete(`/api/v1/author/works/${id}`);
-  }
+  },
+
+  // Lorebooks (Settings)
+  getLorebooks: async () => {
+    const response = await apiClient.get<LorebookDto[]>(
+      '/api/v1/author/lorebook',
+    );
+    return response.data;
+  },
+
+  getLorebookCharacters: async (workId: string) => {
+    const response = await apiClient.get<LorebookCharacterDto[]>(
+      `/api/v1/author/lorebook/${workId}/characters`,
+    );
+    return response.data;
+  },
+
+  // IP Expansion
+  getIPProposals: async () => {
+    const response = await apiClient.get<IPProposalDto[]>(
+      '/api/v1/author/ip-expansion/proposals',
+    );
+    return response.data;
+  },
+
+  getIPMatching: async () => {
+    const response = await apiClient.get<IPMatchingDto[]>(
+      '/api/v1/author/ip-expansion/matching',
+    );
+    return response.data;
+  },
+
+  // Contest Templates
+  getContestTemplates: async () => {
+    const response = await apiClient.get<ContestTemplateDto[]>(
+      '/api/v1/author/contest/templates',
+    );
+    return response.data;
+  },
+
+  // My Page
+  getMyPage: async (userId: string) => {
+    const response = await apiClient.get<AuthorMyPageDto>(
+      `/api/v1/author/${userId}/mypage`,
+    );
+    return response.data;
+  },
+
+  updateProfile: async (userId: string, data: any) => {
+    const response = await apiClient.patch(
+      `/api/v1/author/${userId}/mypage/profile`,
+      data,
+    );
+    return response.data;
+  },
+
+  changePassword: async (userId: string, data: any) => {
+    const response = await apiClient.patch(
+      `/api/v1/author/${userId}/mypage/pwd`,
+      data,
+    );
+    return response.data;
+  },
 };

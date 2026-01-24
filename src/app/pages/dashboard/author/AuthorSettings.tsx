@@ -9,22 +9,22 @@ import {
   Plus,
   Edit,
   Trash2,
-  Clock
+  Clock,
 } from 'lucide-react';
-import { Button } from "../../../components/ui/button";
-import { Badge } from "../../../components/ui/badge";
+import { Button } from '../../../components/ui/button';
+import { Badge } from '../../../components/ui/badge';
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-} from "../../../components/ui/card";
+} from '../../../components/ui/card';
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
-} from "../../../components/ui/tabs";
+} from '../../../components/ui/tabs';
 
 interface AuthorSettingsProps {
   settingsCategory: 'characters' | 'world' | 'narrative';
@@ -36,7 +36,7 @@ export function AuthorSettings({
   setSettingsCategory,
 }: AuthorSettingsProps) {
   return (
-    <div className="max-w-7xl mx-auto w-full h-full flex flex-col">
+    <div className="space-y-6 max-w-7xl mx-auto font-sans">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h2 className="text-2xl font-bold text-foreground mb-1">
@@ -65,33 +65,33 @@ export function AuthorSettings({
         <div className="border-b border-border">
           <div className="flex">
             <button
-              onClick={() => setSettingsCategory("characters")}
+              onClick={() => setSettingsCategory('characters')}
               className={`flex items-center gap-2 px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
-                settingsCategory === "characters"
-                  ? "border-blue-600 text-blue-600 dark:text-blue-400"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
+                settingsCategory === 'characters'
+                  ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+                  : 'border-transparent text-muted-foreground hover:text-foreground'
               }`}
             >
               <UsersIcon className="w-4 h-4" />
               인물
             </button>
             <button
-              onClick={() => setSettingsCategory("world")}
+              onClick={() => setSettingsCategory('world')}
               className={`flex items-center gap-2 px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
-                settingsCategory === "world"
-                  ? "border-blue-600 text-blue-600 dark:text-blue-400"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
+                settingsCategory === 'world'
+                  ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+                  : 'border-transparent text-muted-foreground hover:text-foreground'
               }`}
             >
               <Globe className="w-4 h-4" />
               세계관
             </button>
             <button
-              onClick={() => setSettingsCategory("narrative")}
+              onClick={() => setSettingsCategory('narrative')}
               className={`flex items-center gap-2 px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
-                settingsCategory === "narrative"
-                  ? "border-blue-600 text-blue-600 dark:text-blue-400"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
+                settingsCategory === 'narrative'
+                  ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+                  : 'border-transparent text-muted-foreground hover:text-foreground'
               }`}
             >
               <BookMarked className="w-4 h-4" />
@@ -101,9 +101,9 @@ export function AuthorSettings({
         </div>
 
         <div className="flex-1 overflow-auto p-6 bg-muted/30">
-          {settingsCategory === "characters" && <CharactersContent />}
-          {settingsCategory === "world" && <WorldContent />}
-          {settingsCategory === "narrative" && <NarrativeContent />}
+          {settingsCategory === 'characters' && <CharactersContent />}
+          {settingsCategory === 'world' && <WorldContent />}
+          {settingsCategory === 'narrative' && <NarrativeContent />}
         </div>
       </Card>
     </div>
@@ -115,7 +115,12 @@ function CharactersContent() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div className="flex gap-2">
-          <Badge variant="secondary" className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">주요 인물 3</Badge>
+          <Badge
+            variant="secondary"
+            className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+          >
+            주요 인물 3
+          </Badge>
           <Badge variant="outline">조연 12</Badge>
           <Badge variant="outline">단역 5</Badge>
         </div>
@@ -136,12 +141,20 @@ function CharactersContent() {
                 </div>
               </div>
               <div>
-                <CardTitle className="text-base font-bold text-foreground">카일라스</CardTitle>
-                <div className="text-xs text-muted-foreground">주인공, 검사</div>
+                <CardTitle className="text-base font-bold text-foreground">
+                  카일라스
+                </CardTitle>
+                <div className="text-xs text-muted-foreground">
+                  주인공, 검사
+                </div>
               </div>
             </div>
             <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-blue-600">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-blue-600"
+              >
                 <Edit className="w-4 h-4" />
               </Button>
             </div>
@@ -149,12 +162,19 @@ function CharactersContent() {
           <CardContent>
             <div className="space-y-2 mt-2">
               <div className="text-sm text-muted-foreground line-clamp-2">
-                제국의 마지막 황태자이자 검술의 천재. 차가운 성격이지만 내면에는 뜨거운 복수심을 품고 있다.
+                제국의 마지막 황태자이자 검술의 천재. 차가운 성격이지만 내면에는
+                뜨거운 복수심을 품고 있다.
               </div>
               <div className="flex flex-wrap gap-1 pt-2">
-                <Badge variant="secondary" className="text-xs">냉철함</Badge>
-                <Badge variant="secondary" className="text-xs">검술 천재</Badge>
-                <Badge variant="secondary" className="text-xs">복수귀</Badge>
+                <Badge variant="secondary" className="text-xs">
+                  냉철함
+                </Badge>
+                <Badge variant="secondary" className="text-xs">
+                  검술 천재
+                </Badge>
+                <Badge variant="secondary" className="text-xs">
+                  복수귀
+                </Badge>
               </div>
             </div>
           </CardContent>
@@ -170,12 +190,20 @@ function CharactersContent() {
                 </div>
               </div>
               <div>
-                <CardTitle className="text-base font-bold text-foreground">엘리나</CardTitle>
-                <div className="text-xs text-muted-foreground">히로인, 마법사</div>
+                <CardTitle className="text-base font-bold text-foreground">
+                  엘리나
+                </CardTitle>
+                <div className="text-xs text-muted-foreground">
+                  히로인, 마법사
+                </div>
               </div>
             </div>
             <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-blue-600">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-blue-600"
+              >
                 <Edit className="w-4 h-4" />
               </Button>
             </div>
@@ -183,12 +211,19 @@ function CharactersContent() {
           <CardContent>
             <div className="space-y-2 mt-2">
               <div className="text-sm text-muted-foreground line-clamp-2">
-                고대 마법의 계승자. 밝고 명랑하지만 과거의 기억을 잃은 미스터리한 소녀.
+                고대 마법의 계승자. 밝고 명랑하지만 과거의 기억을 잃은
+                미스터리한 소녀.
               </div>
               <div className="flex flex-wrap gap-1 pt-2">
-                <Badge variant="secondary" className="text-xs">천재 마법사</Badge>
-                <Badge variant="secondary" className="text-xs">기억상실</Badge>
-                <Badge variant="secondary" className="text-xs">치유</Badge>
+                <Badge variant="secondary" className="text-xs">
+                  천재 마법사
+                </Badge>
+                <Badge variant="secondary" className="text-xs">
+                  기억상실
+                </Badge>
+                <Badge variant="secondary" className="text-xs">
+                  치유
+                </Badge>
               </div>
             </div>
           </CardContent>
@@ -204,9 +239,14 @@ function CharactersContent() {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-amber-800 dark:text-amber-400 mb-3">
-              '카일라스'의 나이 설정이 1화와 25화에서 다르게 묘사되었습니다. (1화: 17세, 25화: 19세)
+              '카일라스'의 나이 설정이 1화와 25화에서 다르게 묘사되었습니다.
+              (1화: 17세, 25화: 19세)
             </p>
-            <Button size="sm" variant="outline" className="w-full border-amber-200 hover:bg-amber-100 text-amber-700 dark:border-amber-800 dark:hover:bg-amber-900/30 dark:text-amber-400">
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full border-amber-200 hover:bg-amber-100 text-amber-700 dark:border-amber-800 dark:hover:bg-amber-900/30 dark:text-amber-400"
+            >
               확인하기
             </Button>
           </CardContent>
@@ -221,38 +261,52 @@ function WorldContent() {
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="col-span-2 space-y-6">
-           {/* Geography */}
-           <Card className="border-border">
-             <CardHeader>
-               <CardTitle className="text-lg text-foreground">지리 / 장소</CardTitle>
-             </CardHeader>
-             <CardContent className="space-y-4">
-               <div className="flex items-start gap-4 p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                 <div className="w-16 h-16 bg-slate-200 dark:bg-slate-700 rounded-md flex-shrink-0"></div>
-                 <div>
-                   <h4 className="font-medium text-foreground">제국 수도 '아르카디아'</h4>
-                   <p className="text-sm text-muted-foreground mt-1">대륙 중앙에 위치한 거대한 마법 도시. 5개의 구역으로 나뉘어 있으며...</p>
-                 </div>
-               </div>
-               <div className="flex items-start gap-4 p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                 <div className="w-16 h-16 bg-slate-200 dark:bg-slate-700 rounded-md flex-shrink-0"></div>
-                 <div>
-                   <h4 className="font-medium text-foreground">침묵의 숲</h4>
-                   <p className="text-sm text-muted-foreground mt-1">마수들이 서식하는 위험한 숲. 고대 유적의 입구가 숨겨져 있다고 전해진다.</p>
-                 </div>
-               </div>
-             </CardContent>
-           </Card>
+          {/* Geography */}
+          <Card className="border-border">
+            <CardHeader>
+              <CardTitle className="text-lg text-foreground">
+                지리 / 장소
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-start gap-4 p-3 rounded-lg hover:bg-muted/50 transition-colors">
+                <div className="w-16 h-16 bg-slate-200 dark:bg-slate-700 rounded-md flex-shrink-0"></div>
+                <div>
+                  <h4 className="font-medium text-foreground">
+                    제국 수도 '아르카디아'
+                  </h4>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    대륙 중앙에 위치한 거대한 마법 도시. 5개의 구역으로 나뉘어
+                    있으며...
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-4 p-3 rounded-lg hover:bg-muted/50 transition-colors">
+                <div className="w-16 h-16 bg-slate-200 dark:bg-slate-700 rounded-md flex-shrink-0"></div>
+                <div>
+                  <h4 className="font-medium text-foreground">침묵의 숲</h4>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    마수들이 서식하는 위험한 숲. 고대 유적의 입구가 숨겨져
+                    있다고 전해진다.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-           {/* History/Culture */}
-           <Card className="border-border">
-             <CardHeader>
-               <CardTitle className="text-lg text-foreground">역사 / 문화</CardTitle>
-             </CardHeader>
-             <CardContent>
-               <p className="text-muted-foreground text-sm">등록된 역사 설정이 없습니다.</p>
-             </CardContent>
-           </Card>
+          {/* History/Culture */}
+          <Card className="border-border">
+            <CardHeader>
+              <CardTitle className="text-lg text-foreground">
+                역사 / 문화
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground text-sm">
+                등록된 역사 설정이 없습니다.
+              </p>
+            </CardContent>
+          </Card>
         </div>
 
         <div className="space-y-4">
@@ -265,9 +319,13 @@ function WorldContent() {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-blue-800 dark:text-blue-300 mb-3">
-                현재 '마법 체계'에 대한 설정이 부족합니다. 4대 원소 기반의 마법 시스템을 제안해드릴까요?
+                현재 '마법 체계'에 대한 설정이 부족합니다. 4대 원소 기반의 마법
+                시스템을 제안해드릴까요?
               </p>
-              <Button size="sm" className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+              <Button
+                size="sm"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+              >
                 제안 보기
               </Button>
             </CardContent>
@@ -294,11 +352,16 @@ function NarrativeContent() {
           <div className="absolute -left-[41px] top-0 w-5 h-5 rounded-full bg-blue-500 border-4 border-background"></div>
           <div className="bg-card border border-border rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-bold text-blue-600 dark:text-blue-400">제국력 385년</span>
+              <span className="text-sm font-bold text-blue-600 dark:text-blue-400">
+                제국력 385년
+              </span>
               <Badge variant="outline">프롤로그</Badge>
             </div>
             <h4 className="font-medium text-foreground mb-1">황태자의 추방</h4>
-            <p className="text-sm text-muted-foreground">카일라스가 누명을 쓰고 제국에서 추방당함. 북부 변경백에게 의탁하게 됨.</p>
+            <p className="text-sm text-muted-foreground">
+              카일라스가 누명을 쓰고 제국에서 추방당함. 북부 변경백에게 의탁하게
+              됨.
+            </p>
           </div>
         </div>
 
@@ -307,24 +370,34 @@ function NarrativeContent() {
           <div className="absolute -left-[41px] top-0 w-5 h-5 rounded-full bg-slate-300 dark:bg-slate-600 border-4 border-background"></div>
           <div className="bg-card border border-border rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-bold text-muted-foreground">제국력 388년</span>
+              <span className="text-sm font-bold text-muted-foreground">
+                제국력 388년
+              </span>
               <Badge variant="outline">1부 초반</Badge>
             </div>
-            <h4 className="font-medium text-foreground mb-1">엘리나와의 만남</h4>
-            <p className="text-sm text-muted-foreground">북부 숲에서 기억을 잃은 엘리나를 구조. 그녀의 마법 재능을 발견함.</p>
+            <h4 className="font-medium text-foreground mb-1">
+              엘리나와의 만남
+            </h4>
+            <p className="text-sm text-muted-foreground">
+              북부 숲에서 기억을 잃은 엘리나를 구조. 그녀의 마법 재능을 발견함.
+            </p>
           </div>
         </div>
 
-         {/* Timeline Item 3 */}
-         <div className="relative">
+        {/* Timeline Item 3 */}
+        <div className="relative">
           <div className="absolute -left-[41px] top-0 w-5 h-5 rounded-full bg-slate-300 dark:bg-slate-600 border-4 border-background"></div>
           <div className="bg-card border border-border rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-bold text-muted-foreground">제국력 389년</span>
+              <span className="text-sm font-bold text-muted-foreground">
+                제국력 389년
+              </span>
               <Badge variant="outline">1부 중반</Badge>
             </div>
             <h4 className="font-medium text-foreground mb-1">아카데미 입학</h4>
-            <p className="text-sm text-muted-foreground">신분을 숨기고 제국 아카데미에 입학. 라이벌 '베르나르'와 조우.</p>
+            <p className="text-sm text-muted-foreground">
+              신분을 숨기고 제국 아카데미에 입학. 라이벌 '베르나르'와 조우.
+            </p>
           </div>
         </div>
       </div>

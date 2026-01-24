@@ -1,12 +1,29 @@
 import { Bell, Shield, Key, Smartphone, LogOut } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../../components/ui/card";
-import { Button } from "../../../components/ui/button";
-import { Switch } from "../../../components/ui/switch";
-import { Label } from "../../../components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '../../../components/ui/card';
+import { Button } from '../../../components/ui/button';
+import { Switch } from '../../../components/ui/switch';
+import { Label } from '../../../components/ui/label';
+import { useContext, useEffect } from 'react';
+import { AuthorBreadcrumbContext } from './AuthorBreadcrumbContext';
 
 export function AuthorAccount() {
+  const { setBreadcrumbs, onNavigate } = useContext(AuthorBreadcrumbContext);
+
+  useEffect(() => {
+    setBreadcrumbs([
+      { label: '홈', onClick: () => onNavigate('home') },
+      { label: '설정' },
+    ]);
+  }, [setBreadcrumbs, onNavigate]);
+
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div className="space-y-6 max-w-7xl mx-auto font-sans">
       <Card className="border-border">
         <CardHeader className="border-b border-border">
           <CardTitle className="text-foreground">계정 설정</CardTitle>
@@ -22,8 +39,12 @@ export function AuthorAccount() {
                     <Key className="w-5 h-5 text-slate-600 dark:text-slate-400" />
                   </div>
                   <div>
-                    <h3 className="font-medium text-foreground">비밀번호 변경</h3>
-                    <p className="text-sm text-muted-foreground">주기적인 비밀번호 변경으로 계정을 보호하세요.</p>
+                    <h3 className="font-medium text-foreground">
+                      비밀번호 변경
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      주기적인 비밀번호 변경으로 계정을 보호하세요.
+                    </p>
                   </div>
                 </div>
                 <Button variant="outline">변경</Button>
@@ -39,7 +60,9 @@ export function AuthorAccount() {
                   </div>
                   <div>
                     <h3 className="font-medium text-foreground">2단계 인증</h3>
-                    <p className="text-sm text-muted-foreground">로그인 시 추가 인증을 통해 보안을 강화합니다.</p>
+                    <p className="text-sm text-muted-foreground">
+                      로그인 시 추가 인증을 통해 보안을 강화합니다.
+                    </p>
                   </div>
                 </div>
                 <Switch />
@@ -54,22 +77,28 @@ export function AuthorAccount() {
                 </div>
                 <div>
                   <h3 className="font-medium text-foreground">알림 설정</h3>
-                  <p className="text-sm text-muted-foreground">이메일 및 푸시 알림 수신 여부를 설정합니다.</p>
+                  <p className="text-sm text-muted-foreground">
+                    이메일 및 푸시 알림 수신 여부를 설정합니다.
+                  </p>
                 </div>
               </div>
-              
+
               <div className="space-y-4 pl-13">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="notify-email" className="flex flex-col gap-1">
                     <span>이메일 알림</span>
-                    <span className="font-normal text-xs text-muted-foreground">주요 업데이트 및 공지사항을 이메일로 받습니다.</span>
+                    <span className="font-normal text-xs text-muted-foreground">
+                      주요 업데이트 및 공지사항을 이메일로 받습니다.
+                    </span>
                   </Label>
                   <Switch id="notify-email" defaultChecked />
                 </div>
                 <div className="flex items-center justify-between">
                   <Label htmlFor="notify-push" className="flex flex-col gap-1">
                     <span>마케팅 정보 수신</span>
-                    <span className="font-normal text-xs text-muted-foreground">이벤트 및 프로모션 정보를 받습니다.</span>
+                    <span className="font-normal text-xs text-muted-foreground">
+                      이벤트 및 프로모션 정보를 받습니다.
+                    </span>
                   </Label>
                   <Switch id="notify-push" />
                 </div>
@@ -84,8 +113,12 @@ export function AuthorAccount() {
                     <Shield className="w-5 h-5 text-red-600 dark:text-red-400" />
                   </div>
                   <div>
-                    <h3 className="font-medium text-red-600 dark:text-red-400">계정 삭제</h3>
-                    <p className="text-sm text-red-600/80 dark:text-red-400/80">계정을 삭제하면 모든 데이터가 영구적으로 제거됩니다.</p>
+                    <h3 className="font-medium text-red-600 dark:text-red-400">
+                      계정 삭제
+                    </h3>
+                    <p className="text-sm text-red-600/80 dark:text-red-400/80">
+                      계정을 삭제하면 모든 데이터가 영구적으로 제거됩니다.
+                    </p>
                   </div>
                 </div>
                 <Button variant="destructive">계정 삭제</Button>

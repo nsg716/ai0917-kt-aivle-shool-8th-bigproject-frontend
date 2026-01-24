@@ -300,7 +300,7 @@ export function LandingPage({ onSignInClick }: LandingPageProps) {
 
         <div className="grid md:grid-cols-2 gap-8 max-w-[900px] mx-auto">
           {/* Free Plan */}
-          <div className="bg-card border border-border rounded-lg p-8">
+          <div className="bg-card border border-border rounded-lg p-8 flex flex-col h-full">
             <div className="mb-8">
               <h3 className="text-2xl text-foreground mb-2">Just IPSUM</h3>
               <div className="flex items-baseline gap-2 mb-4">
@@ -310,7 +310,7 @@ export function LandingPage({ onSignInClick }: LandingPageProps) {
               <p className="text-muted-foreground">시작하는 창작자를 위한</p>
             </div>
 
-            <ul className="space-y-4 mb-8">
+            <ul className="space-y-4 mb-8 flex-1">
               <li className="flex items-start gap-3">
                 <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center flex-shrink-0 mt-0.5">
                   <div className="w-2 h-2 bg-foreground rounded-full"></div>
@@ -334,14 +334,14 @@ export function LandingPage({ onSignInClick }: LandingPageProps) {
             <Button
               onClick={onSignInClick}
               variant="outline"
-              className="w-full border-border hover:bg-accent h-12 rounded-lg"
+              className="w-full border-border hover:bg-accent h-12 rounded-lg mt-auto"
             >
               무료로 시작하기
             </Button>
           </div>
 
           {/* Pro Plan */}
-          <div className="bg-primary border border-primary rounded-lg p-8 relative">
+          <div className="bg-primary border border-primary rounded-lg p-8 relative flex flex-col h-full">
             <div className="absolute -top-3 left-8 bg-card border border-border px-3 py-1 rounded-full text-xs text-foreground">
               추천
             </div>
@@ -361,7 +361,7 @@ export function LandingPage({ onSignInClick }: LandingPageProps) {
               </p>
             </div>
 
-            <ul className="space-y-4 mb-8">
+            <ul className="space-y-4 mb-8 flex-1">
               <li className="flex items-start gap-3">
                 <div className="w-5 h-5 rounded-full bg-primary-foreground/10 flex items-center justify-center flex-shrink-0 mt-0.5">
                   <div className="w-2 h-2 bg-primary-foreground rounded-full"></div>
@@ -396,7 +396,7 @@ export function LandingPage({ onSignInClick }: LandingPageProps) {
 
             <Button
               onClick={onSignInClick}
-              className="w-full bg-card text-foreground hover:bg-accent h-12 rounded-lg"
+              className="w-full bg-card text-foreground hover:bg-accent h-12 rounded-lg mt-auto"
             >
               진짜로 시작하기
             </Button>
@@ -409,12 +409,7 @@ export function LandingPage({ onSignInClick }: LandingPageProps) {
         <div className="max-w-[1200px] mx-auto px-6">
           <div className="flex flex-col md:flex-row justify-between items-center gap-8">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-                <Brain className="w-5 h-5 text-primary-foreground" />
-              </div>
-              <span className="text-foreground text-lg font-semibold">
-                IPSUM
-              </span>
+              <Logo />
             </div>
 
             <div className="flex items-center gap-8 text-sm text-muted-foreground">

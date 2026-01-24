@@ -6,6 +6,8 @@ import {
   Loader2,
   Calendar,
 } from 'lucide-react';
+import { useContext, useEffect } from 'react';
+import { AuthorBreadcrumbContext } from './AuthorBreadcrumbContext';
 import {
   Card,
   CardContent,
@@ -21,6 +23,12 @@ interface AuthorHomeProps {
 }
 
 export function AuthorHome({ integrationId }: AuthorHomeProps) {
+  const { setBreadcrumbs } = useContext(AuthorBreadcrumbContext);
+
+  useEffect(() => {
+    setBreadcrumbs([{ label: '홈' }]);
+  }, [setBreadcrumbs]);
+
   // Fetch Dashboard Summary
   const { data: summary, isLoading: isSummaryLoading } = useQuery({
     queryKey: ['author', 'dashboard', 'summary', integrationId],
@@ -37,7 +45,7 @@ export function AuthorHome({ integrationId }: AuthorHomeProps) {
   const notices = noticesPage?.content || [];
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div className="space-y-6 max-w-7xl mx-auto font-sans">
       {/* 작품 현황 Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <Card className="border-border">

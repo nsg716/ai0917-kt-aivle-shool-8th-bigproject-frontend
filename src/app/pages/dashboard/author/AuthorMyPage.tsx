@@ -1,4 +1,6 @@
-import { User, Mail, Shield, Calendar } from 'lucide-react';
+import { useContext, useEffect } from 'react';
+import { AuthorBreadcrumbContext } from './AuthorBreadcrumbContext';
+import { User, Mail, Shield, Calendar, BookOpen, Database } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import {
   Card,
@@ -11,6 +13,9 @@ import { Label } from '../../../components/ui/label';
 import { useNavigate } from 'react-router-dom';
 import { authService } from '../../../services/authService';
 import { format } from 'date-fns';
+import { useQuery } from '@tanstack/react-query';
+import { authorService } from '../../../services/authorService';
+import { AuthorMyPageDto } from '../../../types/author';
 
 interface AuthorMyPageProps {
   onChangePassword: () => void;
@@ -19,9 +24,28 @@ interface AuthorMyPageProps {
 
 export function AuthorMyPage({
   onChangePassword,
-  userData,
+  userData: authUserData,
 }: AuthorMyPageProps) {
+  const { setBreadcrumbs, onNavigate } = useContext(AuthorBreadcrumbContext);
+
+  useEffect(() => {
+    setBreadcrumbs([
+      { label: '홈', onClick: () => onNavigate('home') },
+      { label: '마이페이지' },
+    ]);
+  }, [setBreadcrumbs, onNavigate]);
+
   const navigate = useNavigate();
+  const userId = authUserData?.userId;
+
+  // Fetch My Page Data
+  const { data: myPageData, isLoading } = useQuery({
+    queryKey: ['author', 'mypage', userId],
+    queryFn: () => authorService.getMyPage(String(userId)),
+    enabled: !!userId,
+  });
+
+  const userData = (myPageData as unknown as AuthorMyPageDto) || authUserData;
 
   const handleDeleteAccount = async () => {
     if (
@@ -41,30 +65,28 @@ export function AuthorMyPage({
     }
   };
 
-  if (!userData) {
+  if (!authUserData) {
     return <div>Loading...</div>;
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6 max-w-7xl mx-auto font-sans">
       <div>
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-          마이페이지
-        </h2>
-        <p className="text-slate-500 dark:text-slate-400">
+        <h2 className="text-2xl font-bold tracking-tight">마이페이지</h2>
+        <p className="text-muted-foreground">
           내 정보를 확인하고 계정을 관리합니다.
         </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>기본 정보</CardTitle>
-          <CardDescription>
-            계정의 기본 정보입니다. 수정이 필요한 경우 관리자에게 문의하세요.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>기본 정보</CardTitle>
+            <CardDescription>
+              계정의 기본 정보입니다. 수정이 필요한 경우 관리자에게 문의하세요.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label>이름</Label>
               <div className="flex items-center gap-2 p-3 border rounded-md bg-muted/50">
@@ -99,26 +121,65 @@ export function AuthorMyPage({
                 </span>
               </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>계정 관리</CardTitle>
-          <CardDescription>
-            비밀번호 변경 및 계정 탈퇴를 수행할 수 있습니다.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <Button onClick={onChangePassword}>비밀번호 변경</Button>
-            <Button variant="destructive" onClick={handleDeleteAccount}>
-              계정 탈퇴
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>활동 요약</CardTitle>
+              <CardDescription>
+                나의 작품 활동 및 IP 확장 현황입니다.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col items-center justify-center p-4 border rounded-lg bg-muted/30">
+                  <BookOpen className="w-8 h-8 mb-2 text-primary" />
+                  <span className="text-2xl font-bold">
+                    {userData.worksCount || 0}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    등록된 작품
+                  </span>
+                </div>
+                <div className="flex flex-col items-center justify-center p-4 border rounded-lg bg-muted/30">
+                  <Database className="w-8 h-8 mb-2 text-green-600" />
+                  <span className="text-2xl font-bold">
+                    {userData.ipExpansionCount || 0}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    IP 확장 진행
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>계정 관리</CardTitle>
+              <CardDescription>
+                비밀번호 변경 및 계정 탈퇴를 수행할 수 있습니다.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Button onClick={onChangePassword} className="flex-1">
+                  비밀번호 변경
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={handleDeleteAccount}
+                  className="flex-1"
+                >
+                  계정 탈퇴
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }

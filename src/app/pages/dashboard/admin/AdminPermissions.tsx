@@ -149,7 +149,7 @@ export function AdminPermissions() {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto font-sans pb-10">
+    <div className="space-y-6 max-w-7xl mx-auto font-sans">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center gap-3">
@@ -194,22 +194,34 @@ export function AdminPermissions() {
       <Card className="border-border shadow-sm gap-0">
         <CardHeader className="flex flex-col md:flex-row justify-between items-center gap-4 border-b">
           <span>사용자 목록</span>
-          <div className="flex items-center gap-2 w-full md:w-auto">
-            <div className="relative flex-1 md:w-64">
-              <Input
-                placeholder="이름, 이메일 검색 (Enter)"
-                className="pl-9 h-9 bg-background"
-                value={keyword}
-                onChange={(e) => setKeyword(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    setSearchQuery(keyword);
-                    setPage(0);
-                  }
-                }}
-              />
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <div className="flex flex-wrap gap-3 w-full md:w-auto">
+            <div className="flex gap-2 w-full md:w-auto flex-1 md:flex-none">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  className="pl-9 w-full md:w-64"
+                  placeholder="이름/이메일 검색 (Enter)"
+                  value={keyword}
+                  onChange={(e) => setKeyword(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      setSearchQuery(keyword);
+                      setPage(0);
+                    }
+                  }}
+                />
+              </div>
             </div>
+            <select
+              className="border rounded-md px-3 py-2 bg-background text-sm flex-1 md:flex-none"
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value as UserRole)}
+            >
+              <option value="">모든 역할</option>
+              <option value="Admin">관리자</option>
+              <option value="Manager">매니저</option>
+              <option value="Author">작가</option>
+            </select>
           </div>
         </CardHeader>
         <CardContent className="p-0">

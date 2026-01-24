@@ -1,5 +1,13 @@
 import {
-  Brain,
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '../../components/ui/breadcrumb';
+import { AuthorBreadcrumbContext } from './author/AuthorBreadcrumbContext';
+import {
   BookOpen,
   Database,
   Megaphone,
@@ -82,6 +90,14 @@ export function AuthorDashboard({ onLogout, onHome }: AuthorDashboardProps) {
     }
   };
 
+  const [breadcrumbs, setBreadcrumbs] = useState<any[]>([]);
+
+  // Context value
+  const breadcrumbContextValue = {
+    setBreadcrumbs,
+    onNavigate: handleMenuClick,
+  };
+
   return (
     <div className="flex h-screen bg-background" data-role="author">
       {/* Sidebar Open Button (when closed) */}
@@ -153,59 +169,23 @@ export function AuthorDashboard({ onLogout, onHome }: AuthorDashboardProps) {
             <span className="text-sm font-medium">작품</span>
           </button>
 
-          {/* IP 확장 (서브메뉴 포함) */}
-          <div className="space-y-1">
-            <button
-              onClick={() => handleMenuClick('ip-expansion')}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
-                activeMenu === 'ip-expansion' ||
-                activeMenu === 'ip-proposal' ||
-                activeMenu === 'ip-matching'
-                  ? 'text-white dark:text-black'
-                  : 'text-sidebar-foreground hover:bg-sidebar-accent'
-              }`}
-              style={
-                activeMenu === 'ip-expansion' ||
-                activeMenu === 'ip-proposal' ||
-                activeMenu === 'ip-matching'
-                  ? { backgroundColor: 'var(--role-primary)' }
-                  : {}
-              }
-            >
-              <Database className="w-5 h-5" />
-              <span className="text-sm font-medium">IP 확장</span>
-              <ChevronDown
-                className={`w-4 h-4 ml-auto transition-transform ${activeMenu.startsWith('ip-') ? 'rotate-180' : ''}`}
-              />
-            </button>
-            {/* 서브메뉴 (항상 보이거나 선택 시 보임 - 여기선 항상 보이게 하거나 클릭 시 토글 등 정책 필요하지만, 일단 간단히 들여쓰기로 구현) */}
-            {(activeMenu.startsWith('ip-') || true) && (
-              <div className="pl-12 space-y-1">
-                <button
-                  onClick={(e) => handleSubMenuClick('ip-proposal', e)}
-                  className={`w-full flex items-center gap-2 py-2 text-sm transition-colors ${
-                    activeMenu === 'ip-proposal'
-                      ? 'text-foreground font-medium'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-current opacity-60" />
-                  제안서 검토
-                </button>
-                <button
-                  onClick={(e) => handleSubMenuClick('ip-matching', e)}
-                  className={`w-full flex items-center gap-2 py-2 text-sm transition-colors ${
-                    activeMenu === 'ip-matching'
-                      ? 'text-foreground font-medium'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-current opacity-60" />
-                  담당자 매칭
-                </button>
-              </div>
-            )}
-          </div>
+          {/* IP 확장 */}
+          <button
+            onClick={() => handleMenuClick('ip-expansion')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+              activeMenu === 'ip-expansion'
+                ? 'text-white dark:text-black'
+                : 'text-sidebar-foreground hover:bg-sidebar-accent'
+            }`}
+            style={
+              activeMenu === 'ip-expansion'
+                ? { backgroundColor: 'var(--role-primary)' }
+                : {}
+            }
+          >
+            <Database className="w-5 h-5" />
+            <span className="text-sm font-medium">IP 확장</span>
+          </button>
 
           <button
             onClick={() => handleMenuClick('contest-templates')}
@@ -243,7 +223,7 @@ export function AuthorDashboard({ onLogout, onHome }: AuthorDashboardProps) {
         </nav>
 
         {/* Profile Section */}
-        <div className="p-4 border-t border-sidebar-border">
+        <div className="border-t border-sidebar-border">
           {/* Desktop: Dropdown style */}
           <div className="hidden md:block relative">
             <button
@@ -281,26 +261,6 @@ export function AuthorDashboard({ onLogout, onHome }: AuthorDashboardProps) {
                 >
                   <User className="w-4 h-4" />
                   <span className="text-sm">마이페이지</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setShowPasswordModal(true);
-                    setShowProfileDropdown(false);
-                  }}
-                  className="w-full flex items-center gap-3 px-4 py-2 text-foreground hover:bg-accent transition-colors"
-                >
-                  <KeyRound className="w-4 h-4" />
-                  <span className="text-sm">비밀번호 변경</span>
-                </button>
-                <button
-                  onClick={() => {
-                    handleMenuClick('account-settings');
-                    setShowProfileDropdown(false);
-                  }}
-                  className="w-full flex items-center gap-3 px-4 py-2 text-foreground hover:bg-accent transition-colors"
-                >
-                  <Settings className="w-4 h-4" />
-                  <span className="text-sm">설정</span>
                 </button>
                 <div className="h-px bg-border my-1" />
                 <button
@@ -378,26 +338,29 @@ export function AuthorDashboard({ onLogout, onHome }: AuthorDashboardProps) {
             className={`flex items-center justify-between ${!sidebarOpen ? 'ml-16' : ''}`}
           >
             {/* Breadcrumb */}
-            <div className="flex items-center gap-2 text-sm">
-              <button
-                onClick={() => handleMenuClick('home')}
-                className="text-muted-foreground hover:text-foreground transition-colors"
-              >
-                홈
-              </button>
-              {activeMenu !== 'home' && (
-                <>
-                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-foreground">
-                    {activeMenu === 'manuscripts' && '원문'}
-                    {activeMenu === 'settings' && '설정집'}
-                    {activeMenu === 'notice' && '공지사항'}
-                    {activeMenu === 'mypage' && '마이페이지'}
-                    {activeMenu === 'account-settings' && '설정'}
-                  </span>
-                </>
-              )}
-            </div>
+            <Breadcrumb>
+              <BreadcrumbList>
+                {breadcrumbs.map((item, index) => (
+                  <BreadcrumbItem key={index}>
+                    {index < breadcrumbs.length - 1 ? (
+                      <>
+                        <BreadcrumbLink
+                          onClick={item.onClick}
+                          className={
+                            item.onClick ? 'cursor-pointer hover:underline' : ''
+                          }
+                        >
+                          {item.label}
+                        </BreadcrumbLink>
+                        <BreadcrumbSeparator />
+                      </>
+                    ) : (
+                      <BreadcrumbPage>{item.label}</BreadcrumbPage>
+                    )}
+                  </BreadcrumbItem>
+                ))}
+              </BreadcrumbList>
+            </Breadcrumb>
 
             <div className="flex items-center gap-2">
               <ThemeToggle />
@@ -474,28 +437,28 @@ export function AuthorDashboard({ onLogout, onHome }: AuthorDashboardProps) {
         </header>
 
         {/* Content Area */}
-        <main className="flex-1 overflow-auto p-4 md:p-8">
-          {activeMenu === 'home' && (
-            <AuthorHome integrationId={integrationId} />
-          )}
-          {activeMenu === 'works' && (
-            <AuthorWorks integrationId={integrationId} />
-          )}
-          {(activeMenu === 'ip-expansion' ||
-            activeMenu === 'ip-proposal' ||
-            activeMenu === 'ip-matching') && <AuthorIPExpansion />}
-          {activeMenu === 'contest-templates' && <AuthorContestTemplates />}
-          {activeMenu === 'notice' && (
-            <AuthorNotice integrationId={integrationId} />
-          )}
-          {activeMenu === 'mypage' && (
-            <AuthorMyPage
-              userData={userData}
-              onChangePassword={() => setShowPasswordModal(true)}
-            />
-          )}
-          {activeMenu === 'account-settings' && <AuthorAccount />}
-        </main>
+        <AuthorBreadcrumbContext.Provider value={breadcrumbContextValue}>
+          <main className="flex-1 overflow-auto p-4 md:p-8">
+            {activeMenu === 'home' && (
+              <AuthorHome integrationId={integrationId} />
+            )}
+            {activeMenu === 'works' && (
+              <AuthorWorks integrationId={integrationId} />
+            )}
+            {activeMenu === 'ip-expansion' && <AuthorIPExpansion />}
+            {activeMenu === 'contest-templates' && <AuthorContestTemplates />}
+            {activeMenu === 'notice' && (
+              <AuthorNotice integrationId={integrationId} />
+            )}
+            {activeMenu === 'mypage' && (
+              <AuthorMyPage
+                userData={userData}
+                onChangePassword={() => setShowPasswordModal(true)}
+              />
+            )}
+            {activeMenu === 'account-settings' && <AuthorAccount />}
+          </main>
+        </AuthorBreadcrumbContext.Provider>
       </div>
 
       {/* Password Change Modal */}

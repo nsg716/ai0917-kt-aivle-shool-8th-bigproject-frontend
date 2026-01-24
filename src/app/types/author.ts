@@ -59,3 +59,77 @@ export interface AuthorNoticeDto {
   originalFilename?: string;
   category?: string;
 }
+
+// Lorebook DTO
+export interface LorebookDto {
+  id: number;
+  title: string;
+  description: string;
+  updatedAt: string;
+  count?: number;
+}
+
+export interface LorebookCharacterDto {
+  id: number;
+  name: string;
+  role: string;
+  description: string;
+  age?: string;
+  traits?: string[];
+}
+
+// Episode DTOs
+export interface EpisodeDto {
+  id: number;
+  workId: number;
+  title: string;
+  order: number;
+  status: WorkStatus;
+  updatedAt: string;
+}
+
+export interface EpisodeDetailDto extends EpisodeDto {
+  content: string;
+}
+
+// IP Expansion
+export interface IPProposalDto {
+  id: number;
+  title: string;
+  sender: string;
+  status: 'PENDING' | 'REVIEWING' | 'ACCEPTED' | 'REJECTED';
+  statusDescription: string;
+  content: string;
+  receivedAt: string;
+}
+
+export interface IPMatchingDto {
+  id: number;
+  managerName: string;
+  department: string;
+  role: string;
+  tags: string[];
+  matchedAt: string;
+}
+
+// Contest Template
+export interface ContestTemplateDto {
+  id: number;
+  title: string;
+  organizer: string;
+  category: string;
+  prize: string;
+  dDay: string;
+  description: string;
+  isAiSupported: boolean;
+}
+
+// My Page
+export interface AuthorMyPageDto {
+  name: string;
+  email: string;
+  role: string;
+  createdAt: string;
+  worksCount: number;
+  ipExpansionCount: number;
+}
