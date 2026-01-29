@@ -1,4 +1,4 @@
-import { Megaphone, Plus, Award } from 'lucide-react';
+import { Megaphone, Plus } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { Button } from '../../../components/ui/button';
@@ -33,7 +33,6 @@ export function ManagerHome({ onNavigate }: ManagerHomeProps) {
     content?: string;
     writer?: string;
   }
-
   const [notices, setNotices] = useState<DashboardNotice[]>([]);
   const [noticeModalOpen, setNoticeModalOpen] = useState(false);
   const [selectedNotice, setSelectedNotice] = useState<DashboardNotice | null>(
