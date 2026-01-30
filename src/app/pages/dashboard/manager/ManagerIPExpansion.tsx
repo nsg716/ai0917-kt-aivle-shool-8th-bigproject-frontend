@@ -51,9 +51,22 @@ import apiClient from "../../../api/axios";
 function CreateIPExpansionDialog({
   isOpen,
   onClose,
+  onCreated,
 }: {
   isOpen: boolean;
   onClose: () => void;
+  onCreated: (project: {
+    id?: string | number;
+    format: string | null;
+    projectName: string;
+    authorId: string;
+    authorName: string;
+    workId: string;
+    workTitle: string;
+    budget: string;
+    targetAges: string[];
+    targetGender: string;
+  }) => void;
 }) {
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedFormat, setSelectedFormat] = useState<string | null>(
@@ -101,6 +114,37 @@ function CreateIPExpansionDialog({
 
   const selectedWorkTitle =
     works?.find((w) => String(w.id) === selectedWorkId)?.title || "";
+
+  const { data: authors } = useQuery({
+    queryKey: ["manager", "authors", "list"],
+    queryFn: async () => {
+      const res = await apiClient.get(`/api/v1/manager/authors`);
+      const data = res.data as
+        | { id: number; name: string }[]
+        | { content?: { id: number; name: string }[] };
+      return Array.isArray(data) ? data : data?.content ?? [];
+    },
+  });
+
+  const selectedAuthorName =
+    authors?.find((a) => String(a.id) === selectedAuthorId)?.name || "";
+
+  const handleCreate = () => {
+    const createdId = Date.now();
+    onCreated({
+      id: createdId,
+      format: selectedFormat,
+      projectName,
+      authorId: selectedAuthorId,
+      authorName: selectedAuthorName,
+      workId: selectedWorkId,
+      workTitle: selectedWorkTitle || "",
+      budget,
+      targetAges,
+      targetGender,
+    });
+    onClose();
+  };
 
   const formats = [
     {
@@ -172,7 +216,7 @@ function CreateIPExpansionDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="max-w-6xl">
         <DialogHeader>
           <DialogTitle>새로운 IP 확장 프로젝트 생성</DialogTitle>
           <DialogDescription>
@@ -441,13 +485,13 @@ function CreateIPExpansionDialog({
               <h3 className="text-xl font-bold text-slate-900 mb-2">
                 프로젝트 생성 준비 완료
               </h3>
-              <p className="text-slate-500 max-w-md mx-auto">
+              <p className="text-slate-500 max-w-xl mx-auto">
                 선택하신 정보로 IP 확장 프로젝트를 생성합니다.
                 <br />
                 생성 후에는 프로젝트 관리 페이지로 이동합니다.
               </p>
 
-              <div className="bg-slate-50 rounded-lg p-6 max-w-sm mx-auto mt-6 text-left space-y-4">
+              <div className="bg-slate-50 rounded-lg p-6 max-w-xl mx-auto mt-6 text-left space-y-4">
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-slate-500 font-medium whitespace-nowrap">
                     확장 형태
@@ -513,7 +557,7 @@ function CreateIPExpansionDialog({
             </Button>
           ) : (
             <Button
-              onClick={onClose}
+              onClick={handleCreate}
               className={`${getThemeClass("bg")} text-white hover:opacity-90 transition-opacity`}
             >
               프로젝트 생성
@@ -527,6 +571,27 @@ function CreateIPExpansionDialog({
 
 export function ManagerIPExpansion() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [detailTab, setDetailTab] = useState<"summary" | "roadmap" | "assets">(
+    "summary",
+  );
+  type CreatedProject = {
+    id?: string | number;
+    format: string | null;
+    projectName: string;
+    authorId: string;
+    authorName: string;
+    workId: string;
+    workTitle: string;
+    budget: string;
+    targetAges: string[];
+    targetGender: string;
+  };
+  const [createdProject, setCreatedProject] = useState<
+    | CreatedProject
+    | null
+  >(null);
+  const [projects, setProjects] = useState<CreatedProject[]>([]);
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
@@ -635,111 +700,357 @@ export function ManagerIPExpansion() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {[
-            {
-              title: "암흑의 영역 - 웹툰화",
-              status: "제작 중",
-              progress: 65,
-              type: "웹툰",
-              icon: Film,
-              color: "blue",
-              date: "2024.12.30",
-            },
-            {
-              title: "운명의 검 - 드라마",
-              status: "기획 단계",
-              progress: 20,
-              type: "드라마",
-              icon: Tv,
-              color: "purple",
-              date: "2025.02.15",
-            },
-            {
-              title: "별빛 아카데미 - 게임",
-              status: "계약 완료",
-              progress: 10,
-              type: "게임",
-              icon: Play,
-              color: "green",
-              date: "2025.03.01",
-            },
-          ].map((project, idx) => (
-            <Card
-              key={idx}
-              className="border-slate-200 hover:shadow-lg transition-all cursor-pointer group"
-            >
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`w-10 h-10 bg-${project.color}-100 rounded-lg flex items-center justify-center`}
-                    >
-                      <project.icon
-                        className={`w-5 h-5 text-${project.color}-600`}
-                      />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">
-                        {project.title}
-                      </h3>
-                      <p className="text-xs text-slate-500">
-                        출시 예정: {project.date}
-                      </p>
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-slate-400"
-                  >
-                    <MoreHorizontal className="w-5 h-5" />
-                  </Button>
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-medium text-slate-600">
-                        진행률
-                      </span>
-                      <span className="text-xs font-bold text-blue-600">
-                        {project.progress}%
-                      </span>
-                    </div>
-                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+          {projects.map((p) => {
+            const meta =
+              p.format === "drama"
+                ? { icon: Tv, color: "purple", label: "드라마" }
+                : p.format === "game"
+                ? { icon: Play, color: "green", label: "게임" }
+                : p.format === "movie"
+                ? { icon: Film, color: "orange", label: "영화" }
+                : { icon: Film, color: "blue", label: "웹툰" };
+            const Title = `${p.workTitle || p.projectName} - ${meta.label}`;
+            const Progress = 0;
+            const Status = "기획 단계";
+            return (
+              <Card
+                key={p.id}
+                className="border-slate-200 hover:shadow-lg transition-all cursor-pointer group"
+                onClick={() => {
+                  setCreatedProject(p);
+                  setDetailTab("summary");
+                  setIsDetailModalOpen(true);
+                }}
+              >
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-3">
                       <div
-                        className={`h-full bg-${project.color}-500 rounded-full`}
-                        style={{ width: `${project.progress}%` }}
-                      ></div>
+                        className={`w-10 h-10 bg-${meta.color}-100 rounded-lg flex items-center justify-center`}
+                      >
+                        <meta.icon className={`w-5 h-5 text-${meta.color}-600`} />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">
+                          {Title}
+                        </h3>
+                        <p className="text-xs text-slate-500">출시 예정: 미정</p>
+                      </div>
                     </div>
+                    <Button variant="ghost" size="icon" className="text-slate-400">
+                      <MoreHorizontal className="w-5 h-5" />
+                    </Button>
                   </div>
-
-                  <div className="flex items-center justify-between pt-4 border-t border-slate-100">
-                    <Badge
-                      variant="outline"
-                      className="text-slate-600 border-slate-200"
-                    >
-                      {project.status}
-                    </Badge>
-                    <div className="flex -space-x-2">
-                      <div className="w-8 h-8 rounded-full bg-slate-200 border-2 border-white"></div>
-                      <div className="w-8 h-8 rounded-full bg-slate-300 border-2 border-white"></div>
-                      <div className="w-8 h-8 rounded-full bg-slate-100 border-2 border-white flex items-center justify-center text-xs text-slate-500 font-medium">
-                        +3
+                  <div className="space-y-4">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-medium text-slate-600">진행률</span>
+                        <span className="text-xs font-bold text-blue-600">
+                          {Progress}%
+                        </span>
+                      </div>
+                      <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full bg-${meta.color}-500 rounded-full`}
+                          style={{ width: `${Progress}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+                      <Badge variant="outline" className="text-slate-600 border-slate-200">
+                        {Status}
+                      </Badge>
+                      <div className="flex -space-x-2">
+                        <div className="w-8 h-8 rounded-full bg-slate-200 border-2 border-white"></div>
+                        <div className="w-8 h-8 rounded-full bg-slate-300 border-2 border-white"></div>
+                        <div className="w-8 h-8 rounded-full bg-slate-100 border-2 border-white flex items-center justify-center text-xs text-slate-500 font-medium">
+                          +3
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       </div>
 
       <CreateIPExpansionDialog
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
+        onCreated={(p) => {
+          setCreatedProject(p);
+          setDetailTab("summary");
+          setIsDetailModalOpen(true);
+        }}
       />
+
+      <Dialog open={isDetailModalOpen} onOpenChange={setIsDetailModalOpen}>
+        <DialogContent className="w-[92vw] max-w-7xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between">
+              <span className="font-bold break-keep">
+                {createdProject?.projectName || "프로젝트 상세"}
+              </span>
+              <Badge
+                className={`${
+                  createdProject?.format === "drama"
+                    ? "bg-purple-100 text-purple-700"
+                    : createdProject?.format === "game"
+                    ? "bg-green-100 text-green-700"
+                    : createdProject?.format === "movie"
+                    ? "bg-orange-100 text-orange-700"
+                    : "bg-blue-100 text-blue-700"
+                }`}
+              >
+                {createdProject?.format === "drama"
+                  ? "드라마화"
+                  : createdProject?.format === "game"
+                  ? "게임화"
+                  : createdProject?.format === "movie"
+                  ? "영화화"
+                  : "웹툰화"}
+              </Badge>
+            </DialogTitle>
+            <DialogDescription>
+              프로젝트의 핵심 정보와 전략 현황을 확인하세요.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div
+            className={`rounded-xl p-5 mb-6 ${
+              createdProject?.format === "drama"
+                ? "bg-purple-50"
+                : createdProject?.format === "game"
+                ? "bg-green-50"
+                : createdProject?.format === "movie"
+                ? "bg-orange-50"
+                : "bg-blue-50"
+            }`}
+          >
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge className="bg-white text-slate-700 border border-slate-200">
+                진행률 0%
+              </Badge>
+              <Badge className="bg-white text-slate-700 border border-slate-200">
+                출시 예정일 미정
+              </Badge>
+              <Badge className="bg-white text-slate-700 border border-slate-200">
+                현재 단계 기획
+              </Badge>
+            </div>
+          </div>
+
+          <Tabs
+            value={detailTab}
+            onValueChange={(v) => setDetailTab(v as "summary" | "roadmap" | "assets")}
+            className="mb-4"
+          >
+            <TabsList>
+              <TabsTrigger value="summary">전략 요약</TabsTrigger>
+              <TabsTrigger value="roadmap">로드맵</TabsTrigger>
+              <TabsTrigger value="assets">IP 자산</TabsTrigger>
+            </TabsList>
+          </Tabs>
+
+          {detailTab === "summary" && (
+            <div className="space-y-6">
+              <div className="border border-slate-200 rounded-xl p-5 bg-slate-50">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-medium text-slate-500 whitespace-nowrap">
+                      원작
+                    </span>
+                    <span className="font-bold text-slate-900 break-keep tracking-tighter">
+                      {createdProject?.workTitle || "-"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-medium text-slate-500 whitespace-nowrap">
+                      작가
+                    </span>
+                    <span className="font-bold text-slate-900 break-keep tracking-tighter">
+                      {createdProject?.authorName || "-"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="rounded-lg p-4 bg-slate-50">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-slate-200 flex items-center justify-center text-slate-700">
+                      <Sparkles className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1 leading-tight">
+                      <div className="text-xs text-slate-500 whitespace-nowrap break-keep">
+                        타겟 오디언스
+                      </div>
+                      <div className="font-semibold text-slate-900 text-sm mt-1 break-keep tracking-tighter">
+                        {(createdProject?.targetAges || []).length > 0
+                          ? createdProject?.targetAges.join(", ")
+                          : "전연령"}{" "}
+                        /{" "}
+                        {createdProject?.targetGender === "male"
+                          ? "남성"
+                          : createdProject?.targetGender === "female"
+                          ? "여성"
+                          : "남녀무관"}
+                      </div>
+                      <div className="text-xs text-slate-500 mt-1 break-keep">
+                        설정된 타겟에 따른 선호도 지표
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-lg p-4 bg-slate-50">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-slate-200 flex items-center justify-center text-slate-700">
+                      <Zap className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1 leading-tight">
+                      <div className="text-xs text-slate-500 whitespace-nowrap break-keep">
+                        예산 집행률
+                      </div>
+                      <div className="font-semibold text-slate-900 text-sm mt-1 break-keep tracking-tighter">
+                        {createdProject?.budget
+                          ? `${Number(createdProject.budget).toLocaleString()}원`
+                          : "미정"}
+                      </div>
+                      <div className="text-xs text-slate-500 mt-1 break-keep">
+                        {createdProject?.budget ? "총 예산 대비 집행 비용" : "예산 수립 필요"}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-lg p-4 bg-slate-50">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-slate-200 flex items-center justify-center text-slate-700">
+                      <AlertCircle className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1 leading-tight">
+                      <div className="text-xs text-slate-500 whitespace-nowrap break-keep">
+                        매체 적합성
+                      </div>
+                      <div className="text-sm font-semibold text-slate-900 mt-1.5 break-keep tracking-tighter">
+                        원작 서사 구조 분석
+                      </div>
+                      <div className="text-xs text-slate-500 mt-2 break-keep">
+                        3막 구조 및 세계 설정 반영
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {detailTab === "roadmap" && (
+            <div className="space-y-6">
+              <div className="border border-slate-200 rounded-xl p-5">
+                <div className="font-semibold text-slate-900 mb-3">마일스톤 및 로드맵</div>
+                {(() => {
+                  const stages = ["기획", "계약", "제작", "검수", "런칭"];
+                  const currentStageIndex = 1;
+                  return (
+                    <div className="flex items-center gap-4 mb-6">
+                      {stages.map((stage, i) => (
+                        <div key={stage} className="flex flex-col items-center">
+                          <div
+                            className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
+                              i === currentStageIndex
+                                ? "bg-slate-200 text-slate-900 ring-2 ring-blue-200 shadow-sm"
+                                : "bg-slate-200 text-slate-700"
+                            }`}
+                          >
+                            {i + 1}
+                          </div>
+                          <span className="mt-1 text-[10px] text-slate-500">{stage}</span>
+                          {i < stages.length - 1 && (
+                            <div className="w-10 h-px bg-slate-200 mx-2 hidden md:block" />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="rounded-lg border border-slate-200 p-4">
+                    <div className="font-semibold text-slate-900 mb-2">체크리스트</div>
+                    <ul className="text-sm text-slate-700 space-y-1">
+                      <li>기획안 작성</li>
+                      <li>원작자 협의</li>
+                      <li className="text-red-600">제작사 컨택 지연</li>
+                    </ul>
+                  </div>
+                  <div className="rounded-lg border border-slate-200 p-4">
+                    <div className="font-semibold text-slate-900 mb-2">팀 협업 현황</div>
+                    <div className="flex items-center gap-3">
+                      <Badge className="bg-slate-100 text-slate-700">PD</Badge>
+                      <Badge className="bg-slate-100 text-slate-700">작가</Badge>
+                      <Badge className="bg-slate-100 text-slate-700">디자이너</Badge>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {detailTab === "assets" && (
+            <div className="space-y-6">
+              <div className="border border-slate-200 rounded-xl p-5">
+                <div className="font-semibold text-slate-900 mb-3">IP 자산 동기화</div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="rounded-lg bg-slate-50 p-4">
+                    <div className="text-xs text-slate-500">캐릭터 시트</div>
+                    <div className="font-bold text-slate-900 mt-1">시각화 비교 뷰</div>
+                    <div className="text-xs text-slate-500 mt-1">엘레나, 루미나스 등 주요 캐릭터</div>
+                    <div className="flex items-center gap-2 mt-3">
+                      <div className="w-8 h-8 rounded-full bg-slate-200" />
+                      <div className="w-8 h-8 rounded-full bg-slate-300" />
+                      <div className="w-8 h-8 rounded-full bg-slate-100" />
+                    </div>
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      <Badge className="bg-white text-slate-700 border border-slate-200">#주인공</Badge>
+                      <Badge className="bg-white text-slate-700 border border-slate-200">#라이벌</Badge>
+                      <Badge className="bg-white text-slate-700 border border-slate-200">#조력자</Badge>
+                    </div>
+                  </div>
+                  <div className="rounded-lg bg-slate-50 p-4">
+                    <div className="text-xs text-slate-500">세계관 설정집</div>
+                    <div className="font-bold text-slate-900 mt-1">매체별 각색 데이터</div>
+                    <div className="text-xs text-slate-500 mt-1">중세 판타지, 마법 체계</div>
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      <Badge className="bg-white text-slate-700 border border-slate-200">#중세</Badge>
+                      <Badge className="bg-white text-slate-700 border border-slate-200">#마법</Badge>
+                      <Badge className="bg-white text-slate-700 border border-slate-200">#왕국</Badge>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              onClick={() => {
+                if (createdProject) {
+                  setProjects((prev) => {
+                    const exists = prev.some((q) => q.id === createdProject.id);
+                    return exists ? prev : [createdProject, ...prev];
+                  });
+                  setIsDetailModalOpen(false);
+                }
+              }}
+              className="bg-blue-600 text-white hover:bg-blue-700"
+            >
+              등록하기
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
