@@ -1,5 +1,7 @@
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
+  CheckCircle,
   FileText,
   Calendar,
   X,
@@ -9,6 +11,7 @@ import {
   BarChart3,
   Clock,
   Filter,
+  Download,
 } from 'lucide-react';
 import {
   Card,
@@ -32,127 +35,102 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../../../components/ui/select';
-
-// Mock Data for Reports
-const REPORTS = [
-  {
-    id: 1,
-    title: '2025년 1월 IP 트렌드 심층 분석',
-    date: '2025-01-15',
-    summary: '판타지 장르의 웹툰화 전환율 상승에 따른 IP 확장 전략 제언',
-    color: 'text-blue-600',
-    bgColor: 'bg-blue-50',
-  },
-  {
-    id: 2,
-    title: '2024년 12월 글로벌 시장 동향',
-    date: '2024-12-28',
-    summary: '북미/유럽 시장에서의 K-웹소설 소비 패턴 및 키워드 분석',
-    color: 'text-purple-600',
-    bgColor: 'bg-purple-50',
-  },
-  {
-    id: 3,
-    title: '2024년 11월 장르 키워드 트렌드',
-    date: '2024-11-10',
-    summary: '회귀/빙의/환생(회빙환) 클리셰의 변주와 독자 반응 추이',
-    color: 'text-pink-600',
-    bgColor: 'bg-pink-50',
-  },
-  {
-    id: 4,
-    title: '2024년 10월 신진 작가 발굴 리포트',
-    date: '2024-10-30',
-    summary: '플랫폼 별 신인 작가 유입 현황 및 성공 사례 분석',
-    color: 'text-green-600',
-    bgColor: 'bg-green-50',
-  },
-  {
-    id: 5,
-    title: '2024년 9월 OSMU 성공 사례 분석',
-    date: '2024-09-15',
-    summary: '성공적인 영상화 사례를 통한 2차 저작권 수익화 모델 연구',
-    color: 'text-orange-600',
-    bgColor: 'bg-orange-50',
-  },
-  {
-    id: 6,
-    title: '2024년 8월 IP 트렌드 요약',
-    date: '2024-08-01',
-    summary: '전월 대비 장르별 매출 증감 및 주요 이슈 정리',
-    color: 'text-slate-600',
-    bgColor: 'bg-slate-50',
-  },
-];
-
-// Summary Data
-const SUMMARY_STATS = [
-  {
-    title: '이번 달 리포트',
-    value: '1건',
-    description: '전월 대비 동일',
-    icon: FileText,
-    color: 'text-blue-600',
-    bg: 'bg-blue-100',
-  },
-  {
-    title: '전체 발행 리포트',
-    value: '24건',
-    description: '2024-2025 누적',
-    icon: BarChart3,
-    color: 'text-purple-600',
-    bg: 'bg-purple-100',
-  },
-  {
-    title: '최근 업데이트',
-    value: '2025.01.15',
-    description: '7일 전',
-    icon: Clock,
-    color: 'text-green-600',
-    bg: 'bg-green-100',
-  },
-  {
-    title: '주요 키워드',
-    value: '회빙환, OSMU',
-    description: '가장 많이 언급됨',
-    icon: TrendingUp,
-    color: 'text-orange-600',
-    bg: 'bg-orange-100',
-  },
-];
+import { managerService } from '../../../services/managerService';
 
 export function ManagerIPTrend() {
-  const [selectedReport, setSelectedReport] = useState<
-    (typeof REPORTS)[0] | null
-  >(null);
-  const [isFullScreen, setIsFullScreen] = useState(false);
   const [selectedYear, setSelectedYear] = useState('2025');
+  const [previewId, setPreviewId] = useState<number | null>(null);
+  const [isFullScreen, setIsFullScreen] = useState(false);
+
+  // Fetch IP Trend Dashboard Data (Summary & Stats)
+  const { data: trendData, isLoading: isTrendLoading } = useQuery({
+    queryKey: ['manager', 'iptrend', 'dashboard'],
+    queryFn: managerService.getIPTrend,
+  });
+
+  // Fetch Reports List
+  const { data: reportsData, isLoading: isReportsLoading } = useQuery({
+    queryKey: ['manager', 'iptrend', 'list', selectedYear],
+    queryFn: () => managerService.getIPTrendList(0, 10), // Pagination TODO
+  });
+
+  // Fetch Preview Data when ID is selected
+  const { data: previewData, isLoading: isPreviewLoading } = useQuery({
+    queryKey: ['manager', 'iptrend', 'preview', previewId],
+    queryFn: () =>
+      previewId
+        ? managerService.getIPTrendPreview(previewId)
+        : Promise.resolve(null),
+    enabled: !!previewId,
+  });
+
+  const stats = [
+    {
+      title: '전체 리포트',
+      value: `${trendData?.statistics?.totalReports ?? 0}건`,
+      description: '누적 생성 리포트',
+      icon: FileText,
+      color: 'text-blue-600',
+      bg: 'bg-blue-100',
+    },
+    {
+      title: '완료된 리포트',
+      value: `${trendData?.statistics?.completedReports ?? 0}건`,
+      description: '정상 처리됨',
+      icon: CheckCircle,
+      color: 'text-purple-600',
+      bg: 'bg-purple-100',
+    },
+    {
+      title: '최근 생성일',
+      value: trendData?.statistics?.lastGeneratedAt
+        ? new Date(trendData.statistics.lastGeneratedAt).toLocaleDateString()
+        : '-',
+      description: '마지막 업데이트',
+      icon: Clock,
+      color: 'text-green-600',
+      bg: 'bg-green-100',
+    },
+  ];
+
+  const handleDownload = async (id: number) => {
+    try {
+      const blob = await managerService.downloadIPTrendReport(id);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `report_${id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Download failed:', error);
+    }
+  };
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header & Summary Section */}
-      <div className="space-y-6">
-        {/* Summary Cards - Minimal & Clean */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {SUMMARY_STATS.map((stat, index) => (
-            <Card key={index} className="border-slate-200 shadow-sm">
-              <CardContent className="p-6 flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-slate-500">
-                    {stat.title}
-                  </p>
-                  <p className="text-2xl font-bold text-slate-900">
-                    {stat.value}
-                  </p>
-                  <p className="text-xs text-slate-400">{stat.description}</p>
-                </div>
-                <div className={`p-3 rounded-full ${stat.bg}`}>
-                  <stat.icon className={`w-5 h-5 ${stat.color}`} />
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {stats.map((stat, index) => (
+          <Card key={index} className="border-slate-200 shadow-sm">
+            <CardContent className="p-6 flex items-center justify-between">
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-slate-500">
+                  {stat.title}
+                </p>
+                <p className="text-2xl font-bold text-slate-900">
+                  {stat.value}
+                </p>
+                <p className="text-xs text-slate-400">{stat.description}</p>
+              </div>
+              <div className={`p-3 rounded-full ${stat.bg}`}>
+                <stat.icon className={`w-5 h-5 ${stat.color}`} />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       {/* Filter Toolbar */}
@@ -160,7 +138,7 @@ export function ManagerIPTrend() {
         <div className="flex items-center gap-2">
           <h2 className="text-lg font-semibold">리포트 목록</h2>
           <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 text-xs font-medium">
-            {REPORTS.length}
+            {reportsData?.totalElements ?? 0}
           </span>
         </div>
 
@@ -184,45 +162,48 @@ export function ManagerIPTrend() {
 
       {/* Reports Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {REPORTS.map((report) => (
+        {(reportsData?.content || []).map((report) => (
           <Card
             key={report.id}
-            className="group hover:shadow-xl transition-all duration-300 border-slate-200 overflow-hidden cursor-pointer h-full flex flex-col bg-white"
-            onClick={() => setSelectedReport(report)}
+            className="group cursor-pointer hover:shadow-md transition-all duration-200 border-slate-200 overflow-hidden"
+            onClick={() => setPreviewId(report.id)}
           >
-            {/* PDF Thumbnail Simulation */}
-            <div
-              className={`h-48 ${report.bgColor} relative p-4 flex items-center justify-center overflow-hidden`}
-            >
-              {/* Document Page Look */}
-              <div className="w-full h-full bg-white shadow-md rounded-sm border border-slate-100 p-3 flex flex-col gap-2 group-hover:-translate-y-2 transition-transform duration-300 relative z-10">
-                {/* Skeleton Text Lines */}
-                <div className="w-2/3 h-3 bg-slate-200 rounded-sm" />
-                <div className="w-full h-1.5 bg-slate-100 rounded-sm mt-1" />
-                <div className="w-full h-1.5 bg-slate-100 rounded-sm" />
-                <div className="w-4/5 h-1.5 bg-slate-100 rounded-sm" />
-
-                <div className="w-full flex-1 bg-slate-50 rounded-sm mt-2 border border-dashed border-slate-200 flex items-center justify-center">
-                  <FileText className={`w-6 h-6 ${report.color} opacity-30`} />
-                </div>
+            <div className="aspect-[3/4] bg-slate-100 relative overflow-hidden">
+              {/* PDF Preview Placeholder - Replace with actual thumbnail if available */}
+              <div className="absolute inset-0 flex items-center justify-center bg-slate-50 group-hover:bg-slate-100 transition-colors">
+                <FileText className="w-12 h-12 text-slate-300 group-hover:text-slate-400 transition-colors" />
               </div>
 
-              {/* Background Effects */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              {/* Overlay Actions */}
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                <Button variant="secondary" size="sm" className="shadow-sm">
+                  미리보기
+                </Button>
+              </div>
+
+              {/* Status Badge */}
+              {/* <Badge
+                className={`absolute top-3 right-3 ${
+                  report.color || 'bg-blue-500'
+                }`}
+              >
+                월간 리포트
+              </Badge> */}
             </div>
 
-            <CardHeader className="pb-2 pt-4 px-4">
-              <div className="flex items-center gap-2 text-xs text-slate-500 mb-1">
-                <Calendar className="w-3 h-3" />
-                {report.date}
+            <CardContent className="p-4">
+              <div className="flex justify-between items-start mb-2">
+                <div>
+                  <h3 className="font-semibold text-slate-900 line-clamp-1">
+                    {report.title}
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                    <Calendar className="w-3 h-3" />
+                    {report.date}
+                  </p>
+                </div>
               </div>
-              <CardTitle className="text-base line-clamp-1 group-hover:text-primary transition-colors">
-                {report.title}
-              </CardTitle>
-            </CardHeader>
-
-            <CardContent className="pb-4 px-4">
-              <p className="text-xs text-slate-600 line-clamp-2">
+              <p className="text-sm text-slate-600 line-clamp-2 min-h-[40px]">
                 {report.summary}
               </p>
             </CardContent>
@@ -230,80 +211,90 @@ export function ManagerIPTrend() {
         ))}
       </div>
 
-      {/* PDF Preview Dialog */}
+      {/* Preview Modal (Full Screen Support) */}
       <Dialog
-        open={!!selectedReport}
+        open={!!previewId}
         onOpenChange={(open) => {
           if (!open) {
-            setSelectedReport(null);
+            setPreviewId(null);
             setIsFullScreen(false);
           }
         }}
       >
         <DialogContent
           className={cn(
-            'flex flex-col p-0 gap-0 transition-all duration-300 bg-slate-900/95 backdrop-blur-sm',
+            'flex flex-col p-0 gap-0 transition-all duration-300',
             isFullScreen
-              ? '!w-screen !h-screen !max-w-none !rounded-none !border-0'
-              : 'max-w-6xl w-full h-[85vh] rounded-xl border-slate-700',
+              ? 'w-screen h-screen max-w-none rounded-none border-0'
+              : 'max-w-4xl h-[85vh] rounded-xl',
           )}
         >
-          <DialogHeader className="p-4 border-b border-slate-700 shrink-0 flex flex-row items-center justify-between space-y-0 bg-slate-900 text-white z-50">
+          {/* Modal Header */}
+          <div className="flex items-center justify-between px-6 py-4 border-b bg-white/80 backdrop-blur-sm z-10">
             <div className="flex items-center gap-3">
-              <div className={`p-2 rounded-lg bg-slate-800`}>
-                <FileText className={`w-5 h-5 text-slate-200`} />
-              </div>
-              <div>
-                <DialogTitle className="text-base text-slate-100">
-                  {selectedReport?.title}
-                </DialogTitle>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  {selectedReport?.date}
-                </p>
-              </div>
+              <DialogTitle className="text-xl font-bold">
+                {previewData?.title || '리포트 미리보기'}
+              </DialogTitle>
+              {previewData && (
+                <span className="text-sm text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
+                  {previewData.analysisDate}
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-2">
+              {previewId && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={() => handleDownload(previewId)}
+                >
+                  <Download className="w-4 h-4" />
+                  다운로드
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setIsFullScreen(!isFullScreen)}
-                title={isFullScreen ? '화면 축소' : '전체 화면'}
-                className="text-slate-400 hover:text-white hover:bg-slate-800"
+                className="text-slate-500 hover:text-slate-900"
               >
                 {isFullScreen ? (
-                  <Minimize2 className="w-4 h-4" />
+                  <Minimize2 className="w-5 h-5" />
                 ) : (
-                  <Maximize2 className="w-4 h-4" />
+                  <Maximize2 className="w-5 h-5" />
                 )}
               </Button>
               <DialogClose asChild>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-slate-400 hover:text-white hover:bg-slate-800"
+                  className="text-slate-500 hover:text-red-500"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-5 h-5" />
                 </Button>
               </DialogClose>
             </div>
-          </DialogHeader>
+          </div>
 
-          {/* PDF Content Area (Iframe) */}
-          <div className="flex-1 bg-slate-800 relative overflow-hidden flex items-center justify-center">
-            {selectedReport && (
+          {/* PDF Viewer Area */}
+          <div className="flex-1 bg-slate-100 overflow-hidden relative">
+            {isPreviewLoading ? (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+              </div>
+            ) : previewData?.pdfUrl ? (
               <iframe
-                src="/sample.pdf"
+                src={`${previewData.pdfUrl}#toolbar=0&navpanes=0`}
                 className="w-full h-full border-0"
                 title="PDF Preview"
               />
-            )}
-
-            {/* Fallback/Loading State if needed */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
-              <div className="text-slate-600 flex flex-col items-center gap-2">
-                <p>PDF 미리보기 로딩 중...</p>
+            ) : (
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 gap-4">
+                <FileText className="w-16 h-16 opacity-20" />
+                <p>미리보기 파일을 불러올 수 없습니다.</p>
               </div>
-            </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>

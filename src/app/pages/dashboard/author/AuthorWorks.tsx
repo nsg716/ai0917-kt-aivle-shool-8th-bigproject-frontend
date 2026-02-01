@@ -89,7 +89,9 @@ import {
   Edit2,
   PlusCircle,
   RefreshCw,
+  X,
 } from 'lucide-react';
+import { DiffView } from './DiffView';
 
 interface AuthorWorksProps {
   integrationId: string;
@@ -154,8 +156,6 @@ export function AuthorWorks({ integrationId }: AuthorWorksProps) {
   const [newWorkSynopsis, setNewWorkSynopsis] = useState('');
   const [newWorkGenre, setNewWorkGenre] = useState('');
   const [newWorkCover, setNewWorkCover] = useState(''); // Optional
-  const [isPublishPasswordOpen, setIsPublishPasswordOpen] = useState(false);
-  const [publishPassword, setPublishPassword] = useState('');
   const [isCreateEpisodeOpen, setIsCreateEpisodeOpen] = useState(false);
   const [createEpisodeWorkId, setCreateEpisodeWorkId] = useState<number | null>(
     null,
@@ -167,7 +167,7 @@ export function AuthorWorks({ integrationId }: AuthorWorksProps) {
 
   // New States
   const [extractedKeywords, setExtractedKeywords] = useState<
-    KeywordExtractionResponseDto['keywords'] | null
+    KeywordExtractionResponseDto['check'] | null
   >(null);
   const [selectedKeywords, setSelectedKeywords] = useState<{
     [key: string]: string[];
@@ -187,6 +187,10 @@ export function AuthorWorks({ integrationId }: AuthorWorksProps) {
   const [reviewEpisode, setReviewEpisode] = useState<EpisodeDto | null>(null);
   const [reviewConfirmText, setReviewConfirmText] = useState('');
   const [isFinalReviewConfirmed, setIsFinalReviewConfirmed] = useState(false);
+  const [resolvedConflicts, setResolvedConflicts] = useState<Set<string>>(
+    new Set(),
+  );
+  const [editingContent, setEditingContent] = useState<Record<string, any>>({});
 
   const [editMetadataTitle, setEditMetadataTitle] = useState('');
 
@@ -211,6 +215,73 @@ export function AuthorWorks({ integrationId }: AuthorWorksProps) {
         newSet.add(id);
       }
       return newSet;
+    });
+  };
+
+  const toggleResolved = (id: string) => {
+    setResolvedConflicts((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
+  const startEdit = (item: any) => {
+    setEditingItems((prev) => new Set(prev).add(item.id));
+    // For updates, we edit the 'new' part. For new items, we edit the item itself.
+    let content;
+    if (item.new !== undefined) {
+      content = typeof item.new === 'string' ? item.new : { ...item.new };
+    } else {
+      content = { ...item };
+    }
+    setEditingContent((prev) => ({ ...prev, [item.id]: content }));
+  };
+
+  const cancelEdit = (id: string) => {
+    setEditingItems((prev) => {
+      const newSet = new Set(prev);
+      newSet.delete(id);
+      return newSet;
+    });
+    setEditingContent((prev) => {
+      const newContent = { ...prev };
+      delete newContent[id];
+      return newContent;
+    });
+  };
+
+  const saveEdit = (id: string, tabKey: string) => {
+    if (!settingBookDiff) return;
+    const content = editingContent[id];
+    if (!content) return;
+
+    setSettingBookDiff((prev: any) => {
+      if (!prev) return prev;
+      const items = [...prev[tabKey]];
+      const idx = items.findIndex((i: any) => i.id === id);
+      if (idx !== -1) {
+        if (tabKey === '설정 결합') {
+          items[idx] = { ...items[idx], new: content };
+        } else {
+          items[idx] = { ...items[idx], ...content };
+        }
+      }
+      return { ...prev, [tabKey]: items };
+    });
+    cancelEdit(id);
+  };
+
+  const deleteItem = (id: string, tabKey: string) => {
+    if (!confirm('정말 삭제하시겠습니까?')) return;
+    setSettingBookDiff((prev: any) => {
+      if (!prev) return prev;
+      const items = prev[tabKey].filter((i: any) => i.id !== id);
+      return { ...prev, [tabKey]: items };
     });
   };
 
@@ -255,17 +326,14 @@ export function AuthorWorks({ integrationId }: AuthorWorksProps) {
   const keywordExtractionMutation = useMutation({
     mutationFn: async () => {
       if (!selectedWorkId || !selectedEpisode) return;
-      return authorService.publishKeywords(selectedWorkId.toString(), {
-        content: editorContent,
-        episodeId: selectedEpisode.id,
-      });
+      return authorService.getEpisodeCategories(selectedEpisode.id.toString());
     },
     onSuccess: (data) => {
-      if (data) {
-        setExtractedKeywords(data.keywords);
+      if (data && data.check) {
+        setExtractedKeywords(data.check);
         setIsKeywordSelectionOpen(true);
         // Select all keywords by default
-        setSelectedKeywords(data.keywords);
+        setSelectedKeywords(data.check);
         setIsKeywordSelectionConfirmed(false);
       }
     },
@@ -279,14 +347,7 @@ export function AuthorWorks({ integrationId }: AuthorWorksProps) {
     mutationFn: async () => {
       if (!selectedWorkId) return;
       return authorService.publishAnalysis(selectedWorkId.toString(), {
-        selectedKeywords: {
-          characters: selectedKeywords['characters'] || [],
-          locations: selectedKeywords['locations'] || [],
-          events: selectedKeywords['events'] || [],
-          groups: selectedKeywords['groups'] || [],
-          items: selectedKeywords['items'] || [],
-          worlds: selectedKeywords['worlds'] || [],
-        },
+        check: selectedKeywords as any,
       });
     },
     onSuccess: (data) => {
@@ -333,7 +394,7 @@ export function AuthorWorks({ integrationId }: AuthorWorksProps) {
   const renameWorkMutation = useMutation({
     mutationFn: async () => {
       if (!renamingWork) return;
-      return authorService.updateWork(integrationId, {
+      return authorService.updateWork(renamingWork.id, {
         id: renamingWork.id,
         title: renameTitle,
         description: renamingWork.description,
@@ -653,11 +714,18 @@ export function AuthorWorks({ integrationId }: AuthorWorksProps) {
     });
   };
 
-  const handlePublishClick = () => {
+  const handlePublishClick = async () => {
     if (!selectedEpisode) return;
     if (isDirty) {
-      toast.error('먼저 저장해주세요.');
-      return;
+      if (confirm('분석을 위해서는 저장이 필요합니다. 저장하시겠습니까?')) {
+        try {
+          await saveMutation.mutateAsync();
+        } catch {
+          return;
+        }
+      } else {
+        return;
+      }
     }
 
     const status = processingStatus[selectedEpisode.id];
@@ -675,22 +743,11 @@ export function AuthorWorks({ integrationId }: AuthorWorksProps) {
         setIsFinalReviewConfirmed(false);
       } else {
         toast.error('분석 결과를 찾을 수 없습니다. 다시 시도해주세요.');
-        // Maybe reset status?
       }
       return;
     }
 
     if (confirm('AI 분석을 요청하시겠습니까?')) {
-      setIsPublishPasswordOpen(true);
-    }
-  };
-
-  const handlePasswordSubmit = () => {
-    // Mock password check
-    if (publishPassword === '1234') {
-      setIsPublishPasswordOpen(false);
-      setPublishPassword('');
-
       if (selectedEpisode) {
         setProcessingStatus((prev) => ({
           ...prev,
@@ -700,8 +757,6 @@ export function AuthorWorks({ integrationId }: AuthorWorksProps) {
 
       toast.info('AI가 원문을 분석하여 키워드를 추출하고 있습니다...');
       keywordExtractionMutation.mutate();
-    } else {
-      toast.error('비밀번호가 일치하지 않습니다. (테스트: 1234)');
     }
   };
 
@@ -775,7 +830,7 @@ export function AuthorWorks({ integrationId }: AuthorWorksProps) {
   const updateWorkMutation = useMutation({
     mutationFn: async (data: WorkUpdateRequestDto) => {
       if (!metadataWork) return;
-      await authorService.updateWork(metadataWork.id.toString(), data);
+      await authorService.updateWork(metadataWork.id, data);
     },
     onSuccess: () => {
       toast.success('작품 정보가 수정되었습니다.');
@@ -1080,39 +1135,6 @@ export function AuthorWorks({ integrationId }: AuthorWorksProps) {
         </DialogContent>
       </Dialog>
 
-      {/* Publish Password Modal */}
-      <Dialog
-        open={isPublishPasswordOpen}
-        onOpenChange={setIsPublishPasswordOpen}
-      >
-        <DialogContent className="sm:max-w-[400px]">
-          <DialogHeader>
-            <DialogTitle>AI 분석을 위한 보안 확인</DialogTitle>
-            <DialogDescription>
-              AI 분석을 진행하려면 비밀번호를 입력해주세요.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <Input
-              type="password"
-              placeholder="비밀번호 입력"
-              value={publishPassword}
-              onChange={(e) => setPublishPassword(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handlePasswordSubmit()}
-            />
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsPublishPasswordOpen(false)}
-            >
-              취소
-            </Button>
-            <Button onClick={handlePasswordSubmit}>확인</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       {/* Keyword Selection Modal */}
       <Dialog
         open={isKeywordSelectionOpen}
@@ -1154,14 +1176,15 @@ export function AuthorWorks({ integrationId }: AuthorWorksProps) {
             <div className="grid grid-cols-2 gap-6 py-4">
               {extractedKeywords ? (
                 Object.entries(extractedKeywords).map(
-                  ([category, keywords]) => {
+                  ([category, keywordsRaw]) => {
+                    const keywords = keywordsRaw as string[];
                     const categoryLabel: { [key: string]: string } = {
-                      characters: '인물 (Characters)',
-                      locations: '장소 (Locations)',
-                      events: '사건 (Events)',
-                      groups: '집단 (Groups)',
-                      items: '물건 (Items)',
-                      worlds: '세계 (Worlds)',
+                      인물: '인물 (Characters)',
+                      장소: '장소 (Locations)',
+                      사건: '사건 (Events)',
+                      집단: '집단 (Groups)',
+                      물건: '물건 (Items)',
+                      세계: '세계 (Worlds)',
                     };
                     const isAllSelected =
                       keywords.length > 0 &&
@@ -1342,38 +1365,24 @@ export function AuthorWorks({ integrationId }: AuthorWorksProps) {
                   value="충돌"
                   className="data-[state=active]:text-red-600 data-[state=active]:bg-red-50"
                 >
-                  충돌 (
-                  {Object.values(settingBookDiff?.['충돌'] || {}).flat().length}
-                  )
+                  충돌 ({settingBookDiff?.['충돌']?.length || 0})
                 </TabsTrigger>
                 <TabsTrigger value="설정 결합">
-                  설정 결합 (
-                  {
-                    Object.values(settingBookDiff?.['설정 결합'] || {}).flat()
-                      .length
-                  }
-                  )
+                  설정 결합 ({settingBookDiff?.['설정 결합']?.length || 0})
                 </TabsTrigger>
                 <TabsTrigger value="신규 업로드">
-                  신규 업로드 (
-                  {
-                    Object.values(settingBookDiff?.['신규 업로드'] || {}).flat()
-                      .length
-                  }
-                  )
+                  신규 업로드 ({settingBookDiff?.['신규 업로드']?.length || 0})
                 </TabsTrigger>
               </TabsList>
             </div>
 
             <div className="flex-1 overflow-y-auto bg-muted/5 p-6">
               {['충돌', '설정 결합', '신규 업로드'].map((tabKey) => {
-                const categoryMap =
+                const items =
                   settingBookDiff?.[
                     tabKey as keyof PublishAnalysisResponseDto
-                  ] || {};
-                const hasItems = Object.values(categoryMap).some(
-                  (items) => items.length > 0,
-                );
+                  ] || [];
+                const hasItems = items.length > 0;
 
                 return (
                   <TabsContent
@@ -1387,58 +1396,290 @@ export function AuthorWorks({ integrationId }: AuthorWorksProps) {
                         <p className="text-lg">해당 항목이 없습니다.</p>
                       </div>
                     ) : (
-                      Object.entries(categoryMap).map(([category, items]) => {
-                        if (items.length === 0) return null;
-                        return (
-                          <div key={category} className="space-y-4">
-                            <h3 className="text-lg font-semibold flex items-center gap-2 text-foreground/80">
-                              <span className="w-1 h-6 bg-primary rounded-full"></span>
-                              {category}
-                              <span className="text-sm font-normal text-muted-foreground">
-                                ({items.length})
-                              </span>
-                            </h3>
-                            <div className="grid grid-cols-1 gap-4">
-                              {items.map((item, idx) => {
-                                const [name, description] = item;
-                                return (
-                                  <div
-                                    key={`${category}-${idx}`}
-                                    className="border rounded-xl p-5 bg-card shadow-sm hover:shadow-md transition-all"
-                                  >
-                                    <div className="flex flex-col gap-3">
-                                      <div className="flex items-center justify-between">
-                                        <h4 className="font-bold text-lg text-primary">
-                                          {name}
-                                        </h4>
-                                        {tabKey === '충돌' && (
-                                          <div className="px-2 py-1 bg-red-100 text-red-700 text-xs font-bold rounded">
-                                            CONFLICT
-                                          </div>
-                                        )}
-                                        {tabKey === '설정 결합' && (
-                                          <div className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded">
-                                            UPDATED
-                                          </div>
-                                        )}
-                                        {tabKey === '신규 업로드' && (
-                                          <div className="px-2 py-1 bg-green-100 text-green-700 text-xs font-bold rounded">
-                                            NEW
-                                          </div>
-                                        )}
+                      <div className="grid grid-cols-1 gap-4">
+                        {items.map((item: any, idx: number) => {
+                          // Handle '충돌' (Collision) items
+                          if (tabKey === '충돌') {
+                            const isResolved = resolvedConflicts.has(item.id);
+                            return (
+                              <div
+                                key={item.id || idx}
+                                className={cn(
+                                  'border rounded-xl p-5 bg-card shadow-sm transition-all',
+                                  isResolved
+                                    ? 'border-green-500 bg-green-50/10'
+                                    : 'border-l-4 border-l-red-500',
+                                )}
+                              >
+                                <div className="flex flex-col gap-3">
+                                  <div className="flex items-center justify-between">
+                                    <h4 className="font-bold text-lg text-primary">
+                                      {item.name}
+                                    </h4>
+                                    {isResolved ? (
+                                      <div className="flex items-center gap-2">
+                                        <Badge className="bg-green-600 hover:bg-green-700">
+                                          <Check className="w-3 h-3 mr-1" />{' '}
+                                          RESOLVED
+                                        </Badge>
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          className="h-6 text-xs text-muted-foreground hover:text-primary"
+                                          onClick={() =>
+                                            toggleResolved(item.id)
+                                          }
+                                        >
+                                          취소
+                                        </Button>
                                       </div>
+                                    ) : (
+                                      <div className="flex items-center gap-2">
+                                        <Checkbox
+                                          id={`resolve-${item.id}`}
+                                          checked={false}
+                                          onCheckedChange={() =>
+                                            toggleResolved(item.id)
+                                          }
+                                        />
+                                        <label
+                                          htmlFor={`resolve-${item.id}`}
+                                          className="text-sm font-medium cursor-pointer hover:underline"
+                                        >
+                                          확인 완료 (Resolved)
+                                        </label>
+                                        <div className="px-2 py-1 bg-red-100 text-red-700 text-xs font-bold rounded">
+                                          CONFLICT
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="text-sm text-muted-foreground bg-muted/30 p-4 rounded-lg">
+                                    <p className="font-semibold text-red-600 mb-2 flex items-center gap-2">
+                                      <AlertTriangle className="w-4 h-4" />
+                                      {item.reason}
+                                    </p>
+                                    <DiffView
+                                      original={item.original}
+                                      current={item.new}
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          }
 
-                                      <div className="text-sm text-muted-foreground bg-muted/30 p-4 rounded-lg leading-relaxed whitespace-pre-wrap">
-                                        {description}
+                          // Handle '설정 결합' (Updated)
+                          if (tabKey === '설정 결합') {
+                            const isEditing = editingItems.has(item.id);
+                            const currentContent =
+                              editingContent[item.id] || item.new;
+
+                            // If new/original are objects, stringify them for editing/viewing
+                            const displayOriginal =
+                              typeof item.original === 'string'
+                                ? item.original
+                                : JSON.stringify(item.original, null, 2);
+                            const displayCurrent =
+                              typeof currentContent === 'string'
+                                ? currentContent
+                                : JSON.stringify(currentContent, null, 2);
+
+                            return (
+                              <div
+                                key={item.id || idx}
+                                className="border rounded-xl p-5 bg-card shadow-sm"
+                              >
+                                <div className="flex justify-between items-center mb-4">
+                                  <div className="flex items-center gap-2">
+                                    <h4 className="font-bold text-lg">
+                                      {item.name}
+                                    </h4>
+                                    <Badge variant="outline">
+                                      {item.category}
+                                    </Badge>
+                                    <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 border-blue-200">
+                                      UPDATED
+                                    </Badge>
+                                  </div>
+                                  <div className="flex gap-2">
+                                    {isEditing ? (
+                                      <>
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={() => cancelEdit(item.id)}
+                                        >
+                                          취소
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          onClick={() =>
+                                            saveEdit(item.id, tabKey)
+                                          }
+                                        >
+                                          <Save className="w-4 h-4 mr-1" />
+                                          저장
+                                        </Button>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={() => startEdit(item)}
+                                        >
+                                          <Edit2 className="w-4 h-4 mr-1" />
+                                          수정
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                                          onClick={() =>
+                                            deleteItem(item.id, tabKey)
+                                          }
+                                        >
+                                          <Trash2 className="w-4 h-4" />
+                                        </Button>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {isEditing ? (
+                                  <div className="grid grid-cols-2 gap-4 h-64">
+                                    <div className="flex flex-col border rounded-md overflow-hidden opacity-60 pointer-events-none">
+                                      <div className="bg-muted/50 p-2 text-xs font-semibold border-b text-muted-foreground">
+                                        Original (Read-only)
+                                      </div>
+                                      <div className="p-3 overflow-y-auto flex-1 text-sm whitespace-pre-wrap leading-relaxed bg-muted/10 font-mono">
+                                        {displayOriginal}
                                       </div>
                                     </div>
+                                    <div className="flex flex-col border rounded-md overflow-hidden ring-2 ring-blue-500/20">
+                                      <div className="bg-blue-50/50 p-2 text-xs font-semibold border-b text-blue-700 flex justify-between">
+                                        <span>Editing...</span>
+                                      </div>
+                                      <Textarea
+                                        value={displayCurrent}
+                                        onChange={(e) =>
+                                          setEditingContent((prev) => ({
+                                            ...prev,
+                                            [item.id]: e.target.value,
+                                          }))
+                                        }
+                                        className="flex-1 resize-none border-0 focus-visible:ring-0 p-3 font-mono text-sm"
+                                      />
+                                    </div>
                                   </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        );
-                      })
+                                ) : (
+                                  <DiffView
+                                    original={displayOriginal}
+                                    current={displayCurrent}
+                                  />
+                                )}
+                              </div>
+                            );
+                          }
+
+                          // Handle '신규 업로드' (New)
+                          if (tabKey === '신규 업로드') {
+                            const isEditing = editingItems.has(item.id);
+                            const currentContent =
+                              editingContent[item.id] || item;
+
+                            return (
+                              <div
+                                key={item.id || idx}
+                                className="border rounded-xl p-5 bg-card shadow-sm"
+                              >
+                                <div className="flex justify-between items-center mb-4">
+                                  <div className="flex items-center gap-2">
+                                    <h4 className="font-bold text-lg">
+                                      {item.name}
+                                    </h4>
+                                    <Badge variant="outline">
+                                      {item.category}
+                                    </Badge>
+                                    <Badge className="bg-green-100 text-green-800 hover:bg-green-100 border-green-200">
+                                      NEW
+                                    </Badge>
+                                  </div>
+                                  <div className="flex gap-2">
+                                    {isEditing ? (
+                                      <>
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={() => cancelEdit(item.id)}
+                                        >
+                                          취소
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          onClick={() =>
+                                            saveEdit(item.id, tabKey)
+                                          }
+                                        >
+                                          <Save className="w-4 h-4 mr-1" />
+                                          저장
+                                        </Button>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={() => startEdit(item)}
+                                        >
+                                          <Edit2 className="w-4 h-4 mr-1" />
+                                          수정
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                                          onClick={() =>
+                                            deleteItem(item.id, tabKey)
+                                          }
+                                        >
+                                          <Trash2 className="w-4 h-4" />
+                                        </Button>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {isEditing ? (
+                                  <div className="space-y-4">
+                                    <Label>Description</Label>
+                                    <Textarea
+                                      value={currentContent.description}
+                                      onChange={(e) =>
+                                        setEditingContent((prev) => ({
+                                          ...prev,
+                                          [item.id]: {
+                                            ...currentContent,
+                                            description: e.target.value,
+                                          },
+                                        }))
+                                      }
+                                      className="min-h-[150px]"
+                                    />
+                                  </div>
+                                ) : (
+                                  <div className="text-sm text-muted-foreground bg-muted/30 p-4 rounded-lg leading-relaxed whitespace-pre-wrap">
+                                    {item.description}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          }
+
+                          return null;
+                        })}
+                      </div>
                     )}
                   </TabsContent>
                 );
@@ -1447,19 +1688,19 @@ export function AuthorWorks({ integrationId }: AuthorWorksProps) {
           </Tabs>
 
           <DialogFooter className="flex-col sm:flex-col gap-4 border-t pt-4 px-6 pb-6 bg-background z-10">
-            {Object.values(settingBookDiff?.['충돌'] || {}).flat().length >
-            0 ? (
+            {(settingBookDiff?.['충돌']?.filter(
+              (c: any) => !resolvedConflicts.has(c.id),
+            ).length || 0) > 0 ? (
               // Conflict State
               <div className="flex items-center justify-between w-full p-4 bg-red-50 border border-red-100 rounded-lg">
                 <div className="flex items-center gap-3 text-red-700">
                   <AlertTriangle className="w-5 h-5 shrink-0" />
                   <div className="flex flex-col">
                     <span className="font-bold">
-                      충돌 사항이 발견되었습니다.
+                      해결되지 않은 충돌 사항이 있습니다.
                     </span>
                     <span className="text-xs opacity-90">
-                      충돌 내용을 확인하고 원문을 수정한 뒤 다시 시도하거나,
-                      무시하고 진행할 수 있습니다.
+                      모든 충돌 항목을 '확인 완료' 처리해야 진행할 수 있습니다.
                     </span>
                   </div>
                 </div>
@@ -1482,17 +1723,17 @@ export function AuthorWorks({ integrationId }: AuthorWorksProps) {
                 </div>
               </div>
             ) : (
-              // Non-Conflict State
+              // Non-Conflict State (All resolved or none existed)
               <div className="flex flex-col gap-4 w-full">
                 <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg text-sm text-blue-700 flex items-start gap-2">
                   <div className="bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded mt-0.5">
                     TIP
                   </div>
                   <p>
-                    AI 분석 결과가 완벽하지 않을 수 있습니다.
+                    모든 충돌이 해결되었습니다.
                     <span className="font-bold mx-1">설정 결합</span> 및
                     <span className="font-bold mx-1">신규 업로드</span>
-                    내용을 꼼꼼히 확인해 주세요.
+                    내용을 최종 확인해 주세요.
                   </p>
                 </div>
                 <div className="flex items-center justify-between w-full mt-2">

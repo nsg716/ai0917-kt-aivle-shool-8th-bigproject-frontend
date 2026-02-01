@@ -1,12 +1,4 @@
-import {
-  User,
-  Mail,
-  Calendar,
-  Phone,
-  Lock,
-  UserX,
-  Shield,
-} from 'lucide-react';
+import { User, Mail, Calendar, Phone, Lock, UserX, Shield } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import {
   Card,
@@ -20,10 +12,11 @@ import { Separator } from '../../../components/ui/separator';
 import { useNavigate } from 'react-router-dom';
 import { authService } from '../../../services/authService';
 import { format } from 'date-fns';
+import { AuthMeResponse } from '../../../types/auth';
 
 interface ManagerMyPageProps {
   onChangePassword: () => void;
-  userData: any;
+  userData: AuthMeResponse | null | undefined;
 }
 
 export function ManagerMyPage({
@@ -36,16 +29,14 @@ export function ManagerMyPage({
     if (!userData?.userId) return;
     if (
       confirm(
-        '정말로 계정 탈퇴(비활성화)를 신청하시겠습니까?\n이 작업은 되돌릴 수 없으며, 탈퇴 후 7일의 유예기간이 적용됩니다.',
+        '정말로 계정 탈퇴를 신청하시겠습니까?\n이 작업은 되돌릴 수 없으며, 탈퇴 후 7일의 유예기간이 적용됩니다.',
       )
     ) {
       try {
-        await authService.deactivateUser(userData.userId);
-        alert(
-          '계정이 비활성화(탈퇴) 처리되었습니다.\n7일 후 데이터가 영구 삭제됩니다.',
-        );
+        await authService.deactivateUser({ id: userData.userId! });
+        alert('계정이 탈퇴 처리되었습니다.\n7일 후 데이터가 영구 삭제됩니다.');
         await authService.logout();
-        navigate('/');
+        navigate('/login');
       } catch (error) {
         console.error('Account deletion failed', error);
         alert('계정 탈퇴 처리에 실패했습니다. 다시 시도해주세요.');
@@ -102,17 +93,7 @@ export function ManagerMyPage({
                     이메일
                   </Label>
                   <div className="font-medium flex items-center gap-2">
-                    {userData.email || '알 수 없음'}
-                  </div>
-                  <Separator />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground font-normal">
-                    권한
-                  </Label>
-                  <div className="font-medium flex items-center gap-2">
-                    <Shield className="w-4 h-4 text-muted-foreground/50" />
-                    {userData.role || 'Manager'}
+                    {userData.siteEmail || '알 수 없음'}
                   </div>
                   <Separator />
                 </div>
@@ -126,6 +107,23 @@ export function ManagerMyPage({
                   </div>
                   <Separator />
                 </div>
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground font-normal">
+                    출생년도 / 성별
+                  </Label>
+                  <div className="font-medium flex items-center gap-2">
+                    <User className="w-4 h-4 text-muted-foreground/50" />
+                    {userData.birthYear
+                      ? `${userData.birthYear}년생`
+                      : '-'} /{' '}
+                    {userData.gender === 'M'
+                      ? '남성'
+                      : userData.gender === 'F'
+                        ? '여성'
+                        : '-'}
+                  </div>
+                  <Separator />
+                </div>
                 <div className="space-y-2 sm:col-span-2">
                   <Label className="text-xs text-muted-foreground font-normal">
                     가입일
@@ -133,7 +131,10 @@ export function ManagerMyPage({
                   <div className="font-medium flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-muted-foreground/50" />
                     {userData.createdAt
-                      ? format(new Date(userData.createdAt), 'yyyy년 MM월 dd일 HH:mm')
+                      ? format(
+                          new Date(userData.createdAt),
+                          'yyyy년 MM월 dd일 HH:mm',
+                        )
                       : '-'}
                   </div>
                   <Separator />
@@ -142,7 +143,7 @@ export function ManagerMyPage({
             </CardContent>
             <CardFooter className="bg-muted/30 px-6 py-3">
               <p className="text-xs text-muted-foreground">
-                * 내 정보는 시스템 관리자에 의해 관리됩니다.
+                * 내 정보는 네이버 계정과 연동되어 적용됩니다.
               </p>
             </CardFooter>
           </Card>
@@ -170,7 +171,7 @@ export function ManagerMyPage({
                   className="flex-1 border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive transition-colors"
                 >
                   <UserX className="w-4 h-4 mr-2" />
-                  회원 탈퇴 (비활성화)
+                  회원 탈퇴
                 </Button>
               </div>
             </CardContent>

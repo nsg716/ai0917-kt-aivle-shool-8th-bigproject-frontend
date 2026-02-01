@@ -152,36 +152,44 @@ export interface KeywordExtractionRequestDto {
 }
 
 export interface KeywordExtractionResponseDto {
-  keywords: {
-    characters: string[];
-    locations: string[];
-    events: string[];
-    groups: string[];
-    items: string[];
-    worlds: string[];
+  check: {
+    인물: string[];
+    세계: string[];
+    장소: string[];
+    사건: string[];
+    물건: string[];
+    집단: string[];
   };
 }
 
 export interface PublishAnalysisRequestDto {
-  selectedKeywords: {
-    characters: string[];
-    locations: string[];
-    events: string[];
-    groups: string[];
-    items: string[];
-    worlds: string[];
+  check: {
+    인물: string[];
+    세계: string[];
+    장소: string[];
+    사건: string[];
+    물건: string[];
+    집단: string[];
   };
 }
 
-// New API Structure for Analysis Response
-export type AnalysisCategoryMap = {
-  [key: string]: string[][]; // [name, description][]
-};
-
 export interface PublishAnalysisResponseDto {
-  충돌: AnalysisCategoryMap;
-  '설정 결합': AnalysisCategoryMap;
-  '신규 업로드': AnalysisCategoryMap;
+  충돌: Record<string, string>[];
+  '설정 결합': any[];
+  '신규 업로드': any[];
+}
+
+export interface LorebookSimilarityRequestDto {
+  category: string;
+  user_query: string;
+}
+
+export interface LorebookSimilarityResponseDto {
+  id: number;
+  title: string;
+  description: string;
+  category: string;
+  similarity: number;
 }
 
 // Legacy types (kept for compatibility if needed, but likely replaced)
@@ -232,4 +240,11 @@ export interface AuthorMyPageDto {
   createdAt: string;
   worksCount: number;
   ipExpansionCount: number;
+}
+
+export interface AuthorManagerResponseDto {
+  ok: boolean;
+  managerIntegrationId: string;
+  managerName: string;
+  managerSiteEmail: string;
 }
