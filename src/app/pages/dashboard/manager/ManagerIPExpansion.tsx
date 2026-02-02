@@ -4,6 +4,8 @@ import {
   Tv,
   Play,
   Sparkles,
+  Calendar,
+  Trash2,
   Plus,
   Search,
   Filter,
@@ -14,6 +16,7 @@ import {
   X,
 } from "lucide-react";
 import { Button } from "../../../components/ui/button";
+import { PieChart, Pie, Cell } from "recharts";
 import {
   Card,
   CardContent,
@@ -31,10 +34,35 @@ import {
   DialogFooter,
 } from "../../../components/ui/dialog";
 import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+} from "../../../components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "../../../components/ui/alert-dialog";
+import {
   Tabs,
   TabsList,
   TabsTrigger,
 } from "../../../components/ui/tabs";
+import {
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from "../../../components/ui/accordion";
+import { Checkbox } from "../../../components/ui/checkbox";
 import { Label } from "../../../components/ui/label";
 import { Textarea } from "../../../components/ui/textarea";
 import {
@@ -44,6 +72,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../../components/ui/select";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "../../../components/ui/carousel";
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import apiClient from "../../../api/axios";
@@ -67,6 +102,15 @@ function CreateIPExpansionDialog({
     targetAges: string[];
     targetGender: string;
     dossiers: string[];
+    roadmapChecklist?: {
+      draftReview: boolean;
+      finalStamp: boolean;
+      partnerContact: boolean;
+      budgetApproval: boolean;
+    };
+    stageIndex?: number;
+    stageName?: string;
+    progress?: number;
   }) => void;
 }) {
   const [currentStep, setCurrentStep] = useState(1);
@@ -81,7 +125,6 @@ function CreateIPExpansionDialog({
   const [targetGender, setTargetGender] = useState<string>("all");
   const [dossiers, setDossiers] = useState<string[]>([]);
 
-  // Reset states when dialog opens
   useEffect(() => {
     if (isOpen) {
       setCurrentStep(1);
@@ -95,6 +138,8 @@ function CreateIPExpansionDialog({
       setDossiers([]);
     }
   }, [isOpen]);
+
+  // Dialog은 조건부 렌더링으로 열고 닫으며, 언마운트/리마운트 시 초기 상태로 시작합니다.
 
   const toggleTargetAge = (age: string) => {
     setTargetAges((prev) =>
@@ -168,6 +213,15 @@ function CreateIPExpansionDialog({
       targetAges,
       targetGender,
       dossiers,
+      roadmapChecklist: {
+        draftReview: false,
+        finalStamp: false,
+        partnerContact: false,
+        budgetApproval: false,
+      },
+      stageIndex: 0,
+      stageName: "기획",
+      progress: 0,
     });
     onClose();
   };
@@ -241,7 +295,12 @@ function CreateIPExpansionDialog({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
       <DialogContent className="max-w-6xl">
         <DialogHeader>
           <DialogTitle>새로운 IP 확장 프로젝트 생성</DialogTitle>
@@ -625,6 +684,8 @@ export function ManagerIPExpansion() {
   const [detailTab, setDetailTab] = useState<"summary" | "roadmap" | "assets">(
     "summary",
   );
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | number | null>(null);
   type CreatedProject = {
     id?: string | number;
     format: string | null;
@@ -637,17 +698,61 @@ export function ManagerIPExpansion() {
     targetAges: string[];
     targetGender: string;
     dossiers: string[];
+    roadmapChecklist?: {
+      draftReview: boolean;
+      finalStamp: boolean;
+      partnerContact: boolean;
+      budgetApproval: boolean;
+    };
+    stageIndex?: number;
+    stageName?: string;
+    progress?: number;
   };
   const [createdProject, setCreatedProject] = useState<
     | CreatedProject
     | null
   >(null);
-  const [projects, setProjects] = useState<CreatedProject[]>([]);
+  const [projects, setProjects] = useState<CreatedProject[]>(() => {
+    const saved = localStorage.getItem('manager_ip_projects');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('manager_ip_projects', JSON.stringify(projects));
+  }, [projects]);
+
+  const formatCounts = {
+    webtoon: projects.filter((p) => p.format === 'webtoon').length,
+    movie: projects.filter((p) => p.format === 'movie').length,
+    game: projects.filter((p) => p.format === 'game').length,
+    drama: projects.filter((p) => p.format === 'drama').length,
+  };
+  const [roadmapChecklist, setRoadmapChecklist] = useState({
+    draftReview: false,
+    finalStamp: false,
+    partnerContact: false,
+    budgetApproval: false,
+  });
+  const stages = ["기획", "계약", "제작", "검수", "런칭"];
+  const completedCount = Object.values(roadmapChecklist).filter(Boolean).length;
+  const currentStageIndex = Math.min(completedCount, stages.length - 1);
+  const currentStageName = stages[currentStageIndex];
+  const progressPercent = Math.round((currentStageIndex / (stages.length - 1)) * 100);
+  const stageColor =
+    currentStageName === "기획"
+      ? "purple"
+      : currentStageName === "계약"
+      ? "blue"
+      : currentStageName === "제작"
+      ? "green"
+      : currentStageName === "검수"
+      ? "orange"
+      : "indigo";
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card className="border-slate-200">
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
@@ -655,11 +760,11 @@ export function ManagerIPExpansion() {
                 <Zap className="w-5 h-5 text-blue-600" />
               </div>
               <Badge className="bg-blue-100 text-blue-600 hover:bg-blue-100">
-                +12%
+                +{projects.length > 0 ? ((projects.length / 20) * 100).toFixed(0) : 0}%
               </Badge>
             </div>
             <div className="text-2xl font-bold text-slate-900 mb-1">
-              24
+              {projects.length}
             </div>
             <div className="text-sm text-slate-500">
               진행 중인 프로젝트
@@ -670,37 +775,18 @@ export function ManagerIPExpansion() {
         <Card className="border-slate-200">
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
-              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                <Film className="w-5 h-5 text-purple-600" />
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                <Film className="w-5 h-5 text-blue-600" />
               </div>
-              <Badge className="bg-purple-100 text-purple-600 hover:bg-purple-100">
-                +5%
+              <Badge className="bg-blue-100 text-blue-600 hover:bg-blue-100">
+                {formatCounts.webtoon > 0 ? `+${((formatCounts.webtoon / 20) * 100).toFixed(0)}%` : '0%'}
               </Badge>
             </div>
             <div className="text-2xl font-bold text-slate-900 mb-1">
-              8
+              {formatCounts.webtoon}
             </div>
             <div className="text-sm text-slate-500">
-              웹툰화 확정
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-slate-200">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                <Tv className="w-5 h-5 text-green-600" />
-              </div>
-              <Badge className="bg-green-100 text-green-600 hover:bg-green-100">
-                +2%
-              </Badge>
-            </div>
-            <div className="text-2xl font-bold text-slate-900 mb-1">
-              3
-            </div>
-            <div className="text-sm text-slate-500">
-              영상화 계약
+              웹툰화 진행
             </div>
           </CardContent>
         </Card>
@@ -709,17 +795,55 @@ export function ManagerIPExpansion() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
               <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-                <Play className="w-5 h-5 text-orange-600" />
+                <Film className="w-5 h-5 text-orange-600" />
               </div>
               <Badge className="bg-orange-100 text-orange-600 hover:bg-orange-100">
-                New
+                {formatCounts.movie > 0 ? `+${((formatCounts.movie / 20) * 100).toFixed(0)}%` : '0%'}
               </Badge>
             </div>
             <div className="text-2xl font-bold text-slate-900 mb-1">
-              2
+              {formatCounts.movie}
             </div>
             <div className="text-sm text-slate-500">
-              게임화 논의
+              영화화 진행
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-slate-200">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                <Play className="w-5 h-5 text-green-600" />
+              </div>
+              <Badge className="bg-green-100 text-green-600 hover:bg-green-100">
+                {formatCounts.game > 0 ? `+${((formatCounts.game / 20) * 100).toFixed(0)}%` : '0%'}
+              </Badge>
+            </div>
+            <div className="text-2xl font-bold text-slate-900 mb-1">
+              {formatCounts.game}
+            </div>
+            <div className="text-sm text-slate-500">
+              게임화 진행
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-slate-200">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                <Tv className="w-5 h-5 text-purple-600" />
+              </div>
+              <Badge className="bg-purple-100 text-purple-600 hover:bg-purple-100">
+                {formatCounts.drama > 0 ? `+${((formatCounts.drama / 20) * 100).toFixed(0)}%` : '0%'}
+              </Badge>
+            </div>
+            <div className="text-2xl font-bold text-slate-900 mb-1">
+              {formatCounts.drama}
+            </div>
+            <div className="text-sm text-slate-500">
+              드라마화 진행
             </div>
           </CardContent>
         </Card>
@@ -761,14 +885,22 @@ export function ManagerIPExpansion() {
                 ? { icon: Film, color: "orange", label: "영화" }
                 : { icon: Film, color: "blue", label: "웹툰" };
             const Title = `${p.workTitle || p.projectName} - ${meta.label}`;
-            const Progress = 0;
-            const Status = "기획 단계";
+            const Progress = typeof p.progress === "number" ? p.progress : 0;
+            const Status = p.stageName ? `${p.stageName} 단계` : "기획 단계";
             return (
               <Card
                 key={p.id}
                 className="border-slate-200 hover:shadow-lg transition-all cursor-pointer group"
                 onClick={() => {
                   setCreatedProject(p);
+                  setRoadmapChecklist(
+                    p.roadmapChecklist ?? {
+                      draftReview: false,
+                      finalStamp: false,
+                      partnerContact: false,
+                      budgetApproval: false,
+                    },
+                  );
                   setDetailTab("summary");
                   setIsDetailModalOpen(true);
                 }}
@@ -788,9 +920,38 @@ export function ManagerIPExpansion() {
                         <p className="text-xs text-slate-500">출시 예정: 미정</p>
                       </div>
                     </div>
-                    <Button variant="ghost" size="icon" className="text-slate-400">
-                      <MoreHorizontal className="w-5 h-5" />
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-slate-400"
+                          onClick={(e) => e.stopPropagation()}
+                          onPointerDown={(e) => e.stopPropagation()}
+                        >
+                          <MoreHorizontal className="w-5 h-5" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent
+                        align="end"
+                        className="min-w-[10rem]"
+                        onClick={(e) => e.stopPropagation()}
+                        onPointerDown={(e) => e.stopPropagation()}
+                      >
+                        <DropdownMenuLabel>프로젝트</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="text-red-600"
+                          onSelect={(e) => {
+                            setPendingDeleteId((p.id ?? Date.now()) as string | number);
+                            setIsDeleteOpen(true);
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          삭제
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                   <div className="space-y-4">
                     <div>
@@ -831,14 +992,16 @@ export function ManagerIPExpansion() {
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onCreated={(p) => {
-          setCreatedProject(p);
+          const withId = { ...p, id: p.id ?? Date.now() };
+          setProjects((prev) => [withId, ...prev]);
+          setCreatedProject(withId);
           setDetailTab("summary");
           setIsDetailModalOpen(true);
         }}
       />
 
       <Dialog open={isDetailModalOpen} onOpenChange={setIsDetailModalOpen}>
-        <DialogContent className="w-[92vw] max-w-7xl">
+        <DialogContent className="w-[88vw] h-[80vh] max-w-5xl sm:max-w-5xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center justify-between">
               <span className="font-bold break-keep">
@@ -882,13 +1045,26 @@ export function ManagerIPExpansion() {
           >
             <div className="flex flex-wrap items-center gap-2">
               <Badge className="bg-white text-slate-700 border border-slate-200">
-                진행률 0%
+                <span className="mr-2">진행률 {progressPercent}%</span>
+                <span className="relative inline-flex items-center w-20 h-2 rounded-full bg-slate-200 overflow-hidden align-middle">
+                  <span
+                    className={`absolute inset-y-0 left-0 bg-${stageColor}-500 transition-all duration-500`}
+                    style={{ width: `${progressPercent}%` }}
+                  />
+                </span>
               </Badge>
               <Badge className="bg-white text-slate-700 border border-slate-200">
-                출시 예정일 미정
+                <Calendar className="w-3 h-3 mr-2 text-slate-500" />
+                <span>출시 예정일 미정</span>
+                <span className="ml-2 text-[10px] text-slate-500">수립 대기 중</span>
               </Badge>
-              <Badge className="bg-white text-slate-700 border border-slate-200">
-                현재 단계 기획
+              <Badge className={`bg-${stageColor}-100 text-${stageColor}-700 border border-${stageColor}-200 relative`}>
+                <span>현재 단계 {currentStageName}</span>
+                <span className="ml-2 inline-flex items-center">
+                  <span className="relative flex h-2 w-2">
+                    <span className={`animate-pulse inline-flex h-full w-full rounded-full bg-${stageColor}-500 opacity-75`} />
+                  </span>
+                </span>
               </Badge>
             </div>
           </div>
@@ -921,9 +1097,29 @@ export function ManagerIPExpansion() {
                     <span className="text-xs font-medium text-slate-500 whitespace-nowrap">
                       작가
                     </span>
-                    <span className="font-bold text-slate-900 break-keep tracking-tighter">
-                      {createdProject?.authorName || "-"}
-                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      {(createdProject?.authorName || "")
+                        .split(",")
+                        .map((name) => name.trim())
+                        .filter(Boolean).length > 0 ? (
+                        (createdProject?.authorName || "")
+                          .split(",")
+                          .map((name) => name.trim())
+                          .filter(Boolean)
+                          .map((name) => (
+                            <Badge
+                              key={name}
+                              className="bg-white text-slate-700 border border-slate-200"
+                            >
+                              {name}
+                            </Badge>
+                          ))
+                      ) : (
+                        <span className="font-bold text-slate-900 break-keep tracking-tighter">
+                          -
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -952,6 +1148,51 @@ export function ManagerIPExpansion() {
                       <div className="text-xs text-slate-500 mt-1 break-keep">
                         설정된 타겟에 따른 선호도 지표
                       </div>
+                      <div className="mt-3 space-y-2">
+                        <div>
+                          <div className="text-[10px] text-slate-500 mb-1">Age</div>
+                          <div className="w-full h-2 rounded-full bg-slate-200 overflow-hidden">
+                            <div className="h-full bg-blue-500" style={{ width: "45%" }} />
+                            <div className="h-full bg-green-500" style={{ width: "40%" }} />
+                            <div className="h-full bg-slate-400" style={{ width: "15%" }} />
+                          </div>
+                          <div className="flex justify-between mt-1 text-[10px] text-slate-500">
+                            <span>20대 45%</span>
+                            <span>30대 40%</span>
+                            <span>기타 15%</span>
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-[10px] text-slate-500 mb-1">Gender</div>
+                          {(() => {
+                            const maleRatio =
+                              createdProject?.targetGender === "male"
+                                ? 70
+                                : createdProject?.targetGender === "female"
+                                ? 30
+                                : 50;
+                            const femaleRatio = 100 - maleRatio;
+                            return (
+                              <>
+                                <div className="w-full h-1.5 rounded-full bg-slate-200 overflow-hidden">
+                                  <div
+                                    className="h-full bg-blue-500"
+                                    style={{ width: `${maleRatio}%` }}
+                                  />
+                                  <div
+                                    className="h-full bg-pink-500"
+                                    style={{ width: `${femaleRatio}%` }}
+                                  />
+                                </div>
+                                <div className="flex justify-between mt-1 text-[10px] text-slate-500">
+                                  <span>남성 {maleRatio}%</span>
+                                  <span>여성 {femaleRatio}%</span>
+                                </div>
+                              </>
+                            );
+                          })()}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -968,29 +1209,98 @@ export function ManagerIPExpansion() {
                       <div className="font-semibold text-slate-900 text-sm mt-1 break-keep tracking-tighter">
                         {createdProject?.budget
                           ? `${Number(createdProject.budget).toLocaleString()}원`
-                          : "미정"}
+                          : "예산 수립 전 (예상 규모: Mid-Tier)"}
                       </div>
                       <div className="text-xs text-slate-500 mt-1 break-keep">
                         {createdProject?.budget ? "총 예산 대비 집행 비용" : "예산 수립 필요"}
                       </div>
+                      {(() => {
+                        const budgetValue = createdProject?.budget
+                          ? Number(createdProject.budget)
+                          : undefined;
+                        const scale =
+                          budgetValue == null
+                            ? "mid"
+                            : budgetValue < 50_000_000
+                            ? "low"
+                            : budgetValue < 200_000_000
+                            ? "mid"
+                            : "high";
+                        const base =
+                          "flex items-center gap-2 mt-3 text-[10px] text-slate-600";
+                        return (
+                          <div className={base}>
+                            <div
+                              className={`px-2 py-1 rounded-md border ${
+                                scale === "low"
+                                  ? "bg-blue-50 border-blue-200 text-blue-700"
+                                  : "bg-white border-slate-200"
+                              }`}
+                            >
+                              Low
+                            </div>
+                            <div
+                              className={`px-2 py-1 rounded-md border ${
+                                scale === "mid"
+                                  ? "bg-blue-50 border-blue-200 text-blue-700"
+                                  : "bg-white border-slate-200"
+                              }`}
+                            >
+                              Mid
+                            </div>
+                            <div
+                              className={`px-2 py-1 rounded-md border ${
+                                scale === "high"
+                                  ? "bg-blue-50 border-blue-200 text-blue-700"
+                                  : "bg-white border-slate-200"
+                              }`}
+                            >
+                              High
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
                 </div>
 
                 <div className="rounded-lg p-4 bg-slate-50">
                   <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-slate-200 flex items-center justify-center text-slate-700">
-                      <AlertCircle className="w-5 h-5" />
+                    <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center text-green-700">
+                      <Sparkles className="w-5 h-5" />
                     </div>
-                    <div className="flex-1 leading-tight">
-                      <div className="text-xs text-slate-500 whitespace-nowrap break-keep">
-                        매체 적합성
-                      </div>
-                      <div className="text-sm font-semibold text-slate-900 mt-1.5 break-keep tracking-tighter">
-                        원작 서사 구조 분석
-                      </div>
-                      <div className="text-xs text-slate-500 mt-2 break-keep">
-                        3막 구조 및 세계 설정 반영
+                    <div className="flex-1">
+                      <div className="text-xs text-slate-500">성공 예측 스코어</div>
+                      <div className="relative mt-2">
+                        <div className="flex items-center justify-center">
+                          <PieChart width={240} height={140}>
+                            <Pie
+                              data={[
+                                { name: 'score', value: 88 },
+                                { name: 'rest', value: 12 },
+                              ]}
+                              cx={120}
+                              cy={120}
+                              startAngle={180}
+                              endAngle={0}
+                              innerRadius={70}
+                              outerRadius={100}
+                              dataKey="value"
+                              paddingAngle={2}
+                            >
+                              <Cell fill="#16a34a" />
+                              <Cell fill="#e5e7eb" />
+                            </Pie>
+                          </PieChart>
+                        </div>
+                        <div className="absolute inset-0 flex items-end justify-center pb-8">
+                          <div className="text-center">
+                            <div className="text-3xl font-extrabold text-slate-900 tracking-tight">
+                              88점
+                            </div>
+                            <div className="text-xs text-green-600">상위 5% 성공 예상</div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1003,31 +1313,126 @@ export function ManagerIPExpansion() {
             <div className="space-y-6">
               <div className="border border-slate-200 rounded-xl p-5">
                 <div className="font-semibold text-slate-900 mb-3">마일스톤 및 로드맵</div>
-                {(() => {
-                  const stages = ["기획", "계약", "제작", "검수", "런칭"];
-                  const currentStageIndex = 1;
-                  return (
-                    <div className="flex items-center gap-4 mb-6">
-                      {stages.map((stage, i) => (
-                        <div key={stage} className="flex flex-col items-center">
+                <div className="flex items-center gap-4 mb-6">
+                  {stages.map((stage, i) => (
+                    <div key={stage} className="flex flex-col items-center">
+                      <div
+                        className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
+                          i === currentStageIndex
+                            ? `bg-${stageColor}-200 text-${stageColor}-900 ring-2 ring-${stageColor}-300 shadow-sm`
+                            : "bg-slate-200 text-slate-700"
+                        } transition-all duration-500`}
+                      >
+                        {i + 1}
+                      </div>
+                      <span className="mt-1 text-[10px] text-slate-500">{stage}</span>
+                      {i < stages.length - 1 && (
+                        <div className="w-10 h-1 bg-slate-200 mx-2 hidden md:block overflow-hidden rounded-full">
                           <div
-                            className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
-                              i === currentStageIndex
-                                ? "bg-slate-200 text-slate-900 ring-2 ring-blue-200 shadow-sm"
-                                : "bg-slate-200 text-slate-700"
-                            }`}
-                          >
-                            {i + 1}
-                          </div>
-                          <span className="mt-1 text-[10px] text-slate-500">{stage}</span>
-                          {i < stages.length - 1 && (
-                            <div className="w-10 h-px bg-slate-200 mx-2 hidden md:block" />
-                          )}
+                            className={`h-full bg-${stageColor}-500 transition-all duration-500`}
+                            style={{ width: i < currentStageIndex ? "100%" : "0%" }}
+                          />
                         </div>
-                      ))}
+                      )}
                     </div>
-                  );
-                })()}
+                  ))}
+                </div>
+                <Accordion type="single" collapsible className="mb-4">
+                  <AccordionItem value="current">
+                    <AccordionTrigger>{currentStageName} 단계 세부 작업</AccordionTrigger>
+                    <AccordionContent>
+                      {(() => {
+                        const map = [
+                          { key: "draftReview" as const, label: "초안 검토" },
+                          { key: "finalStamp" as const, label: "최종 날인" },
+                          { key: "partnerContact" as const, label: "제작사 컨택" },
+                          { key: "budgetApproval" as const, label: "예산 승인" },
+                        ];
+                        const task = map[Math.min(currentStageIndex, map.length - 1)];
+                        if (!task) {
+                          return (
+                            <div className="text-sm text-slate-600">
+                              런칭 단계입니다. 축하합니다! 🎉
+                            </div>
+                          );
+                        }
+                        const checked = roadmapChecklist[task.key];
+                        return (
+                          <div className="space-y-3">
+                            <label className="flex items-center gap-2">
+                              <Checkbox
+                                checked={checked}
+                                onCheckedChange={(v) => {
+                                  const next = { ...roadmapChecklist, [task.key]: !!v } as typeof roadmapChecklist;
+                                  setRoadmapChecklist(next);
+                                  if (createdProject) {
+                                    const done = Object.values(next).filter(Boolean).length;
+                                    const idx = Math.min(done, stages.length - 1);
+                                    const name = stages[idx];
+                                    const pct = Math.round((idx / (stages.length - 1)) * 100);
+                                    const updated = {
+                                      ...createdProject,
+                                      roadmapChecklist: next,
+                                      stageIndex: idx,
+                                      stageName: name,
+                                      progress: pct,
+                                    };
+                                    setCreatedProject(updated);
+                                    setProjects((prev) =>
+                                      prev.map((p) => (p.id === updated.id ? updated : p)),
+                                    );
+                                  }
+                                }}
+                              />
+                              <span className="text-sm">{task.label}</span>
+                            </label>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                className="text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 px-2 py-1 h-7 text-xs"
+                                disabled={currentStageIndex === 0}
+                                onClick={() => {
+                                  const order = ["draftReview","finalStamp","partnerContact","budgetApproval"] as const;
+                                  const next = { ...roadmapChecklist };
+                                  let lastIdx = -1;
+                                  for (let i = order.length - 1; i >= 0; i--) {
+                                    if (next[order[i]]) {
+                                      lastIdx = i;
+                                      break;
+                                    }
+                                  }
+                                  if (lastIdx >= 0) {
+                                    next[order[lastIdx]] = false;
+                                    setRoadmapChecklist(next);
+                                    if (createdProject) {
+                                      const done = Object.values(next).filter(Boolean).length;
+                                      const idx = Math.min(done, stages.length - 1);
+                                      const name = stages[idx];
+                                      const pct = Math.round((idx / (stages.length - 1)) * 100);
+                                      const updated = {
+                                        ...createdProject,
+                                        roadmapChecklist: next,
+                                        stageIndex: idx,
+                                        stageName: name,
+                                        progress: pct,
+                                      };
+                                      setCreatedProject(updated);
+                                      setProjects((prev) =>
+                                        prev.map((p) => (p.id === updated.id ? updated : p)),
+                                      );
+                                    }
+                                  }
+                                }}
+                              >
+                                이전 단계로 이동
+                              </Button>
+                              <span className="text-xs text-slate-500">현재 단계 {currentStageName}</span>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="rounded-lg border border-slate-200 p-4">
                     <div className="font-semibold text-slate-900 mb-2">체크리스트</div>
@@ -1054,33 +1459,104 @@ export function ManagerIPExpansion() {
             <div className="space-y-6">
               <div className="border border-slate-200 rounded-xl p-5">
                 <div className="font-semibold text-slate-900 mb-3">IP 자산 동기화</div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="rounded-lg bg-slate-50 p-4">
-                    <div className="text-xs text-slate-500">캐릭터 시트</div>
-                    <div className="font-bold text-slate-900 mt-1">시각화 비교 뷰</div>
-                    <div className="text-xs text-slate-500 mt-1">엘레나, 루미나스 등 주요 캐릭터</div>
-                    <div className="flex items-center gap-2 mt-3">
-                      <div className="w-8 h-8 rounded-full bg-slate-200" />
-                      <div className="w-8 h-8 rounded-full bg-slate-300" />
-                      <div className="w-8 h-8 rounded-full bg-slate-100" />
+                <div className="rounded-lg bg-white border border-slate-200 p-4 mb-4">
+                  <div className="text-xs text-slate-500">선택한 설정집</div>
+                  {createdProject?.dossiers?.length ? (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {createdProject.dossiers.map((d) => (
+                        <Badge key={d} className="bg-white text-slate-700 border border-slate-200">
+                          #{d}
+                        </Badge>
+                      ))}
                     </div>
-                    <div className="flex flex-wrap gap-2 mt-3">
-                      <Badge className="bg-white text-slate-700 border border-slate-200">#주인공</Badge>
-                      <Badge className="bg-white text-slate-700 border border-slate-200">#라이벌</Badge>
-                      <Badge className="bg-white text-slate-700 border border-slate-200">#조력자</Badge>
-                    </div>
-                  </div>
-                  <div className="rounded-lg bg-slate-50 p-4">
-                    <div className="text-xs text-slate-500">세계관 설정집</div>
-                    <div className="font-bold text-slate-900 mt-1">매체별 각색 데이터</div>
-                    <div className="text-xs text-slate-500 mt-1">중세 판타지, 마법 체계</div>
-                    <div className="flex flex-wrap gap-2 mt-3">
-                      <Badge className="bg-white text-slate-700 border border-slate-200">#중세</Badge>
-                      <Badge className="bg-white text-slate-700 border border-slate-200">#마법</Badge>
-                      <Badge className="bg-white text-slate-700 border border-slate-200">#왕국</Badge>
-                    </div>
-                  </div>
+                  ) : (
+                    <div className="text-xs text-slate-500 mt-2">선택한 설정집 없음</div>
+                  )}
                 </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {(() => {
+                    const defs: Record<
+                      string,
+                      {
+                        subtitle: string;
+                        title: string;
+                        description: string;
+                        tags: string[];
+                        extra?: React.ReactNode;
+                      }
+                    > = {
+                      인물: {
+                        subtitle: "캐릭터 시트",
+                        title: "시각화 비교 뷰",
+                        description: "엘레나, 루미나스 등 주요 캐릭터",
+                        tags: ["주인공", "라이벌", "조력자"],
+                        extra: (
+                          <div className="flex items-center gap-2 mt-3">
+                            <div className="w-8 h-8 rounded-full bg-slate-200" />
+                            <div className="w-8 h-8 rounded-full bg-slate-300" />
+                            <div className="w-8 h-8 rounded-full bg-slate-100" />
+                          </div>
+                        ),
+                      },
+                      세계관: {
+                        subtitle: "세계관 설정집",
+                        title: "매체별 각색 데이터",
+                        description: "중세 판타지, 마법 체계",
+                        tags: ["중세", "마법", "왕국"],
+                      },
+                      서사: {
+                        subtitle: "서사 구조 맵",
+                        title: "스토리 아크 트래커",
+                        description: "도입-전개-클라이맥스-결말",
+                        tags: ["도입", "전개", "클라이맥스", "결말"],
+                      },
+                      장소: {
+                        subtitle: "로케이션 데이터",
+                        title: "촬영/배경 후보",
+                        description: "주요 무대/세트 아이디어",
+                        tags: ["도시", "숲", "성", "던전"],
+                      },
+                      물건: {
+                        subtitle: "아티팩트 목록",
+                        title: "핵심 오브젝트",
+                        description: "세계관 핵심 아이템",
+                        tags: ["엑스칼리버", "유물", "포션", "장비"],
+                      },
+                      집단: {
+                        subtitle: "세력 관계도",
+                        title: "길드/국가/조직",
+                        description: "주요 집단과 역학",
+                        tags: ["헌터협회", "왕국군", "길드", "비밀결사"],
+                      },
+                    };
+                    const selected = createdProject?.dossiers ?? [];
+                    const showKeys = selected.length ? selected : [];
+                    return showKeys.length ? (
+                      showKeys.map((key) => {
+                        const def = defs[key];
+                        if (!def) return null;
+                        return (
+                          <div key={key} className="rounded-lg bg-slate-50 p-4">
+                            <div className="text-xs text-slate-500">{def.subtitle}</div>
+                            <div className="font-bold text-slate-900 mt-1">{def.title}</div>
+                            <div className="text-xs text-slate-500 mt-1">{def.description}</div>
+                            {def.extra}
+                            <div className="flex flex-wrap gap-2 mt-3">
+                              {def.tags.map((t) => (
+                                <Badge key={t} className="bg-white text-slate-700 border border-slate-200">#{t}</Badge>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div className="col-span-1 md:col-span-2 text-xs text-slate-500">
+                        설정집을 선택하면 해당 시트가 표시됩니다
+                      </div>
+                    );
+                  })()}
+                </div>
+                {/* 비주얼 아카이브 제거 */}
               </div>
             </div>
           )}
@@ -1102,6 +1578,38 @@ export function ManagerIPExpansion() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>프로젝트 삭제</AlertDialogTitle>
+            <AlertDialogDescription>
+              삭제하면 되돌릴 수 없습니다. 진행할까요?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setIsDeleteOpen(false)}>
+              취소
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 text-white hover:bg-red-700"
+              onClick={() => {
+                if (pendingDeleteId != null) {
+                  setProjects((prev) => prev.filter((q) => q.id !== pendingDeleteId));
+                  if (createdProject?.id === pendingDeleteId) {
+                    setIsDetailModalOpen(false);
+                    setCreatedProject(null);
+                  }
+                  setIsDeleteOpen(false);
+                  setPendingDeleteId(null);
+                }
+              }}
+            >
+              삭제
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -1114,7 +1622,7 @@ function LinkedAuthorsSelect({
   onChange: (v: string[]) => void;
 }) {
   const { data } = useQuery({
-    queryKey: ["manager", "authors", "linked", "list"],
+    queryKey: ["manager", "authors", "linked", "list", "flat"],
     queryFn: async () => {
       const res = await apiClient.get("/api/v1/manager/authors", {
         params: { size: 100, sort: "name,asc", linked: true },

@@ -66,6 +66,7 @@ export const managerService = {
     sort?: string;
     page?: number;
     size?: number;
+    linked?: boolean;
   }) => {
     const response = await apiClient.get<PageResponse<ManagerAuthorDto>>(
       '/api/v1/manager/authors',
