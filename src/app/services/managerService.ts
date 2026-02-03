@@ -7,10 +7,19 @@ import {
   AuthorSummaryDto,
   ManagerAuthorDto,
   ManagerAuthorDetailDto,
+  ManagerDashboardSummaryDto,
 } from '../types/manager';
 import { LorebookDto, IPProposalDto, IPMatchingDto } from '../types/author';
 
 export const managerService = {
+  // Dashboard Summary
+  getDashboardSummary: async () => {
+    const response = await apiClient.get<ManagerDashboardSummaryDto>(
+      '/api/v1/manager/dashboard/summary',
+    );
+    return response.data;
+  },
+
   // IP Trend Analysis
   getIPTrend: async () => {
     const response = await apiClient.get<IPTrendDashboardDto>(

@@ -424,19 +424,33 @@ export const handlers = [
   // Get Authors for Selection
   http.get(`${BACKEND_URL}/api/v1/manager/authors`, ({ request }) => {
     const url = new URL(request.url);
-    const query = url.searchParams.get('q') || '';
+    const query =
+      url.searchParams.get('q') || url.searchParams.get('keyword') || '';
+    const page = Number(url.searchParams.get('page') || 0);
+    const size = Number(url.searchParams.get('size') || 100); // Default to large size for selection list if not specified
 
     // Generate static list of authors
-    const authors = generateList(100, (i) => ({
+    let authors = generateList(100, (i) => ({
       id: i,
       name: NAMES[i % NAMES.length],
       workCount: Math.floor(Math.random() * 5) + 1,
     }));
 
     if (query) {
-      return HttpResponse.json(authors.filter((a) => a.name.includes(query)));
+      authors = authors.filter((a) => a.name.includes(query));
     }
-    return HttpResponse.json(authors);
+
+    const start = page * size;
+    const end = start + size;
+    const content = authors.slice(start, end);
+
+    return HttpResponse.json({
+      content,
+      totalPages: Math.ceil(authors.length / size),
+      totalElements: authors.length,
+      size,
+      number: page,
+    });
   }),
 
   // Get Works by Author
@@ -513,10 +527,148 @@ export const handlers = [
     },
   ),
 
-  // Get Proposals
-  http.get(`${BACKEND_URL}/api/v1/manager/ip-expansion/proposals`, () => {
-    return HttpResponse.json(MOCK_PROPOSALS);
+  // Manager Dashboard Summary
+  http.get(`${BACKEND_URL}/api/v1/manager/dashboard/summary`, () => {
+    return HttpResponse.json({
+      pendingProposals: 15,
+      managedAuthors: 42,
+      todayDau: 2543,
+      yesterdayDau: 2120,
+      dauChangeRate: 19.9,
+    });
   }),
+
+  // Admin Dashboard Summary (Mocked for Manager context if needed)
+  http.get(`${BACKEND_URL}/api/v1/admin/dashboard/summary`, () => {
+    return HttpResponse.json({
+      activeUsers: 12543,
+      totalRevenue: 54000000,
+      systemStatus: 'NORMAL',
+      cpuUsage: 45,
+      memoryUsage: 60,
+    });
+  }),
+
+  // Admin DAU (Mocked for Manager context if needed)
+  http.get(`${BACKEND_URL}/api/v1/admin/dashboard/dau`, () => {
+    return HttpResponse.json({
+      today: 2543,
+      yesterday: 2120,
+      history: generateList(30, (i) => ({
+        date: new Date(Date.now() - (30 - i) * 86400000)
+          .toISOString()
+          .split('T')[0],
+        count: Math.floor(Math.random() * 1000) + 2000,
+      })),
+    });
+  }),
+
+  // Notices (Shared with Admin)
+  http.get(`${BACKEND_URL}/api/v1/notice`, ({ request }) => {
+    const url = new URL(request.url);
+    const page = Number(url.searchParams.get('page') || 0);
+    const size = Number(url.searchParams.get('size') || 10);
+
+    const notices = [
+      {
+        id: 1,
+        title: '[긴급] 2025년 상반기 작가 정산 시스템 점검 안내',
+        content:
+          '안녕하세요. 시스템 관리자입니다.\n\n2025년 5월 20일 새벽 2시부터 4시까지 작가 정산 시스템의 정기 점검이 예정되어 있습니다.\n점검 시간 동안에는 정산 내역 조회 및 출금 신청이 불가능하오니 업무에 참고하시기 바랍니다.\n\n감사합니다.',
+        category: 'URGENT',
+        createdAt: new Date().toISOString(),
+        viewCount: 154,
+      },
+      {
+        id: 2,
+        title: '신규 IP 확장 프로젝트 가이드라인 배포',
+        content:
+          'IP 확장 프로젝트 진행 시 참고하실 수 있는 새로운 가이드라인이 배포되었습니다.\n자료실에서 확인 부탁드립니다.',
+        category: 'NOTICE',
+        createdAt: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+        viewCount: 89,
+      },
+      {
+        id: 3,
+        title: '5월 우수 작가 선정 결과 발표',
+        content:
+          '5월 우수 작가 선정 결과가 발표되었습니다. 선정된 작가님들께는 개별 메일이 발송되었습니다.',
+        category: 'NOTICE',
+        createdAt: new Date(Date.now() - 86400000 * 3).toISOString(), // 3 days ago
+        viewCount: 230,
+      },
+      {
+        id: 4,
+        title: '시스템 UI/UX 개선 업데이트 안내',
+        content:
+          '매니저 대시보드의 사용성 개선을 위한 업데이트가 진행되었습니다.\n주요 변경 사항은 다음과 같습니다...',
+        category: 'NOTICE',
+        createdAt: new Date(Date.now() - 86400000 * 7).toISOString(), // 7 days ago
+        viewCount: 412,
+      },
+      {
+        id: 5,
+        title: '[필독] 개인정보 처리방침 개정 안내',
+        content:
+          '개인정보 처리방침이 일부 개정되었습니다. 변경된 내용을 반드시 확인해주시기 바랍니다.',
+        category: 'NOTICE',
+        createdAt: new Date(Date.now() - 86400000 * 10).toISOString(), // 10 days ago
+        viewCount: 567,
+      },
+      ...generateList(20, (i) => ({
+        id: i + 6,
+        title: `일반 공지사항 테스트 제목 ${i + 1}`,
+        content: `공지사항 내용입니다. ${i + 1}`,
+        category: 'NOTICE',
+        createdAt: new Date(Date.now() - 86400000 * (10 + i)).toISOString(),
+        viewCount: Math.floor(Math.random() * 100),
+      })),
+    ];
+
+    const start = page * size;
+    const end = start + size;
+    const content = notices.slice(start, end);
+
+    return HttpResponse.json({
+      content,
+      totalPages: Math.ceil(notices.length / size),
+      totalElements: notices.length,
+      size,
+      number: page,
+    });
+  }),
+
+  // Manager IP Expansion Proposals
+  http.get(
+    `${BACKEND_URL}/api/v1/manager/ip-expansion/proposals`,
+    ({ request }) => {
+      const url = new URL(request.url);
+      const page = Number(url.searchParams.get('page') || 0);
+      const size = Number(url.searchParams.get('size') || 12);
+
+      // Expand mock proposals if needed or just use the static list
+      // Let's ensure we have enough for pagination
+      const proposals =
+        MOCK_PROPOSALS.length < 100
+          ? generateList(100, (i) => ({
+              ...MOCK_PROPOSALS[i % MOCK_PROPOSALS.length],
+              id: i,
+            }))
+          : MOCK_PROPOSALS;
+
+      const start = page * size;
+      const end = start + size;
+      const content = proposals.slice(start, end);
+
+      return HttpResponse.json({
+        content,
+        totalPages: Math.ceil(proposals.length / size),
+        totalElements: proposals.length,
+        size,
+        number: page,
+      });
+    },
+  ),
 
   // Create Proposal
   http.post(
@@ -561,12 +713,18 @@ export const handlers = [
       url.searchParams.get('year') || new Date().getFullYear().toString();
 
     // Generate trend reports on the fly based on year or use static list
-    const reports = generateList(30, (i) => ({
+    const reports = generateList(100, (i) => ({
       id: i,
-      fileName: `2024년 ${Math.floor(i / 2) + 1}월 IP 트렌드 분석 리포트_v${(i % 2) + 1}.pdf`,
-      status: getRandomItem(['COMPLETED', 'PROCESSING', 'FAILED']),
-      createdAt: new Date(Date.now() - i * 86400000 * 7).toISOString(), // Weekly
-      analysisDate: new Date(Date.now() - i * 86400000 * 7)
+      fileName: `2024년 ${Math.floor(i / 10) + 1}월 IP 트렌드 분석 리포트_v${(i % 5) + 1}.pdf`,
+      status: getRandomItem([
+        'COMPLETED',
+        'PROCESSING',
+        'FAILED',
+        'COMPLETED',
+        'COMPLETED',
+      ]), // Weighted towards COMPLETED
+      createdAt: new Date(Date.now() - i * 86400000 * 2).toISOString(), // Every 2 days
+      analysisDate: new Date(Date.now() - i * 86400000 * 2)
         .toISOString()
         .split('T')[0],
       fileUrl: 'https://arxiv.org/pdf/2101.00001.pdf', // Dummy PDF

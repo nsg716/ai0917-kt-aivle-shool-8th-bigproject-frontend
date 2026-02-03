@@ -62,48 +62,11 @@ export function ManagerHome({ onNavigate }: ManagerHomeProps) {
   const [isNoticeDetailOpen, setIsNoticeDetailOpen] = useState(false);
   const [selectedNotice, setSelectedNotice] = useState<any>(null);
 
-  // Project State
-  const [recentProjects, setRecentProjects] = useState<any[]>(() => {
-    try {
-      const saved = localStorage.getItem('manager_ip_projects');
-      const parsed = saved ? JSON.parse(saved) : [];
-      return Array.isArray(parsed) ? parsed.reverse() : [];
-    } catch {
-      return [];
-    }
+  // Fetch Manager Dashboard Summary
+  const { data: summaryData, isLoading: isSummaryLoading } = useQuery({
+    queryKey: ['manager', 'dashboard', 'summary'],
+    queryFn: managerService.getDashboardSummary,
   });
-  const [allProjects] = useState<any[]>(() => {
-    try {
-      const saved = localStorage.getItem('manager_ip_projects');
-      const parsed = saved ? JSON.parse(saved) : [];
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
-  });
-  const [currentProjectIndex, setCurrentProjectIndex] = useState(0);
-  const [isProjectDetailOpen, setIsProjectDetailOpen] = useState(false);
-  const [selectedProject, setSelectedProject] = useState<any>(null);
-  const [projectDetailTab, setProjectDetailTab] = useState<'summary' | 'roadmap' | 'assets'>('summary');
-
-  // 초기 상태에서 로컬스토리지를 읽어 최근 프로젝트를 구성합니다.
-
-  const handleNextProject = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setCurrentProjectIndex((prev) =>
-      prev === recentProjects.length - 1 ? 0 : prev + 1
-    );
-  };
-
-  const handlePrevProject = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setCurrentProjectIndex((prev) =>
-      prev === 0 ? recentProjects.length - 1 : prev - 1
-    );
-  };
-
-  const currentProject = recentProjects[currentProjectIndex];
-  const nonLaunchedCount = allProjects.filter((p) => p?.stageName !== '런칭').length;
 
   // Fetch Admin Dashboard Summary for System Overview
   const { data: systemSummary, isLoading: isSystemLoading } = useQuery({
@@ -146,17 +109,91 @@ export function ManagerHome({ onNavigate }: ManagerHomeProps) {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto font-sans">
-      {/* 1. 상단 현황 섹션 (작가 현황 & 파이차트 & 제안 대기) */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {/* 승인 대기 제안 (축소됨) */}
-        <Card className="border-border shadow-sm col-span-1 bg-gradient-to-br from-white to-slate-50/80 backdrop-blur-sm hover:shadow-lg hover:-translate-y-0.5 transition">
-          <CardContent className="p-4 flex flex-col justify-between h-full">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-muted-foreground">
-                승인 대기 제안
-              </span>
-              <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-full">
-                <BookOpen className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card className="border-border shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              대기 중인 제안
+            </CardTitle>
+            <BookOpen className="h-4 w-4 text-primary" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {summaryData?.pendingProposals || 0}건
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              승인 대기 중인 IP 확장 제안
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="border-border shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              관리 작가
+            </CardTitle>
+            <Users className="h-4 w-4 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {summaryData?.managedAuthors || 0}명
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              현재 담당하고 있는 작가 수
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="border-border shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              오늘 DAU
+            </CardTitle>
+            <TrendingUp className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {summaryData?.todayDau?.toLocaleString() || 0}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+              <span
+                className={
+                  (summaryData?.dauChangeRate || 0) >= 0
+                    ? 'text-green-600'
+                    : 'text-red-600'
+                }
+              >
+                {(summaryData?.dauChangeRate || 0) >= 0 ? '+' : ''}
+                {summaryData?.dauChangeRate || 0}%
+              </span>{' '}
+              vs 어제
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="border-border shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              시스템 상태
+            </CardTitle>
+            <CheckCircle className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">정상</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              모든 서비스 가동 중
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* 배너 위젯 섹션 (공지사항) */}
+      <div className="grid grid-cols-1 gap-6">
+        {/* 공지사항 위젯 */}
+        <Card className="border-border relative overflow-hidden">
+          <CardHeader className="pb-2 border-b">
+            <CardTitle className="flex items-center justify-between text-lg">
+              <div className="flex items-center gap-2">
+                <Megaphone className="w-5 h-5 text-primary" />
+                주요 공지사항
               </div>
             </div>
             <div className="text-2xl font-bold">
