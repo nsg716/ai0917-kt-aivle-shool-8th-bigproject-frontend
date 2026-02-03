@@ -1535,30 +1535,48 @@ function CreateIPExpansionDialog({
                             onValueChange={setLorebookCategoryTab}
                             className="w-full"
                           >
-                            <TabsList className="w-full grid grid-cols-4 bg-slate-100 h-10">
+                            <TabsList className="w-full grid grid-cols-7 bg-slate-100 h-10 gap-1 p-1">
                               <TabsTrigger
                                 value="all"
-                                className="text-xs px-1 h-8"
+                                className="text-[10px] px-0 h-8 data-[state=active]:bg-white data-[state=active]:shadow-sm"
                               >
                                 전체
                               </TabsTrigger>
                               <TabsTrigger
                                 value="인물"
-                                className="text-xs px-1 h-8"
+                                className="text-[10px] px-0 h-8 data-[state=active]:bg-white data-[state=active]:shadow-sm"
                               >
                                 인물
                               </TabsTrigger>
                               <TabsTrigger
                                 value="세계"
-                                className="text-xs px-1 h-8"
+                                className="text-[10px] px-0 h-8 data-[state=active]:bg-white data-[state=active]:shadow-sm"
                               >
                                 세계
                               </TabsTrigger>
                               <TabsTrigger
-                                value="기타"
-                                className="text-xs px-1 h-8"
+                                value="장소"
+                                className="text-[10px] px-0 h-8 data-[state=active]:bg-white data-[state=active]:shadow-sm"
                               >
-                                기타
+                                장소
+                              </TabsTrigger>
+                              <TabsTrigger
+                                value="사건"
+                                className="text-[10px] px-0 h-8 data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                              >
+                                사건
+                              </TabsTrigger>
+                              <TabsTrigger
+                                value="물건"
+                                className="text-[10px] px-0 h-8 data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                              >
+                                물건
+                              </TabsTrigger>
+                              <TabsTrigger
+                                value="집단"
+                                className="text-[10px] px-0 h-8 data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                              >
+                                집단
                               </TabsTrigger>
                             </TabsList>
                           </Tabs>
@@ -1721,7 +1739,7 @@ function CreateIPExpansionDialog({
 
                 {/* Step 2: Conflict Check */}
                 {currentStep === 2 && (
-                  <div className="max-w-6xl mx-auto space-y-10">
+                  <div className="w-full max-w-[95%] mx-auto space-y-10">
                     <Card className="border-slate-200 shadow-lg overflow-hidden bg-white">
                       <CardHeader className="border-b bg-slate-50/50 py-6 px-10">
                         <div className="flex items-center justify-between">
@@ -2214,7 +2232,7 @@ function CreateIPExpansionDialog({
 
                 {/* Step 5: Media Details */}
                 {currentStep === 5 && (
-                  <div className="max-w-4xl mx-auto space-y-10">
+                  <div className="w-full max-w-[95%] mx-auto space-y-10">
                     <div className="bg-white p-10 rounded-2xl border border-slate-200 shadow-sm space-y-10">
                       <div>
                         <h3 className="text-xl font-bold mb-6 flex items-center gap-2 text-slate-900">
