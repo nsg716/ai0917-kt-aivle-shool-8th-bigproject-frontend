@@ -78,7 +78,7 @@ export interface KeywordExtractionRequestDto {
 }
 
 export interface KeywordExtractionResponseDto {
-  check: {
+  check?: {
     인물: string[];
     세계: string[];
     장소: string[];
@@ -86,6 +86,13 @@ export interface KeywordExtractionResponseDto {
     물건: string[];
     집단: string[];
   };
+  // Allow direct response format
+  인물?: string[];
+  세계?: string[];
+  장소?: string[];
+  사건?: string[];
+  물건?: string[];
+  집단?: string[];
 }
 
 export interface PublishAnalysisRequestDto {

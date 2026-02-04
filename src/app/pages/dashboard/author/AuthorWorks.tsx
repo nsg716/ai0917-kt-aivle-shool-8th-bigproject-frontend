@@ -386,7 +386,8 @@ export function AuthorWorks({ integrationId }: AuthorWorksProps) {
     },
     onSuccess: (data) => {
       if (data) {
-        const checkData = data.check || {};
+        // Handle both wrapped 'check' property and direct map response
+        const checkData = (data as any).check || data;
         setExtractedKeywords(checkData);
         setIsKeywordSelectionOpen(true);
         // Select all keywords by default
