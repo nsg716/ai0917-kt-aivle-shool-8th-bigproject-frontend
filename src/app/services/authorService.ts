@@ -201,11 +201,13 @@ export const authorService = {
   analyzeManuscript: async (
     userId: string,
     title: string,
+    workId: number,
     data: PublishAnalysisRequestDto,
   ) => {
     const response = await apiClient.post<PublishAnalysisResponseDto>(
-      `/api/v1/ai/author/${userId}/${title}/manuscript/setting`,
+      `/api/v1/author/${userId}/${title}/manuscript/setting`,
       data,
+      { params: { workId } },
     );
     return response.data;
   },
