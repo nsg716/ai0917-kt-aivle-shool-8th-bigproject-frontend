@@ -24,7 +24,7 @@ import { ScrollArea } from '../../../components/ui/scroll-area';
 import { useQuery } from '@tanstack/react-query';
 import { authorService } from '../../../services/authorService';
 import { IPProposalDto } from '../../../types/author';
-import { format } from 'date-fns';
+import { format, differenceInCalendarDays } from 'date-fns';
 import {
   Dialog,
   DialogContent,
@@ -71,7 +71,7 @@ export function AuthorIPExpansion({
     queryFn: authorService.getIPProposals,
   });
 
-  const { data: myManager } = useQuery({
+  const { data: myManager, refetch: refetchMyManager } = useQuery({
     queryKey: ['author', 'my-manager'],
     queryFn: authorService.getMyManager,
   });
@@ -142,17 +142,33 @@ export function AuthorIPExpansion({
                   담당 운영자: {myManager.managerName}
                 </h3>
                 <p className="text-sm text-blue-700">
-                  {myManager.managerSiteEmail}
+                  {myManager.managerSiteEmail || myManager.managerEmail}
                 </p>
-                <p className="text-xs text-blue-500 mt-1">
-                  매칭일: {new Date(myManager.linkedAt).toLocaleDateString()}
-                </p>
+                {/* 매칭일 표시는 요청에 따라 제거 */}
               </div>
             </div>
             <div className="text-right">
               <p className="text-sm text-blue-600 font-medium">
                 IP 확장을 위한 1:1 지원을 받고 있습니다
               </p>
+              <Button
+                size="sm"
+                variant="destructive"
+                className="mt-2"
+                onClick={async () => {
+                  const ok = window.confirm('운영자와의 연동을 끊을까요?');
+                  if (!ok) return;
+                  try {
+                    await authorService.unlinkManager();
+                    await refetchMyManager();
+                    toast.success('연결을 끊었습니다');
+                  } catch (e) {
+                    toast.error('연결 끊기에 실패했습니다');
+                  }
+                }}
+              >
+                연결 끊기
+              </Button>
             </div>
           </CardContent>
         </Card>
