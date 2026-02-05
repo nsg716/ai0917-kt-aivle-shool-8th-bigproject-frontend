@@ -19,8 +19,10 @@ import {
   DialogTitle,
 } from '../../../components/ui/dialog';
 import { Textarea } from '../../../components/ui/textarea';
-import { useState } from 'react';
+import { cn } from '../../../components/ui/utils';
+import { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
+import { toast } from 'sonner';
 
 export function AuthorManuscripts() {
   const [searchTitle, setSearchTitle] = useState('');
@@ -72,6 +74,32 @@ export function AuthorManuscripts() {
   >(null);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+
+  // Auto-increment episode logic
+  useEffect(() => {
+    if (!openCreate) return;
+    if (!newTitle.trim()) {
+      setEpisode('1');
+      return;
+    }
+
+    // Find manuscripts with the same title
+    const sameWorkManuscripts = originals.filter(
+      (o) => o.title.trim() === newTitle.trim(),
+    );
+
+    if (sameWorkManuscripts.length > 0) {
+      // Find max episode
+      const maxEpisode = sameWorkManuscripts.reduce((max, curr) => {
+        const ep = curr.episode || 0;
+        return ep > max ? ep : max;
+      }, 0);
+      setEpisode(String(maxEpisode + 1));
+    } else {
+      setEpisode('1');
+    }
+  }, [newTitle, openCreate, originals]);
+
   const [editWriter, setEditWriter] = useState('');
   const [editTitle, setEditTitle] = useState('');
   const [editSubtitle, setEditSubtitle] = useState('');
@@ -306,15 +334,14 @@ export function AuthorManuscripts() {
                 onChange={(e) => setSubtitle(e.target.value)}
               />
             </div>
-            {/* episode input removed as requested */}
-            {/* <div>
+            <div>
               <div className="text-xs text-muted-foreground">episode(회차)</div>
               <Input
                 value={episode}
                 onChange={(e) => setEpisode(e.target.value)}
-                placeholder="숫자"
+                placeholder="자동 입력됨"
               />
-            </div> */}
+            </div>
             <div>
               <div className="text-xs text-muted-foreground">원문 파일</div>
               <Input
@@ -615,7 +642,20 @@ export function AuthorManuscripts() {
                 </Button>
                 <Button
                   onClick={() => {
-                    // Update logic here
+                    if (selectedIndex !== null) {
+                      const updated = [...originals];
+                      updated[selectedIndex] = {
+                        ...updated[selectedIndex],
+                        title: editTitle,
+                        writer: editWriter,
+                        subtitle: editSubtitle,
+                        episode: editEpisode ? Number(editEpisode) : undefined,
+                        files: editFiles,
+                      };
+                      setOriginals(updated);
+                      setSelectedOriginal(updated[selectedIndex]);
+                      toast.success('수정되었습니다.');
+                    }
                     setIsEditing(false);
                   }}
                 >

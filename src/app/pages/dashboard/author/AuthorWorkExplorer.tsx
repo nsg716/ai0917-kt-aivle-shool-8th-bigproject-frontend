@@ -35,6 +35,13 @@ import {
   DropdownMenuTrigger,
 } from '../../../components/ui/dropdown-menu';
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '../../../components/ui/dialog';
+import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
@@ -64,7 +71,7 @@ interface AuthorWorkExplorerProps {
   onRenameWork?: (work: WorkResponseDto) => void;
   onDeleteWork?: (workId: number) => void;
   onSelectManuscript?: (manuscript: ManuscriptDto) => void;
-  onUploadManuscript?: (workId: number) => void;
+  onUploadManuscript?: (workId: number, nextEpisode?: number) => void;
   onEditManuscript?: (workId: number, manuscript: ManuscriptDto) => void;
   onRenameManuscript?: (
     workId: number,
@@ -141,6 +148,7 @@ export function AuthorWorkExplorer({
               onSelectManuscript={onSelectManuscript}
               onUploadManuscript={onUploadManuscript}
               onEditManuscript={onEditManuscript}
+              onRenameManuscript={onRenameManuscript}
               onDeleteManuscript={onDeleteManuscript}
             />
           ))}
@@ -161,7 +169,7 @@ interface WorkItemProps {
   onRenameWork?: (work: WorkResponseDto) => void;
   onDeleteWork?: (workId: number) => void;
   onSelectManuscript?: (manuscript: ManuscriptDto) => void;
-  onUploadManuscript?: (workId: number) => void;
+  onUploadManuscript?: (workId: number, nextEpisode?: number) => void;
   onEditManuscript?: (workId: number, manuscript: ManuscriptDto) => void;
   onRenameManuscript?: (
     workId: number,
@@ -189,8 +197,10 @@ function WorkItem({
 }: WorkItemProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [renamingId, setRenamingId] = useState<number | null>(null);
-  const [renameName, setRenameName] = useState('');
+  const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
+  const [manuscriptToRename, setManuscriptToRename] =
+    useState<ManuscriptDto | null>(null);
+  const [renameInput, setRenameInput] = useState('');
 
   // Fetch manuscripts when opened
   const { data: manuscriptsPage } = useQuery({
@@ -215,191 +225,204 @@ function WorkItem({
   };
 
   return (
-    <Collapsible open={isOpen} onOpenChange={setIsOpen} className="space-y-1">
-      <ContextMenu>
-        <ContextMenuTrigger>
-          <div
-            className={cn(
-              'flex items-center w-full p-2 rounded-md hover:bg-accent/50 group cursor-pointer text-sm transition-colors whitespace-nowrap',
-              isSelected && 'bg-accent text-accent-foreground',
-            )}
-            onClick={handleToggle}
-            onDoubleClick={(e) => {
-              e.stopPropagation();
-              onOpenLorebook();
-            }}
-          >
-            <CollapsibleTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-4 w-4 p-0 mr-2 shrink-0"
-              >
-                {isOpen ? (
-                  <ChevronDown className="w-3 h-3" />
-                ) : (
-                  <ChevronRight className="w-3 h-3" />
-                )}
-              </Button>
-            </CollapsibleTrigger>
-            <Book className="w-4 h-4 mr-2 text-blue-500 shrink-0" />
-            <span className="truncate flex-1 text-left">{work.title}</span>
-            <span
+    <>
+      <Collapsible open={isOpen} onOpenChange={setIsOpen} className="space-y-1">
+        <ContextMenu>
+          <ContextMenuTrigger>
+            <div
               className={cn(
-                'ml-2 text-[10px] px-1.5 py-0.5 rounded-full border shrink-0',
-                work.status === 'COMPLETED'
-                  ? 'border-green-500 text-green-600 bg-green-50'
-                  : work.status === 'NEW'
-                    ? 'border-yellow-500 text-yellow-600 bg-yellow-50'
-                    : 'border-blue-500 text-blue-600 bg-blue-50',
+                'flex items-center w-full p-2 rounded-md hover:bg-accent/50 group cursor-pointer text-sm transition-colors whitespace-nowrap',
+                isSelected && 'bg-accent text-accent-foreground',
               )}
+              onClick={handleToggle}
+              onDoubleClick={(e) => {
+                e.stopPropagation();
+                onOpenLorebook();
+              }}
             >
-              {work.status === 'COMPLETED'
-                ? '완결'
-                : work.status === 'NEW'
-                  ? '신규'
-                  : '연재중'}
-            </span>
-          </div>
-        </ContextMenuTrigger>
-        <ContextMenuContent className="w-32">
-          <ContextMenuItem
-            onClick={(e) => {
-              e.stopPropagation();
-              onUploadManuscript?.(work.id);
-            }}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            원문 생성
-          </ContextMenuItem>
-          <ContextMenuItem
-            onClick={() => {
-              onOpenMetadata();
-            }}
-          >
-            <Info className="w-4 h-4 mr-2" />
-            메타데이터 수정
-          </ContextMenuItem>
-          <ContextMenuItem
-            className="text-red-600 focus:text-red-600 focus:bg-red-50"
-            onClick={() => {
-              onDeleteWork?.(work.id);
-            }}
-          >
-            <Trash2 className="w-4 h-4 mr-2" />
-            작품 삭제
-          </ContextMenuItem>
-        </ContextMenuContent>
-      </ContextMenu>
-
-      <CollapsibleContent className="pl-6 space-y-1">
-        {/* Manuscripts Section */}
-        {manuscripts && manuscripts.length > 0 ? (
-          <div className="mb-2">
-            {manuscripts.map((manuscript) => {
-              const isRenaming = renamingId === manuscript.id;
-
-              const ManuscriptContent = (
-                <div
-                  className={cn(
-                    'flex items-center w-full p-2 rounded-md hover:bg-accent/50 cursor-pointer text-sm transition-colors whitespace-nowrap',
-                    selectedManuscriptId === manuscript.id &&
-                      'bg-accent text-accent-foreground',
-                  )}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onSelectManuscript?.(manuscript);
-                  }}
+              <CollapsibleTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-4 w-4 p-0 mr-2 shrink-0"
                 >
-                  <FileText className="w-4 h-4 mr-2 text-muted-foreground shrink-0" />
-                  {isRenaming ? (
-                    <Input
-                      value={renameName}
-                      onChange={(e) => setRenameName(e.target.value)}
-                      onBlur={() => {
-                        if (
-                          renameName.trim() &&
-                          renameName !== manuscript.subtitle
-                        ) {
-                          onRenameManuscript?.(
-                            work.id,
-                            manuscript.id,
-                            renameName,
-                          );
-                        }
-                        setRenamingId(null);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          if (
-                            renameName.trim() &&
-                            renameName !== manuscript.subtitle
-                          ) {
-                            onRenameManuscript?.(
-                              work.id,
-                              manuscript.id,
-                              renameName,
-                            );
-                          }
-                          setRenamingId(null);
-                        } else if (e.key === 'Escape') {
-                          setRenamingId(null);
-                        }
-                      }}
-                      autoFocus
-                      className="h-6 text-sm py-0 px-1"
-                      onClick={(e) => e.stopPropagation()}
-                    />
+                  {isOpen ? (
+                    <ChevronDown className="w-3 h-3" />
                   ) : (
+                    <ChevronRight className="w-3 h-3" />
+                  )}
+                </Button>
+              </CollapsibleTrigger>
+              <Book className="w-4 h-4 mr-2 text-blue-500 shrink-0" />
+              <span className="truncate flex-1 text-left">{work.title}</span>
+              <span
+                className={cn(
+                  'ml-2 text-[10px] px-1.5 py-0.5 rounded-full border shrink-0',
+                  work.status === 'COMPLETED'
+                    ? 'border-green-500 text-green-600 bg-green-50'
+                    : work.status === 'NEW'
+                      ? 'border-yellow-500 text-yellow-600 bg-yellow-50'
+                      : 'border-blue-500 text-blue-600 bg-blue-50',
+                )}
+              >
+                {work.status === 'COMPLETED'
+                  ? '완결'
+                  : work.status === 'NEW'
+                    ? '신규'
+                    : '연재중'}
+              </span>
+            </div>
+          </ContextMenuTrigger>
+          <ContextMenuContent className="w-32">
+            <ContextMenuItem
+              onClick={(e) => {
+                e.stopPropagation();
+                const maxEpisode =
+                  manuscripts.length > 0
+                    ? Math.max(...manuscripts.map((m) => m.episode || 0))
+                    : 0;
+                onUploadManuscript?.(work.id, maxEpisode + 1);
+              }}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              원문 생성
+            </ContextMenuItem>
+            <ContextMenuItem
+              onClick={() => {
+                onOpenMetadata();
+              }}
+            >
+              <Info className="w-4 h-4 mr-2" />
+              메타데이터 수정
+            </ContextMenuItem>
+            <ContextMenuItem
+              className="text-red-600 focus:text-red-600 focus:bg-red-50"
+              onClick={() => {
+                onDeleteWork?.(work.id);
+              }}
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              작품 삭제
+            </ContextMenuItem>
+          </ContextMenuContent>
+        </ContextMenu>
+
+        <CollapsibleContent className="pl-6 space-y-1">
+          {/* Manuscripts Section */}
+          {manuscripts && manuscripts.length > 0 ? (
+            <div className="mb-2">
+              {manuscripts.map((manuscript) => {
+                const ManuscriptContent = (
+                  <div
+                    className={cn(
+                      'flex items-center w-full p-2 rounded-md hover:bg-accent/50 cursor-pointer text-sm transition-colors whitespace-nowrap',
+                      selectedManuscriptId === manuscript.id &&
+                        'bg-accent text-accent-foreground',
+                    )}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSelectManuscript?.(manuscript);
+                    }}
+                  >
+                    <FileText className="w-4 h-4 mr-2 text-muted-foreground shrink-0" />
                     <span className="truncate flex-1 text-left">
                       {manuscript.subtitle || '무제'}
                       <span className="text-xs text-muted-foreground ml-1">
                         ({manuscript.episode}화)
                       </span>
                     </span>
-                  )}
-                </div>
-              );
+                  </div>
+                );
 
-              if (manuscript.is_read_only) {
-                return <div key={manuscript.id}>{ManuscriptContent}</div>;
-              }
+                if (manuscript.is_read_only) {
+                  return <div key={manuscript.id}>{ManuscriptContent}</div>;
+                }
 
-              return (
-                <ContextMenu key={manuscript.id}>
-                  <ContextMenuTrigger>{ManuscriptContent}</ContextMenuTrigger>
-                  <ContextMenuContent className="w-32">
-                    <ContextMenuItem
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setRenamingId(manuscript.id);
-                        setRenameName(manuscript.subtitle || '');
-                      }}
-                    >
-                      <Edit2 className="w-4 h-4 mr-2" />
-                      원문 이름 변경
-                    </ContextMenuItem>
-                    <ContextMenuItem
-                      className="text-red-600 focus:text-red-600 focus:bg-red-50"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDeleteManuscript?.(work.id, manuscript.id);
-                      }}
-                    >
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      원문 삭제
-                    </ContextMenuItem>
-                  </ContextMenuContent>
-                </ContextMenu>
-              );
-            })}
+                return (
+                  <ContextMenu key={manuscript.id}>
+                    <ContextMenuTrigger>{ManuscriptContent}</ContextMenuTrigger>
+                    <ContextMenuContent className="w-32">
+                      <ContextMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setManuscriptToRename(manuscript);
+                          setRenameInput(manuscript.subtitle || '');
+                          setIsRenameDialogOpen(true);
+                        }}
+                      >
+                        <Edit2 className="w-4 h-4 mr-2" />
+                        원문 이름 변경
+                      </ContextMenuItem>
+                      <ContextMenuItem
+                        className="text-red-600 focus:text-red-600 focus:bg-red-50"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDeleteManuscript?.(work.id, manuscript.id);
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        원문 삭제
+                      </ContextMenuItem>
+                    </ContextMenuContent>
+                  </ContextMenu>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="py-2 px-2 text-xs text-muted-foreground italic">
+              데이터가 없습니다.
+            </div>
+          )}
+        </CollapsibleContent>
+      </Collapsible>
+      <Dialog open={isRenameDialogOpen} onOpenChange={setIsRenameDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>원문 이름 변경</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <Input
+              value={renameInput}
+              onChange={(e) => setRenameInput(e.target.value)}
+              placeholder="원문 이름을 입력하세요"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  if (manuscriptToRename && renameInput.trim()) {
+                    onRenameManuscript?.(
+                      work.id,
+                      manuscriptToRename.id,
+                      renameInput.trim(),
+                    );
+                    setIsRenameDialogOpen(false);
+                  }
+                }
+              }}
+            />
           </div>
-        ) : (
-          <div className="py-2 px-2 text-xs text-muted-foreground italic">
-            데이터가 없습니다.
-          </div>
-        )}
-      </CollapsibleContent>
-    </Collapsible>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsRenameDialogOpen(false)}
+            >
+              취소
+            </Button>
+            <Button
+              onClick={() => {
+                if (manuscriptToRename && renameInput.trim()) {
+                  onRenameManuscript?.(
+                    work.id,
+                    manuscriptToRename.id,
+                    renameInput.trim(),
+                  );
+                  setIsRenameDialogOpen(false);
+                }
+              }}
+            >
+              변경
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

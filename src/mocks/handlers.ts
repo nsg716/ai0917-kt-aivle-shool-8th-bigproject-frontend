@@ -463,16 +463,108 @@ export const handlers = [
       totalPages: 5,
     }),
   ),
-  http.get(`${BACKEND_URL}/api/v1/manager/ipext/proposals/:id`, ({ params }) =>
-    HttpResponse.json({
-      id: params.id,
-      title: `${getRandomItem(TITLES)} IP 확장 제안서`,
-      authorName: getRandomItem(NAMES),
-      category: '웹툰',
-      status: 'REVIEWING',
-      content: '이 작품은 독창적인 세계관을 바탕으로...',
-      aiGuideline: '주인공의 성격을 좀 더 부각시키는 방향으로...',
-    }),
+  http.get(
+    `${BACKEND_URL}/api/v1/manager/ipext/proposals/:id`,
+    ({ params }) => {
+      const formats = [
+        'webtoon',
+        'drama',
+        'game',
+        'movie',
+        'commercial',
+        'spinoff',
+      ];
+      const selectedFormat = formats[Number(params.id) % formats.length];
+
+      let mediaDetails = {};
+      if (selectedFormat === 'webtoon') {
+        mediaDetails = {
+          style: 'character_centric',
+          pacing: 'fast',
+          endingPoint: 'season1_climax',
+          colorTone: 'vivid',
+        };
+      } else if (selectedFormat === 'drama') {
+        mediaDetails = {
+          seasonType: 'mini',
+          episodeDuration: '60min',
+          subFocus: 'romance',
+        };
+      } else if (selectedFormat === 'game') {
+        mediaDetails = {
+          gameGenre: 'rpg',
+          coreLoop: 'collection',
+          platform: 'mobile',
+        };
+      } else if (selectedFormat === 'movie') {
+        mediaDetails = {
+          runningTime: '120min',
+          colorTheme: 'noir',
+          focusAct: 'climax',
+        };
+      } else if (selectedFormat === 'commercial') {
+        mediaDetails = {
+          visualFormat: 'photo',
+          usagePurpose: 'sns_ad',
+          targetProduct: 'fashion',
+        };
+      } else if (selectedFormat === 'spinoff') {
+        mediaDetails = {
+          spinoffType: 'prequel',
+          targetCharacter: 'Villain',
+          publishPace: 'weekly',
+        };
+      }
+
+      return HttpResponse.json({
+        id: params.id,
+        title: `${getRandomItem(TITLES)} IP 확장 제안서`,
+        authorName: getRandomItem(NAMES),
+        category: selectedFormat,
+        status: 'REVIEWING',
+        content: '이 작품은 독창적인 세계관을 바탕으로...',
+        aiGuideline: '주인공의 성격을 좀 더 부각시키는 방향으로...',
+
+        // Edit Mode Pre-fill Data
+        format: selectedFormat,
+        strategy: {
+          genres: [1], // Fantasy
+          targetGenre: '로맨스 판타지',
+          universe: 'shared',
+        },
+        business: {
+          targetAge: ['20s', '30s'],
+          targetGender: 'female',
+          budgetRange: 'high',
+          toneManner: '감성적이고 서정적인 분위기',
+        },
+        mediaDetails: mediaDetails,
+        mediaPrompt:
+          '원작의 감동을 그대로 전달하면서도 새로운 매체의 특성을 살려주세요.',
+
+        lorebooks: [
+          {
+            id: 101,
+            title: '주인공 설정집',
+            category: '인물',
+            keyword: '주인공',
+            setting: '용감하고 정의로운 성격',
+            authorName: '김작가',
+            workTitle: '원작 소설',
+          },
+          {
+            id: 102,
+            title: '제국 설정집',
+            category: '세계',
+            keyword: '제국',
+            setting: '마법이 발달한 거대 제국',
+            authorName: '김작가',
+            workTitle: '원작 소설',
+          },
+        ],
+        crownSettingId: 101,
+      });
+    },
   ),
 
   // 4.3 Assets
@@ -569,6 +661,19 @@ export const handlers = [
     async () => {
       await new Promise((resolve) => setTimeout(resolve, 500));
       return HttpResponse.json({ success: true });
+    },
+  ),
+
+  http.patch(
+    `${BACKEND_URL}/api/v1/author/:userId/:title/manuscript/:id`,
+    async ({ request, params }) => {
+      const body = (await request.json()) as any;
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      return HttpResponse.json({
+        id: Number(params.id),
+        subtitle: body.subtitle,
+        updatedAt: new Date().toISOString(),
+      });
     },
   ),
 
@@ -931,6 +1036,7 @@ export const handlers = [
             visualStyle: '화려한 액션과 섬세한 감정 묘사',
             differentiation: '독특한 마법 시스템과 매력적인 조연들',
           },
+          crownSettingId: i * 10 + 1,
           lorebooks: [
             {
               id: i * 10 + 1,

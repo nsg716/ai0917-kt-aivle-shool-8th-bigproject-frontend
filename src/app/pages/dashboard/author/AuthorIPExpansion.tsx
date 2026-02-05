@@ -1,11 +1,6 @@
 import { useState, useContext, useEffect } from 'react';
 import { AuthorBreadcrumbContext } from './AuthorBreadcrumbContext';
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '../../../components/ui/tabs';
+import { Tabs, TabsContent } from '../../../components/ui/tabs';
 import {
   Card,
   CardContent,
@@ -16,17 +11,16 @@ import {
 import { Button } from '../../../components/ui/button';
 import { Badge } from '../../../components/ui/badge';
 import {
-  Search,
-  Filter,
-  ChevronRight,
   Loader2,
-  Share2,
   CheckCircle,
-  Lock,
-  ClipboardList,
   Plus,
+  BookOpen,
+  Crown,
+  AlertCircle,
 } from 'lucide-react';
 import { Input } from '../../../components/ui/input';
+import { Textarea } from '../../../components/ui/textarea';
+import { ScrollArea } from '../../../components/ui/scroll-area';
 import { useQuery } from '@tanstack/react-query';
 import { authorService } from '../../../services/authorService';
 import { IPProposalDto } from '../../../types/author';
@@ -40,6 +34,7 @@ import {
   DialogFooter,
 } from '../../../components/ui/dialog';
 import { toast } from 'sonner';
+import { cn } from '../../../components/ui/utils';
 
 interface AuthorIPExpansionProps {
   defaultTab?: string;
@@ -56,6 +51,10 @@ export function AuthorIPExpansion({
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isGenerateOpen, setIsGenerateOpen] = useState(false);
   const [generatedAuthorCode, setGeneratedAuthorCode] = useState('');
+
+  // Reject Logic State
+  const [showRejectInput, setShowRejectInput] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
 
   useEffect(() => {
     const breadcrumbs: { label: string; onClick?: () => void }[] = [
@@ -82,7 +81,51 @@ export function AuthorIPExpansion({
   const handleOpenDetail = (proposal: IPProposalDto) => {
     setSelectedProposal(proposal);
     setIsDetailOpen(true);
+    setShowRejectInput(false);
+    setRejectReason('');
   };
+
+  const handleApprove = () => {
+    toast.success('제안서가 승인되었습니다. 계약 절차가 진행됩니다.');
+    setIsDetailOpen(false);
+    // TODO: Implement actual API call
+  };
+
+  const handleReject = () => {
+    if (!rejectReason.trim()) {
+      toast.error('반려 사유를 입력해주세요.');
+      return;
+    }
+    toast.success('제안서가 반려되었습니다.');
+    setIsDetailOpen(false);
+    // TODO: Implement actual API call
+  };
+
+  // Mock Source Settings (Lorebooks) for demonstration
+  // In a real app, this would be fetched based on the proposal ID
+  const mockSourceSettings = [
+    {
+      id: 1,
+      title: '서울의 달 (Original)',
+      author: selectedProposal?.sender || 'Unknown',
+      isMyWork: true,
+      category: '현대판타지',
+    },
+    {
+      id: 2,
+      title: '마법사의 탑',
+      author: '다른작가',
+      isMyWork: false,
+      category: '판타지',
+    },
+    {
+      id: 3,
+      title: '기사의 맹세',
+      author: '다른작가',
+      isMyWork: false,
+      category: '판타지',
+    },
+  ];
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto font-sans">
@@ -213,66 +256,169 @@ export function AuthorIPExpansion({
 
       {/* Proposal Detail Modal */}
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>제안서 상세 내용</DialogTitle>
-            <DialogDescription>
-              {selectedProposal?.sender}에서 보낸 제안서입니다.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="grid grid-cols-4 gap-4 items-center">
-              <span className="font-semibold text-sm">제목</span>
-              <div className="col-span-3 font-medium">
-                {selectedProposal?.title}
-              </div>
-            </div>
-            <div className="grid grid-cols-4 gap-4 items-center">
-              <span className="font-semibold text-sm">보낸 사람</span>
-              <div className="col-span-3">{selectedProposal?.sender}</div>
-            </div>
-            <div className="grid grid-cols-4 gap-4 items-center">
-              <span className="font-semibold text-sm">받은 날짜</span>
-              <div className="col-span-3">
-                {selectedProposal?.receivedAt
-                  ? format(new Date(selectedProposal.receivedAt), 'yyyy.MM.dd')
-                  : '-'}
-              </div>
-            </div>
-            <div className="space-y-2 mt-2">
-              <span className="font-semibold text-sm">제안 내용</span>
-              <div className="p-4 bg-muted/50 rounded-lg text-sm leading-relaxed whitespace-pre-wrap h-[200px] overflow-y-auto">
-                {selectedProposal?.content}
-              </div>
-            </div>
-            <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-md text-sm text-blue-700 dark:text-blue-300">
-              <CheckCircle className="w-4 h-4 text-blue-600" />
-              <span>
-                제안을 수락하면 자동으로 계약 단계로 넘어가며, 담당자가
-                배정됩니다.
-              </span>
-            </div>
+        <DialogContent className="sm:max-w-[700px] max-h-[85vh] flex flex-col p-0 overflow-hidden">
+          <div className="p-6 pb-0">
+            <DialogHeader className="mb-4">
+              <DialogTitle>제안서 상세 검토</DialogTitle>
+              <DialogDescription>
+                <span className="font-bold text-slate-900">
+                  {selectedProposal?.sender}
+                </span>
+                에서 보낸 IP 확장 제안서입니다.
+              </DialogDescription>
+            </DialogHeader>
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button
-              variant="outline"
-              onClick={() => {
-                toast.info('추후 업데이트 예정입니다.');
-                setIsDetailOpen(false);
-              }}
-              className="text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/20"
-            >
-              거절하기
-            </Button>
-            <Button
-              onClick={() => {
-                toast.info('추후 업데이트 예정입니다.');
-                setIsDetailOpen(false);
-              }}
-            >
-              수락하기
-            </Button>
+          <ScrollArea className="flex-1 px-6">
+            <div className="space-y-6 pb-6">
+              {/* Basic Info */}
+              <div className="bg-slate-50 p-4 rounded-lg space-y-3 border border-slate-100">
+                <div className="grid grid-cols-4 gap-4 items-center">
+                  <span className="font-semibold text-sm text-slate-500">
+                    프로젝트 제목
+                  </span>
+                  <div className="col-span-3 font-bold text-slate-900">
+                    {selectedProposal?.title}
+                  </div>
+                </div>
+                <div className="grid grid-cols-4 gap-4 items-center">
+                  <span className="font-semibold text-sm text-slate-500">
+                    제안 일자
+                  </span>
+                  <div className="col-span-3 text-sm">
+                    {selectedProposal?.receivedAt
+                      ? format(
+                          new Date(selectedProposal.receivedAt),
+                          'yyyy.MM.dd',
+                        )
+                      : '-'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Proposal Content */}
+              <div className="space-y-2">
+                <h4 className="font-bold text-sm text-slate-900 flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-blue-500" />
+                  제안 상세 내용
+                </h4>
+                <div className="p-4 bg-white border border-slate-200 rounded-lg text-sm leading-relaxed whitespace-pre-wrap min-h-[100px] shadow-sm">
+                  {selectedProposal?.content}
+                </div>
+              </div>
+
+              {/* Source Settings (Lorebooks) Highlight */}
+              <div className="space-y-2">
+                <h4 className="font-bold text-sm text-slate-900 flex items-center gap-2">
+                  <BookOpen className="w-4 h-4 text-indigo-500" />
+                  참조된 원천 설정집
+                </h4>
+                <div className="grid gap-2">
+                  {mockSourceSettings.map((lorebook) => (
+                    <div
+                      key={lorebook.id}
+                      className={cn(
+                        'flex items-center justify-between p-3 rounded-lg border transition-all',
+                        lorebook.isMyWork
+                          ? 'bg-indigo-50 border-indigo-200 ring-1 ring-indigo-200'
+                          : 'bg-white border-slate-200 opacity-70',
+                      )}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={cn(
+                            'w-8 h-8 rounded-md flex items-center justify-center shrink-0',
+                            lorebook.isMyWork
+                              ? 'bg-indigo-100 text-indigo-600'
+                              : 'bg-slate-100 text-slate-500',
+                          )}
+                        >
+                          {lorebook.isMyWork ? (
+                            <Crown className="w-4 h-4" />
+                          ) : (
+                            <BookOpen className="w-4 h-4" />
+                          )}
+                        </div>
+                        <div>
+                          <p
+                            className={cn(
+                              'text-sm font-bold',
+                              lorebook.isMyWork
+                                ? 'text-indigo-900'
+                                : 'text-slate-700',
+                            )}
+                          >
+                            {lorebook.title}
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            {lorebook.category} | {lorebook.author}
+                          </p>
+                        </div>
+                      </div>
+                      {lorebook.isMyWork && (
+                        <Badge
+                          variant="secondary"
+                          className="bg-indigo-100 text-indigo-700 hover:bg-indigo-200"
+                        >
+                          내 작품
+                        </Badge>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-slate-500 mt-1">
+                  * 굵게 표시된 항목은 작가님의 원천 설정집이 포함된 경우입니다.
+                </p>
+              </div>
+
+              {/* Reject Input */}
+              {showRejectInput && (
+                <div className="space-y-2 pt-4 border-t border-slate-100 animation-in slide-in-from-bottom-2 fade-in duration-300">
+                  <h4 className="font-bold text-sm text-red-600 flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4" />
+                    반려 사유 입력
+                  </h4>
+                  <Textarea
+                    placeholder="반려 사유를 자세히 입력해주세요. (예: 설정 오류, 방향성 불일치 등)"
+                    value={rejectReason}
+                    onChange={(e) => setRejectReason(e.target.value)}
+                    className="min-h-[100px] resize-none"
+                  />
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+
+          <DialogFooter className="p-6 pt-2 gap-2 sm:gap-0 border-t border-slate-100 bg-slate-50/50">
+            {showRejectInput ? (
+              <div className="flex w-full gap-2 justify-end">
+                <Button
+                  variant="ghost"
+                  onClick={() => setShowRejectInput(false)}
+                >
+                  취소
+                </Button>
+                <Button variant="destructive" onClick={handleReject}>
+                  반려 확정
+                </Button>
+              </div>
+            ) : (
+              <div className="flex w-full gap-2 justify-end">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowRejectInput(true)}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                >
+                  반려하기
+                </Button>
+                <Button
+                  onClick={handleApprove}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                >
+                  승인하기
+                </Button>
+              </div>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

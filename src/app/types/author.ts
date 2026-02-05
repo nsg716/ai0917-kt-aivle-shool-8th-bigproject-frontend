@@ -165,7 +165,6 @@ export interface ManuscriptDetailDto extends ManuscriptDto {
 
 export interface ManuscriptUploadRequestDto {
   workId: number;
-  episode: number;
   subtitle: string;
   txt: string;
 }

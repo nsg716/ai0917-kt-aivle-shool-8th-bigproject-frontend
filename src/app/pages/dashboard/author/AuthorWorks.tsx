@@ -102,6 +102,7 @@ import {
   X,
 } from 'lucide-react';
 import { DiffView } from './DiffView';
+import { SettingViewer } from './SettingViewer';
 
 const normalizeAnalysisData = (data: PublishAnalysisResponseDto): any => {
   const normalize = (section: any) => {
@@ -109,10 +110,35 @@ const normalizeAnalysisData = (data: PublishAnalysisResponseDto): any => {
     if (!section || typeof section !== 'object') return [];
     return Object.entries(section).flatMap(([category, items]) => {
       if (!Array.isArray(items)) return [];
-      return items.map((item: any) => ({
-        ...item,
-        category: category,
-      }));
+      return items.map((item: any) => {
+        let name = item.name;
+        let description = item.description || item.setting;
+
+        // Handle dynamic key structure (e.g., { "이준": "content...", "ep_num": [] })
+        if (!name) {
+          const reservedKeys = ['ep_num', 'category', 'id', 'original', 'new'];
+          const contentEntry = Object.entries(item).find(
+            ([key]) => !reservedKeys.includes(key),
+          );
+
+          if (contentEntry) {
+            name = contentEntry[0];
+            const content = contentEntry[1];
+            description =
+              typeof content === 'string'
+                ? content
+                : JSON.stringify(content, null, 2);
+          }
+        }
+
+        return {
+          ...item,
+          category: category,
+          name: name || 'Unknown',
+          description: description || '',
+          id: item.id || `${category}-${name}`,
+        };
+      });
     });
   };
 
@@ -669,7 +695,6 @@ export function AuthorWorks({ integrationId }: AuthorWorksProps) {
       // Use uploadManuscript to update (re-upload) content
       await authorService.uploadManuscript(integrationId, work.title, {
         workId: selectedWorkId,
-        episode: selectedManuscript.episode,
         subtitle: selectedManuscript.subtitle,
         txt: editorContent,
       });
@@ -730,7 +755,6 @@ export function AuthorWorks({ integrationId }: AuthorWorksProps) {
       await authorService.uploadManuscript(integrationId, work.title, {
         workId,
         subtitle,
-        episode,
         txt,
       });
     },
@@ -869,13 +893,12 @@ export function AuthorWorks({ integrationId }: AuthorWorksProps) {
     setIsDeleteAlertOpen(true);
   };
 
-  const handleUploadManuscript = (workId: number) => {
-    console.log('handleUploadManuscript called with workId:', workId);
+  const handleUploadManuscript = (workId: number, nextEpisode?: number) => {
     // Use setTimeout to avoid conflict with ContextMenu closing
     setTimeout(() => {
       setUploadManuscriptWorkId(workId);
       setNewManuscriptSubtitle('');
-      setNewManuscriptEpisode(1);
+      setNewManuscriptEpisode(nextEpisode || 1);
       setIsUploadManuscriptOpen(true);
     }, 100);
   };
@@ -1020,11 +1043,11 @@ export function AuthorWorks({ integrationId }: AuthorWorksProps) {
       <div className="flex flex-col gap-1">
         <span className="font-bold">설정집 분석 시작</span>
         <span className="text-xs">
-          AI가 선택된 키워드를 기반으로 상세 설정을 분석하고 있습니다.
-          (예상 소요시간: 30초)
+          AI가 선택된 키워드를 기반으로 상세 설정을 분석하고 있습니다. (예상
+          소요시간: 30초)
         </span>
       </div>,
-      { duration: 4000 }
+      { duration: 4000 },
     );
     analysisMutation.mutate();
   };
@@ -1071,27 +1094,40 @@ export function AuthorWorks({ integrationId }: AuthorWorksProps) {
       // and calling authorService.saveLorebookManual or similar for each.
       // For now, we simulate success to allow the flow to complete.
 
-      const newItems = (settingBookDiff['신규 업로드'] as any[]) || [];
-      for (const item of newItems) {
-        try {
-          const req: LorebookSaveRequestDto = {
-            category: item.category,
-            keyword: item.name,
-            subtitle: selectedManuscript.subtitle || '',
-            setting:
-              typeof item.new === 'string'
-                ? item.new
-                : JSON.stringify(item.new),
-            episode: [selectedManuscript.episode],
-          };
-          await authorService.saveLorebookManual(
-            integrationId,
-            work.title,
-            selectedWorkId,
-            req,
-          );
-        } catch (e) {
-          console.error('Failed to save item:', item, e);
+      const newUploads = settingBookDiff['신규 업로드'] as any;
+      if (newUploads && typeof newUploads === 'object') {
+        for (const [category, items] of Object.entries(newUploads)) {
+          if (!Array.isArray(items)) continue;
+
+          for (const item of items) {
+            const itemObj = item as any;
+            const keys = Object.keys(itemObj).filter((k) => k !== 'ep_num');
+            if (keys.length === 0) continue;
+
+            const keyword = keys[0];
+            const settingData = itemObj[keyword];
+
+            try {
+              const req: LorebookSaveRequestDto = {
+                category,
+                keyword,
+                subtitle: selectedManuscript.subtitle || '',
+                setting:
+                  typeof settingData === 'string'
+                    ? settingData
+                    : JSON.stringify(settingData),
+                episode: [selectedManuscript.episode],
+              };
+              await authorService.saveLorebookManual(
+                integrationId,
+                work.title,
+                selectedWorkId,
+                req,
+              );
+            } catch (e) {
+              console.error('Failed to save item:', keyword, e);
+            }
+          }
         }
       }
 
@@ -1119,9 +1155,53 @@ export function AuthorWorks({ integrationId }: AuthorWorksProps) {
     if (!metadataWork) return;
     updateWorkMutation.mutate();
   };
+  // Loading Timer State
+  const [elapsedTime, setElapsedTime] = useState(0);
+  const isGlobalLoading =
+    keywordExtractionMutation.isPending || analysisMutation.isPending;
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (isGlobalLoading) {
+      setElapsedTime(0);
+      timer = setInterval(() => {
+        setElapsedTime((prev) => prev + 1);
+      }, 1000);
+    } else {
+      setElapsedTime(0);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [isGlobalLoading]);
 
   return (
-    <div className="h-[calc(100vh-6rem)] -m-4 bg-background overflow-hidden">
+    <div className="h-[calc(100vh-6rem)] -m-4 bg-background overflow-hidden relative">
+      {/* Global Loading Overlay */}
+      {isGlobalLoading && (
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="flex flex-col items-center gap-6 p-8 rounded-xl shadow-2xl bg-card border border-border max-w-sm w-full mx-4">
+            <div className="relative flex items-center justify-center w-20 h-20">
+              <div className="absolute w-full h-full rounded-full border-4 border-primary/20 animate-[spin_3s_linear_infinite]"></div>
+              <div className="absolute w-full h-full rounded-full border-4 border-t-primary animate-spin"></div>
+              <span className="text-xl font-bold font-mono text-primary">
+                {elapsedTime}s
+              </span>
+            </div>
+            <div className="text-center space-y-2">
+              <h3 className="text-xl font-bold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
+                AI 분석 중...
+              </h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                작품의 세계를 탐험하고 있습니다.
+                <br />
+                잠시만 기다려주세요.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <ResizablePanelGroup direction="horizontal">
         {/* Left Sidebar: Work Explorer */}
         {isLeftSidebarOpen && (
@@ -1394,158 +1474,185 @@ export function AuthorWorks({ integrationId }: AuthorWorksProps) {
         onOpenChange={setIsKeywordSelectionOpen}
       >
         <DialogContent className="sm:max-w-5xl max-h-[85vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="flex items-center justify-between">
-              <span>설정집 생성을 위한 키워드 선택</span>
-              <div className="flex items-center gap-2 mr-8">
-                <Checkbox
-                  id="select-all-keywords"
-                  checked={
-                    !!extractedKeywords &&
-                    Object.keys(extractedKeywords).every(
-                      (category) =>
-                        (selectedKeywords[category] || []).length ===
-                        (extractedKeywords as any)[category].length,
+          {analysisMutation.isPending ? (
+            <div className="flex flex-col items-center justify-center h-[60vh] gap-8">
+              <div className="relative flex items-center justify-center">
+                <div className="absolute w-24 h-24 rounded-full border-4 border-primary/20 animate-[spin_3s_linear_infinite]"></div>
+                <div className="absolute w-24 h-24 rounded-full border-4 border-t-primary animate-spin"></div>
+                <Loader2 className="w-10 h-10 text-primary animate-spin" />
+              </div>
+              <div className="text-center space-y-3">
+                <h3 className="text-2xl font-bold tracking-tight">
+                  AI가 설정집을 분석하고 있습니다
+                </h3>
+                <p className="text-muted-foreground text-lg">
+                  선택하신 키워드를 바탕으로 인물, 세계관, 사건 등을 심층 분석
+                  중입니다.
+                  <br />
+                  잠시만 기다려주세요. (약 10~20초 소요)
+                </p>
+              </div>
+            </div>
+          ) : (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center justify-between">
+                  <span>설정집 생성을 위한 키워드 선택</span>
+                  <div className="flex items-center gap-2 mr-8">
+                    <Checkbox
+                      id="select-all-keywords"
+                      checked={
+                        !!extractedKeywords &&
+                        Object.keys(extractedKeywords).every(
+                          (category) =>
+                            (selectedKeywords[category] || []).length ===
+                            (extractedKeywords as any)[category].length,
+                        )
+                      }
+                      onCheckedChange={(checked) =>
+                        handleSelectAllKeywords(checked === true)
+                      }
+                    />
+                    <label
+                      htmlFor="select-all-keywords"
+                      className="text-sm font-normal cursor-pointer"
+                    >
+                      전체 선택
+                    </label>
+                  </div>
+                </DialogTitle>
+                <DialogDescription>
+                  AI가 추출한 키워드 중 설정집으로 생성할 항목을 선택해주세요.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="flex-1 overflow-y-auto pr-2 -mr-2">
+                <div className="grid grid-cols-2 gap-6 py-4">
+                  {extractedKeywords ? (
+                    Object.entries(extractedKeywords).map(
+                      ([category, keywordsRaw]) => {
+                        const keywords = keywordsRaw as string[];
+                        const categoryLabel: { [key: string]: string } = {
+                          인물: '인물 (Characters)',
+                          장소: '장소 (Locations)',
+                          사건: '사건 (Events)',
+                          집단: '집단 (Groups)',
+                          물건: '물건 (Items)',
+                          세계: '세계 (Worlds)',
+                        };
+                        const isAllSelected =
+                          keywords.length > 0 &&
+                          (selectedKeywords[category] || []).length ===
+                            keywords.length;
+
+                        return (
+                          <div
+                            key={category}
+                            className="space-y-3 border rounded-lg p-4 bg-muted/20"
+                          >
+                            <h4 className="font-semibold flex items-center gap-2">
+                              <Checkbox
+                                checked={isAllSelected}
+                                onCheckedChange={(checked) =>
+                                  handleCategoryToggle(
+                                    category,
+                                    checked === true,
+                                  )
+                                }
+                              />
+                              {categoryLabel[category] || category}
+                              <Badge variant="secondary" className="ml-auto">
+                                {keywords.length}
+                              </Badge>
+                            </h4>
+                            <div className="space-y-2">
+                              {keywords.length > 0 ? (
+                                keywords.map((keyword) => (
+                                  <div
+                                    key={keyword}
+                                    className="flex items-center space-x-2"
+                                  >
+                                    <Checkbox
+                                      id={`kw-${category}-${keyword}`}
+                                      checked={(
+                                        selectedKeywords[category] || []
+                                      ).includes(keyword)}
+                                      onCheckedChange={() =>
+                                        handleKeywordToggle(category, keyword)
+                                      }
+                                    />
+                                    <label
+                                      htmlFor={`kw-${category}-${keyword}`}
+                                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                                    >
+                                      {keyword}
+                                    </label>
+                                  </div>
+                                ))
+                              ) : (
+                                <p className="text-sm text-muted-foreground">
+                                  추출된 키워드가 없습니다.
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      },
                     )
-                  }
-                  onCheckedChange={(checked) =>
-                    handleSelectAllKeywords(checked === true)
-                  }
-                />
-                <label
-                  htmlFor="select-all-keywords"
-                  className="text-sm font-normal cursor-pointer"
-                >
-                  전체 선택
-                </label>
-              </div>
-            </DialogTitle>
-            <DialogDescription>
-              AI가 추출한 키워드 중 설정집으로 생성할 항목을 선택해주세요.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="flex-1 overflow-y-auto pr-2 -mr-2">
-            <div className="grid grid-cols-2 gap-6 py-4">
-              {extractedKeywords ? (
-                Object.entries(extractedKeywords).map(
-                  ([category, keywordsRaw]) => {
-                    const keywords = keywordsRaw as string[];
-                    const categoryLabel: { [key: string]: string } = {
-                      인물: '인물 (Characters)',
-                      장소: '장소 (Locations)',
-                      사건: '사건 (Events)',
-                      집단: '집단 (Groups)',
-                      물건: '물건 (Items)',
-                      세계: '세계 (Worlds)',
-                    };
-                    const isAllSelected =
-                      keywords.length > 0 &&
-                      (selectedKeywords[category] || []).length ===
-                        keywords.length;
-
-                    return (
-                      <div
-                        key={category}
-                        className="space-y-3 border rounded-lg p-4 bg-muted/20"
-                      >
-                        <h4 className="font-semibold flex items-center gap-2">
-                          <Checkbox
-                            checked={isAllSelected}
-                            onCheckedChange={(checked) =>
-                              handleCategoryToggle(category, checked === true)
-                            }
-                          />
-                          {categoryLabel[category] || category}
-                          <Badge variant="secondary" className="ml-auto">
-                            {keywords.length}
-                          </Badge>
-                        </h4>
-                        <div className="space-y-2">
-                          {keywords.length > 0 ? (
-                            keywords.map((keyword) => (
-                              <div
-                                key={keyword}
-                                className="flex items-center space-x-2"
-                              >
-                                <Checkbox
-                                  id={`kw-${category}-${keyword}`}
-                                  checked={(
-                                    selectedKeywords[category] || []
-                                  ).includes(keyword)}
-                                  onCheckedChange={() =>
-                                    handleKeywordToggle(category, keyword)
-                                  }
-                                />
-                                <label
-                                  htmlFor={`kw-${category}-${keyword}`}
-                                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                                >
-                                  {keyword}
-                                </label>
-                              </div>
-                            ))
-                          ) : (
-                            <p className="text-sm text-muted-foreground">
-                              추출된 키워드가 없습니다.
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  },
-                )
-              ) : (
-                <div className="col-span-2 flex flex-col items-center justify-center py-12 text-muted-foreground">
-                  <Loader2 className="w-8 h-8 animate-spin mb-4" />
-                  <p>AI가 원문을 분석하고 있습니다...</p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <DialogFooter className="flex-col sm:flex-col gap-4 border-t pt-4">
-            <div className="flex items-center justify-between w-full">
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="confirm-publish"
-                  checked={isKeywordSelectionConfirmed}
-                  onCheckedChange={(checked) =>
-                    setIsKeywordSelectionConfirmed(checked === true)
-                  }
-                />
-                <label
-                  htmlFor="confirm-publish"
-                  className="text-sm text-muted-foreground cursor-pointer"
-                >
-                  위 내용으로 AI 분석을 진행합니다.
-                </label>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setIsKeywordSelectionOpen(false)}
-                >
-                  취소
-                </Button>
-                <Button
-                  onClick={handleKeywordSubmit}
-                  disabled={
-                    !isKeywordSelectionConfirmed || analysisMutation.isPending
-                  }
-                >
-                  {analysisMutation.isPending ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      분석 중...
-                    </>
                   ) : (
-                    '분석 시작'
+                    <div className="col-span-2 flex flex-col items-center justify-center py-12 text-muted-foreground">
+                      <Loader2 className="w-8 h-8 animate-spin mb-4" />
+                      <p>AI가 원문을 분석하고 있습니다...</p>
+                    </div>
                   )}
-                </Button>
+                </div>
               </div>
-            </div>
-          </DialogFooter>
+
+              <DialogFooter className="flex-col sm:flex-col gap-4 border-t pt-4">
+                <div className="flex items-center justify-between w-full">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="confirm-publish"
+                      checked={isKeywordSelectionConfirmed}
+                      onCheckedChange={(checked) =>
+                        setIsKeywordSelectionConfirmed(checked === true)
+                      }
+                    />
+                    <label
+                      htmlFor="confirm-publish"
+                      className="text-sm text-muted-foreground cursor-pointer"
+                    >
+                      위 내용으로 AI 분석을 진행합니다.
+                    </label>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsKeywordSelectionOpen(false)}
+                    >
+                      취소
+                    </Button>
+                    <Button
+                      onClick={handleKeywordSubmit}
+                      disabled={
+                        !isKeywordSelectionConfirmed ||
+                        analysisMutation.isPending
+                      }
+                    >
+                      {analysisMutation.isPending ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          분석 중...
+                        </>
+                      ) : (
+                        '분석 시작'
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
 
@@ -1936,12 +2043,12 @@ export function AuthorWorks({ integrationId }: AuthorWorksProps) {
                                           },
                                         }))
                                       }
-                                      className="min-h-[150px]"
+                                      className="min-h-[150px] font-mono text-sm"
                                     />
                                   </div>
                                 ) : (
-                                  <div className="text-sm text-muted-foreground bg-muted/30 p-4 rounded-lg leading-relaxed whitespace-pre-wrap">
-                                    {item.description}
+                                  <div className="bg-muted/30 p-5 rounded-lg border border-muted/50">
+                                    <SettingViewer data={item.description} />
                                   </div>
                                 )}
                               </div>
@@ -1996,17 +2103,19 @@ export function AuthorWorks({ integrationId }: AuthorWorksProps) {
             ) : (
               // Non-Conflict State (All resolved or none existed)
               <div className="flex flex-col gap-4 w-full">
-                <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg text-sm text-blue-700 flex items-start gap-2">
-                  <div className="bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded mt-0.5">
-                    TIP
+                {((settingBookDiff?.['충돌'] as any[])?.length || 0) > 0 && (
+                  <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg text-sm text-blue-700 flex items-start gap-2">
+                    <div className="bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded mt-0.5">
+                      TIP
+                    </div>
+                    <p>
+                      모든 충돌이 해결되었습니다.
+                      <span className="font-bold mx-1">설정 결합</span> 및
+                      <span className="font-bold mx-1">신규 업로드</span>
+                      내용을 최종 확인해 주세요.
+                    </p>
                   </div>
-                  <p>
-                    모든 충돌이 해결되었습니다.
-                    <span className="font-bold mx-1">설정 결합</span> 및
-                    <span className="font-bold mx-1">신규 업로드</span>
-                    내용을 최종 확인해 주세요.
-                  </p>
-                </div>
+                )}
                 <div className="flex items-center justify-between w-full mt-2">
                   <div className="flex items-center gap-2">
                     <Checkbox

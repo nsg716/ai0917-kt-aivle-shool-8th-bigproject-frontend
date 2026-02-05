@@ -1326,15 +1326,8 @@ function ProjectDetailModal({
       </Dialog>
 
       <Dialog open={showPdfFullScreen} onOpenChange={setShowPdfFullScreen}>
-        <DialogContent className="max-w-[95vw] h-[95vh] p-0 overflow-hidden bg-slate-50 border-0">
+        <DialogContent className="!w-screen !h-screen !max-w-none rounded-none border-0 p-0 overflow-hidden bg-slate-50">
           <div className="relative w-full h-full flex items-center justify-center p-8">
-            <Button
-              variant="ghost"
-              className="absolute top-4 right-4 text-slate-500 hover:bg-slate-200 z-50 rounded-full w-10 h-10 p-0"
-              onClick={() => setShowPdfFullScreen(false)}
-            >
-              <X className="w-6 h-6" />
-            </Button>
             <PdfPreview
               className="w-full h-full shadow-none border-0"
               isFullScreen={true}
@@ -1344,15 +1337,8 @@ function ProjectDetailModal({
       </Dialog>
 
       <Dialog open={showPreviewModal} onOpenChange={setShowPreviewModal}>
-        <DialogContent className="max-w-[95vw] h-[95vh] p-0 overflow-hidden bg-black/95 border-0">
+        <DialogContent className="!w-screen !h-screen !max-w-none rounded-none border-0 p-0 overflow-hidden bg-black/95">
           <div className="relative w-full h-full flex items-center justify-center p-8">
-            <Button
-              variant="ghost"
-              className="absolute top-4 right-4 text-white hover:bg-white/20 z-50 rounded-full w-10 h-10 p-0"
-              onClick={() => setShowPreviewModal(false)}
-            >
-              <X className="w-6 h-6" />
-            </Button>
             <VisualPreview
               className="w-full h-full object-contain"
               isFullScreen={true}
@@ -1670,6 +1656,8 @@ function CreateIPExpansionDialog({
   const [lorebookSearch, setLorebookSearch] = useState('');
 
   const [showAllGenres, setShowAllGenres] = useState(false);
+  const [showAllSpinoffs, setShowAllSpinoffs] = useState(false);
+  const [showCoreSettingDetail, setShowCoreSettingDetail] = useState(false);
 
   // Data Queries
   const { data: authors } = useQuery({
@@ -1808,6 +1796,12 @@ function CreateIPExpansionDialog({
         // Edit Mode: Pre-fill data
         // For editing, we might need to populate selectedLorebooks first.
         setSelectedLorebooks(initialData.lorebooks || []);
+        // Set Crown Setting
+        if (initialData.crownSettingId) {
+          setSelectedCrownSetting(initialData.crownSettingId);
+        } else if (initialData.lorebooks && initialData.lorebooks.length > 0) {
+          setSelectedCrownSetting(initialData.lorebooks[0].id);
+        }
         setConflictConfirmed(true);
         setStep3Confirmed(true);
         setStep4Confirmed(true);
@@ -2519,7 +2513,7 @@ function CreateIPExpansionDialog({
                                         {badge.label}
                                       </Badge>
                                     </TooltipTrigger>
-                                    <TooltipContent className="z-[100] bg-slate-900 text-white border-0 shadow-xl">
+                                    <TooltipContent className="z-[1000] bg-slate-900 text-white border-0 shadow-xl">
                                       <p className="max-w-[240px] text-xs leading-relaxed font-medium">
                                         {badge.tooltip}
                                       </p>
@@ -3006,7 +3000,7 @@ function CreateIPExpansionDialog({
                             <div className="flex items-center justify-between">
                               <Label className="text-base font-bold text-slate-800 flex items-center gap-2">
                                 <Wand2 className="w-4 h-4 text-slate-500" />
-                                장르 선택 (다중 선택 가능)
+                                장르 선택 (단일 선택 가능)
                                 <span className="text-red-500 ml-1">*</span>
                               </Label>
                               <div className="flex items-center gap-3">
@@ -3059,11 +3053,7 @@ function CreateIPExpansionDialog({
                                     <div
                                       key={genre.id}
                                       onClick={() => {
-                                        setSelectedGenres((prev) =>
-                                          prev.includes(genre.id)
-                                            ? prev.filter((g) => g !== genre.id)
-                                            : [...prev, genre.id],
-                                        );
+                                        setSelectedGenres([genre.id]);
                                       }}
                                       className={cn(
                                         'flex items-center justify-center p-2 rounded-lg border text-xs font-medium cursor-pointer transition-all text-center select-none',
@@ -3719,37 +3709,77 @@ function CreateIPExpansionDialog({
                                   label: '외전',
                                   desc: '동시간대 다른 장소',
                                 },
-                              ].map((type) => (
-                                <div
-                                  key={type.id}
-                                  onClick={() =>
-                                    setMediaDetails({
-                                      ...mediaDetails,
-                                      spinoffType: type.id,
-                                    })
-                                  }
-                                  className={cn(
-                                    'cursor-pointer p-3 rounded-lg border text-center transition-all',
-                                    mediaDetails.spinoffType === type.id
-                                      ? 'bg-slate-900 border-slate-900 text-white'
-                                      : 'bg-white border-slate-200 hover:bg-slate-50',
-                                  )}
-                                >
-                                  <div className="font-bold text-xs">
-                                    {type.label}
-                                  </div>
+                                {
+                                  id: 'if_story',
+                                  label: 'IF 스토리',
+                                  desc: '만약의 세계',
+                                },
+                                {
+                                  id: 'crossover',
+                                  label: '크로스오버',
+                                  desc: '타 작품과 결합',
+                                },
+                                {
+                                  id: 'remake',
+                                  label: '리메이크',
+                                  desc: '현대적 재해석',
+                                },
+                                {
+                                  id: 'character_story',
+                                  label: '캐릭터 열전',
+                                  desc: '특정 인물 중심',
+                                },
+                                {
+                                  id: 'au',
+                                  label: 'AU',
+                                  desc: '대체 우주 설정',
+                                },
+                              ]
+                                .slice(0, showAllSpinoffs ? undefined : 3)
+                                .map((type) => (
                                   <div
+                                    key={type.id}
+                                    onClick={() =>
+                                      setMediaDetails({
+                                        ...mediaDetails,
+                                        spinoffType: type.id,
+                                      })
+                                    }
                                     className={cn(
-                                      'text-[10px] mt-0.5',
+                                      'cursor-pointer p-3 rounded-lg border text-center transition-all',
                                       mediaDetails.spinoffType === type.id
-                                        ? 'text-slate-300'
-                                        : 'text-slate-500',
+                                        ? 'bg-slate-900 border-slate-900 text-white'
+                                        : 'bg-white border-slate-200 hover:bg-slate-50',
                                     )}
                                   >
-                                    {type.desc}
+                                    <div className="font-bold text-xs">
+                                      {type.label}
+                                    </div>
+                                    <div
+                                      className={cn(
+                                        'text-[10px] mt-0.5',
+                                        mediaDetails.spinoffType === type.id
+                                          ? 'text-slate-300'
+                                          : 'text-slate-500',
+                                      )}
+                                    >
+                                      {type.desc}
+                                    </div>
                                   </div>
+                                ))}
+                              {!showAllSpinoffs && (
+                                <div
+                                  onClick={() => setShowAllSpinoffs(true)}
+                                  className="cursor-pointer p-3 rounded-lg border border-dashed border-slate-300 flex flex-col items-center justify-center hover:bg-slate-50 transition-all"
+                                >
+                                  <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center mb-1">
+                                    <Plus className="w-3 h-3 text-slate-500" />
+                                  </div>
+                                  <span className="text-xs text-slate-500 font-medium">
+                                    더보기
+                                  </span>
                                 </div>
-                              ))}
+                              )}
                             </div>
                           </div>
 
@@ -4004,19 +4034,21 @@ function CreateIPExpansionDialog({
                                 label: '소모 크레딧',
                                 value: '50 Credits',
                               },
-                            ].map((item, i) => (
-                              <div
-                                key={i}
-                                className="bg-slate-50 rounded-lg p-2.5 border border-slate-100"
-                              >
-                                <span className="text-[10px] text-slate-500 font-medium block mb-0.5">
-                                  {item.label}
-                                </span>
-                                <span className="text-xs font-bold text-slate-700">
-                                  {item.value}
-                                </span>
-                              </div>
-                            ))}
+                            ]
+                              .filter((item) => item.value !== '미지정')
+                              .map((item, i) => (
+                                <div
+                                  key={i}
+                                  className="bg-slate-50 rounded-lg p-2.5 border border-slate-100"
+                                >
+                                  <span className="text-[10px] text-slate-500 font-medium block mb-0.5">
+                                    {item.label}
+                                  </span>
+                                  <span className="text-xs font-bold text-slate-700">
+                                    {item.value}
+                                  </span>
+                                </div>
+                              ))}
                           </div>
                         </div>
                       </section>
@@ -4046,8 +4078,29 @@ function CreateIPExpansionDialog({
                           입력 설정 요약
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                          {/* [New Card 0] Source Setting (Reference Data) */}
+                          <div
+                            onClick={() => setShowReferenceModal(true)}
+                            className="bg-white rounded-lg p-3 border border-slate-200 shadow-sm flex items-start gap-2.5 relative group hover:border-blue-400 transition-colors cursor-pointer"
+                          >
+                            <div className="w-7 h-7 rounded-md flex items-center justify-center shrink-0 bg-blue-50 text-blue-600">
+                              <BookOpen className="w-3.5 h-3.5" />
+                            </div>
+                            <div className="overflow-hidden">
+                              <p className="text-[10px] font-bold text-slate-500 mb-0.5">
+                                원천 설정집
+                              </p>
+                              <p className="text-xs font-bold text-slate-800 truncate">
+                                {selectedLorebooks.length}개의 설정집 참조
+                              </p>
+                            </div>
+                          </div>
+
                           {/* [New Card 1] Core Setting */}
-                          <div className="bg-white rounded-lg p-3 border border-slate-200 shadow-sm flex items-start gap-2.5 relative group hover:border-yellow-400 transition-colors">
+                          <div
+                            onClick={() => setShowCoreSettingDetail(true)}
+                            className="bg-white rounded-lg p-3 border border-slate-200 shadow-sm flex items-start gap-2.5 relative group hover:border-yellow-400 transition-colors cursor-pointer"
+                          >
                             <div className="w-7 h-7 rounded-md flex items-center justify-center shrink-0 bg-yellow-50 text-yellow-600">
                               <Crown className="w-3.5 h-3.5" />
                             </div>
@@ -4058,13 +4111,13 @@ function CreateIPExpansionDialog({
                               <TooltipProvider>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                    <p className="text-xs font-bold text-slate-800 truncate cursor-help">
+                                    <p className="text-xs font-bold text-slate-800 truncate">
                                       {selectedLorebooks.find(
                                         (l) => l.id === selectedCrownSetting,
                                       )?.keyword || '미지정'}
                                     </p>
                                   </TooltipTrigger>
-                                  <TooltipContent>
+                                  <TooltipContent className="z-[1000] bg-slate-900 text-white border-0 shadow-xl">
                                     <p>
                                       카테고리:{' '}
                                       {selectedLorebooks.find(
@@ -4457,56 +4510,58 @@ function CreateIPExpansionDialog({
                               color: 'text-slate-600',
                               bg: 'bg-slate-50',
                             },
-                          ].map((item, i) => (
-                            <div
-                              key={i}
-                              className="bg-white rounded-lg p-3 border border-slate-200 shadow-sm flex items-start gap-2.5 relative group"
-                            >
-                              {item.label === '참조 데이터' && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="absolute top-1.5 right-1.5 h-5 w-5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                                  onClick={() => setShowReferenceModal(true)}
-                                >
-                                  <Maximize2 className="w-3 h-3" />
-                                </Button>
-                              )}
-                              {/* Reference Data Modal - Crown Logic */}
-                              {item.label === '참조 데이터' &&
-                                selectedCrownSetting && (
-                                  <div className="absolute bottom-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <TooltipProvider>
-                                      <Tooltip>
-                                        <TooltipTrigger>
-                                          <Crown className="w-3 h-3 text-yellow-500 fill-yellow-500" />
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                          <p>핵심 설정 포함됨</p>
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    </TooltipProvider>
-                                  </div>
-                                )}
+                          ]
+                            .filter((item) => item.value !== '미지정')
+                            .map((item, i) => (
                               <div
-                                className={cn(
-                                  'w-7 h-7 rounded-md flex items-center justify-center shrink-0',
-                                  item.bg,
-                                  item.color,
-                                )}
+                                key={i}
+                                className="bg-white rounded-lg p-3 border border-slate-200 shadow-sm flex items-start gap-2.5 relative group"
                               >
-                                <item.icon className="w-3.5 h-3.5" />
+                                {item.label === '참조 데이터' && (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="absolute top-1.5 right-1.5 h-5 w-5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                    onClick={() => setShowReferenceModal(true)}
+                                  >
+                                    <Maximize2 className="w-3 h-3" />
+                                  </Button>
+                                )}
+                                {/* Reference Data Modal - Crown Logic */}
+                                {item.label === '참조 데이터' &&
+                                  selectedCrownSetting && (
+                                    <div className="absolute bottom-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <TooltipProvider>
+                                        <Tooltip>
+                                          <TooltipTrigger>
+                                            <Crown className="w-3 h-3 text-yellow-500 fill-yellow-500" />
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            <p>핵심 설정 포함됨</p>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
+                                    </div>
+                                  )}
+                                <div
+                                  className={cn(
+                                    'w-7 h-7 rounded-md flex items-center justify-center shrink-0',
+                                    item.bg,
+                                    item.color,
+                                  )}
+                                >
+                                  <item.icon className="w-3.5 h-3.5" />
+                                </div>
+                                <div className="overflow-hidden">
+                                  <p className="text-[10px] font-bold text-slate-500 mb-0.5">
+                                    {item.label}
+                                  </p>
+                                  <p className="text-xs font-bold text-slate-800 truncate">
+                                    {item.value}
+                                  </p>
+                                </div>
                               </div>
-                              <div className="overflow-hidden">
-                                <p className="text-[10px] font-bold text-slate-500 mb-0.5">
-                                  {item.label}
-                                </p>
-                                <p className="text-xs font-bold text-slate-800 truncate">
-                                  {item.value}
-                                </p>
-                              </div>
-                            </div>
-                          ))}
+                            ))}
                         </div>
                       </section>
                       {/* Duplicate Configuration Summary Removed */}
@@ -4538,7 +4593,9 @@ function CreateIPExpansionDialog({
             <Button
               variant="ghost"
               onClick={handleBack}
-              disabled={currentStep === 1}
+              disabled={
+                currentStep === 1 || (!!initialData && currentStep === 3)
+              }
               size="sm"
             >
               이전
@@ -4690,7 +4747,7 @@ function CreateIPExpansionDialog({
 
       {/* Full Screen Preview Modal */}
       <Dialog open={showPreviewModal} onOpenChange={setShowPreviewModal}>
-        <DialogContent className="max-w-[95vw] h-[95vh] p-0 overflow-hidden bg-black/95 border-0">
+        <DialogContent className="!w-screen !h-screen !max-w-none rounded-none border-0 p-0 overflow-hidden bg-black/95 [&>button:last-child]:hidden">
           <div className="relative w-full h-full flex items-center justify-center p-8">
             <Button
               variant="ghost"
