@@ -148,6 +148,23 @@ export const authorService = {
     return response.data;
   },
 
+  updateManuscriptContent: async (
+    userId: string,
+    title: string,
+    data: {
+      workId: number;
+      episode: number;
+      subtitle: string;
+      txt: string;
+    },
+  ) => {
+    const response = await apiClient.patch(
+      `/api/v1/author/${userId}/${title}/manuscript/upload`,
+      data,
+    );
+    return response.data;
+  },
+
   updateManuscript: async (
     userId: string,
     title: string,
