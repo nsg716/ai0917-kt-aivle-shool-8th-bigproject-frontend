@@ -151,7 +151,10 @@ const normalizeAnalysisData = (data: PublishAnalysisResponseDto): any => {
     return val;
   };
 
-  const normalize = (section: any) => {
+  const normalize = (
+    section: any,
+    existingSettingsMap?: Record<string, any>,
+  ) => {
     // Handle array of arrays (tuple structure: [id, contentMap, episodes])
     if (
       Array.isArray(section) &&
@@ -219,22 +222,49 @@ const normalizeAnalysisData = (data: PublishAnalysisResponseDto): any => {
           }
         }
 
+        // Try to find original setting from existing map if not present
+        let original = item.original;
+        if (!original && existingSettingsMap && name) {
+          const existing = existingSettingsMap[name];
+          if (existing) {
+            // existing might be the full object, we want the content
+            // usually existing structure matches the normalized structure?
+            // We need to be careful. The existingSettingsMap is derived from '기존설정' which is normalized below.
+            // But '기존설정' normalization happens after this call if we do it sequentially.
+            // So we should normalize '기존설정' first or pass raw data.
+            // Actually, '기존설정' is also passed to normalize.
+            // Let's pass the raw '기존설정' map to this function?
+            // Or better: Normalize '기존설정' first, then pass it to '설정 결합' normalization.
+            original = existing.description || existing;
+          }
+        }
+
         return {
           ...cleanValue(item),
           category: category,
           name: name || 'Unknown',
           description: description || '',
           id: item.id || `${category}-${name}`,
+          original: original || null,
         };
       });
     });
   };
 
+  // 1. Normalize '기존설정' first to create a lookup map
+  const normalizedExisting = normalize(data['기존설정']);
+  const existingMap: Record<string, any> = {};
+  if (Array.isArray(normalizedExisting)) {
+    normalizedExisting.forEach((item: any) => {
+      if (item.name) existingMap[item.name] = item;
+    });
+  }
+
   return {
     충돌: normalize(data['충돌']),
-    '설정 결합': normalize(data['설정 결합']),
+    '설정 결합': normalize(data['설정 결합'], existingMap),
     '신규 업로드': normalize(data['신규 업로드']),
-    기존설정: normalize(data['기존설정']),
+    기존설정: normalizedExisting,
   };
 };
 
@@ -2026,8 +2056,20 @@ export function AuthorWorks({ integrationId }: AuthorWorksProps) {
                                       {item.reason}
                                     </p>
                                     <DiffView
-                                      original={item.original}
-                                      current={item.new}
+                                      original={
+                                        typeof item.original === 'string'
+                                          ? item.original
+                                          : JSON.stringify(
+                                              item.original,
+                                              null,
+                                              2,
+                                            )
+                                      }
+                                      current={
+                                        typeof item.new === 'string'
+                                          ? item.new
+                                          : JSON.stringify(item.new, null, 2)
+                                      }
                                     />
                                   </div>
                                 </div>
