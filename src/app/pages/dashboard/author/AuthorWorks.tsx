@@ -55,7 +55,6 @@ import {
   PanelLeftClose,
   PanelRightOpen,
   PanelLeftOpen,
-  BookOpen,
   Send,
   Lock,
   CheckCircle2,
@@ -63,9 +62,6 @@ import {
   ArrowRight,
   ChevronsLeft,
   ChevronsRight,
-  Users,
-  Globe,
-  MapPin,
   Package,
   Users2,
   Check,
@@ -101,6 +97,13 @@ import {
   PlusCircle,
   RefreshCw,
   X,
+  User,
+  MapPin,
+  BookOpen,
+  Users,
+  Globe,
+  Box,
+  LayoutGrid,
 } from 'lucide-react';
 import { DynamicSettingEditor } from '../../../components/dashboard/author/DynamicSettingEditor';
 import { GlobalLoadingOverlay } from './GlobalLoadingOverlay';
@@ -129,7 +132,23 @@ const normalizeAnalysisData = (data: PublishAnalysisResponseDto): any => {
       return '사건';
     if (keys.includes('규모') || keys.includes('목적') || keys.includes('상징'))
       return '단체';
+    if (keys.includes('종류') || keys.includes('규칙') || keys.includes('금기'))
+      return '세계';
     return '기타';
+  };
+
+  const cleanValue = (val: any): any => {
+    if (val === null || val === 'None' || val === 'null' || val === 'Null')
+      return '';
+    if (Array.isArray(val)) return val.map(cleanValue);
+    if (typeof val === 'object') {
+      const cleaned: any = {};
+      for (const [k, v] of Object.entries(val)) {
+        cleaned[k] = cleanValue(v);
+      }
+      return cleaned;
+    }
+    return val;
   };
 
   const normalize = (section: any) => {
@@ -163,9 +182,9 @@ const normalizeAnalysisData = (data: PublishAnalysisResponseDto): any => {
               description:
                 typeof newContent === 'string'
                   ? newContent
-                  : JSON.stringify(newContent, null, 2),
-              original: original,
-              new: newContent,
+                  : JSON.stringify(cleanValue(newContent), null, 2),
+              original: cleanValue(original),
+              new: cleanValue(newContent),
               reason: reason,
               episodes,
             };
@@ -196,12 +215,12 @@ const normalizeAnalysisData = (data: PublishAnalysisResponseDto): any => {
             description =
               typeof content === 'string'
                 ? content
-                : JSON.stringify(content, null, 2);
+                : JSON.stringify(cleanValue(content), null, 2);
           }
         }
 
         return {
-          ...item,
+          ...cleanValue(item),
           category: category,
           name: name || 'Unknown',
           description: description || '',
@@ -218,6 +237,16 @@ const normalizeAnalysisData = (data: PublishAnalysisResponseDto): any => {
     기존설정: normalize(data['기존설정']),
   };
 };
+
+const REVIEW_CATEGORIES = [
+  { id: 'all', label: '전체', icon: LayoutGrid },
+  { id: '인물', label: '인물', icon: User },
+  { id: '장소', label: '장소', icon: MapPin },
+  { id: '사건', label: '사건', icon: BookOpen },
+  { id: '단체', label: '단체', icon: Users },
+  { id: '세계', label: '세계', icon: Globe },
+  { id: '아이템', label: '아이템', icon: Box },
+];
 
 interface AuthorWorksProps {
   integrationId: string;
@@ -281,6 +310,8 @@ export function AuthorWorks({ integrationId }: AuthorWorksProps) {
   const [newWorkSynopsis, setNewWorkSynopsis] = useState('');
   const [newWorkGenre, setNewWorkGenre] = useState('');
   const [newWorkCover, setNewWorkCover] = useState(''); // Optional
+
+  const [reviewCategory, setReviewCategory] = useState<string>('all');
 
   // Reset create work form when opened
   useEffect(() => {
@@ -1026,8 +1057,10 @@ export function AuthorWorks({ integrationId }: AuthorWorksProps) {
     if (!selectedManuscript) return;
 
     if (isDirty) {
+      if (!confirm('작성 중인 내용이 저장되지 않았습니다. 저장하시겠습니까?')) {
+        return;
+      }
       try {
-        // Silently save before analysis
         await saveMutation.mutateAsync({ silent: true });
       } catch {
         return;
@@ -1855,6 +1888,9 @@ export function AuthorWorks({ integrationId }: AuthorWorksProps) {
               AI가 생성한 설정집 변경 사항을 확인하세요. 충돌 항목은 반드시
               검토가 필요합니다.
             </DialogDescription>
+            <div className="pt-4 flex items-center gap-2">
+              {/* Filter moved to inside tabs */}
+            </div>
           </DialogHeader>
 
           <Tabs
@@ -1880,10 +1916,15 @@ export function AuthorWorks({ integrationId }: AuthorWorksProps) {
 
             <div className="flex-1 overflow-y-auto bg-muted/5 p-6">
               {['충돌', '설정 결합', '신규 업로드'].map((tabKey) => {
-                const items =
+                const items = (
                   (settingBookDiff?.[
                     tabKey as keyof PublishAnalysisResponseDto
-                  ] as any[]) || [];
+                  ] as any[]) || []
+                ).filter(
+                  (item) =>
+                    reviewCategory === 'all' ||
+                    item.category === reviewCategory,
+                );
                 const hasItems = items.length > 0;
 
                 return (
@@ -1892,6 +1933,29 @@ export function AuthorWorks({ integrationId }: AuthorWorksProps) {
                     value={tabKey}
                     className="mt-0 space-y-8"
                   >
+                    <div className="flex items-center gap-2 mb-4 px-1 overflow-x-auto pb-2 scrollbar-hide">
+                      {REVIEW_CATEGORIES.map((cat) => {
+                        const Icon = cat.icon;
+                        const isSelected = reviewCategory === cat.id;
+                        return (
+                          <Button
+                            key={cat.id}
+                            variant={isSelected ? 'default' : 'outline'}
+                            size="sm"
+                            className={cn(
+                              'h-8 rounded-full flex items-center gap-1.5 transition-all',
+                              isSelected
+                                ? 'shadow-md'
+                                : 'text-muted-foreground bg-transparent border-dashed hover:border-solid',
+                            )}
+                            onClick={() => setReviewCategory(cat.id)}
+                          >
+                            <Icon className="w-3.5 h-3.5" />
+                            <span className="text-xs">{cat.label}</span>
+                          </Button>
+                        );
+                      })}
+                    </div>
                     {!hasItems ? (
                       <div className="flex flex-col items-center justify-center py-20 text-muted-foreground opacity-50">
                         <BookOpen className="w-16 h-16 mb-4 stroke-1" />
@@ -2050,36 +2114,56 @@ export function AuthorWorks({ integrationId }: AuthorWorksProps) {
                                 </div>
 
                                 {isEditing ? (
-                                  <div className="grid grid-cols-2 gap-4 h-64">
+                                  <div className="grid grid-cols-2 gap-4 h-auto min-h-[16rem]">
                                     <div className="flex flex-col border rounded-md overflow-hidden opacity-60 pointer-events-none">
                                       <div className="bg-muted/50 p-2 text-xs font-semibold border-b text-muted-foreground">
                                         Original (Read-only)
                                       </div>
-                                      <div className="p-3 overflow-y-auto flex-1 text-sm whitespace-pre-wrap leading-relaxed bg-muted/10 font-mono">
-                                        {displayOriginal}
+                                      <div className="p-3 overflow-y-auto flex-1 text-sm bg-muted/10">
+                                        <SettingViewer data={item.original} />
                                       </div>
                                     </div>
-                                    <div className="flex flex-col border rounded-md overflow-hidden ring-2 ring-blue-500/20">
+                                    <div className="flex flex-col border rounded-md overflow-hidden ring-2 ring-blue-500/20 bg-card">
                                       <div className="bg-blue-50/50 p-2 text-xs font-semibold border-b text-blue-700 flex justify-between">
                                         <span>Editing...</span>
                                       </div>
-                                      <Textarea
-                                        value={displayCurrent}
-                                        onChange={(e) =>
-                                          setEditingContent((prev) => ({
-                                            ...prev,
-                                            [item.id]: e.target.value,
-                                          }))
-                                        }
-                                        className="flex-1 resize-none border-0 focus-visible:ring-0 p-3 font-mono text-sm"
-                                      />
+                                      <div className="p-4 overflow-y-auto flex-1">
+                                        <DynamicSettingEditor
+                                          data={
+                                            typeof currentContent === 'string'
+                                              ? JSON.parse(currentContent)
+                                              : currentContent
+                                          }
+                                          category={item.category}
+                                          onChange={(newData) =>
+                                            setEditingContent((prev) => ({
+                                              ...prev,
+                                              [item.id]: newData,
+                                            }))
+                                          }
+                                        />
+                                      </div>
                                     </div>
                                   </div>
                                 ) : (
-                                  <DiffView
-                                    original={displayOriginal}
-                                    current={displayCurrent}
-                                  />
+                                  <div className="grid grid-cols-2 gap-4 h-64">
+                                    <div className="flex flex-col border rounded-md overflow-hidden bg-muted/20">
+                                      <div className="bg-muted/50 p-2 text-xs font-semibold border-b text-muted-foreground">
+                                        Original
+                                      </div>
+                                      <div className="p-3 overflow-y-auto flex-1 text-sm bg-card/50">
+                                        <SettingViewer data={item.original} />
+                                      </div>
+                                    </div>
+                                    <div className="flex flex-col border rounded-md overflow-hidden ring-1 ring-blue-500/20 bg-blue-50/10">
+                                      <div className="bg-blue-50/50 p-2 text-xs font-semibold border-b text-blue-700">
+                                        Updated
+                                      </div>
+                                      <div className="p-3 overflow-y-auto flex-1 text-sm">
+                                        <SettingViewer data={currentContent} />
+                                      </div>
+                                    </div>
+                                  </div>
                                 )}
                               </div>
                             );
