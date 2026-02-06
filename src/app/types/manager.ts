@@ -75,9 +75,7 @@ export interface ManagerAuthorDetailDto {
 export interface ManagerDashboardSummaryDto {
   pendingProposals: number;
   managedAuthors: number;
-  todayDau: number;
-  yesterdayDau: number;
-  dauChangeRate: number;
+  activeAuthors: number;
 }
 
 export interface ManagerDashboardNoticeDto {
