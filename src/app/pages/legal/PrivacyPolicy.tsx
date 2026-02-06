@@ -64,6 +64,10 @@ export default function PrivacyPolicy() {
                   <strong>자동 수집</strong>: 서비스 이용 기록, 접속 로그, IP
                   주소
                 </li>
+                <li>
+                  <strong>작품 데이터</strong>: 사용자가 업로드한 원문 파일,
+                  시놉시스, 스크립트 등 서비스 이용 과정에서 제공된 콘텐츠
+                </li>
               </ul>
             </div>
           </section>
@@ -82,6 +86,11 @@ export default function PrivacyPolicy() {
               <li>회원 식별 및 가입 의사 확인</li>
               <li>IP 분석 및 설정집 자동 추출 서비스 제공</li>
               <li>불량 회원의 부정 이용 방지</li>
+              <li>
+                <strong>인공지능(AI) 모델 학습 및 서비스 고도화</strong>: 제공된
+                작품 데이터를 활용한 AI 모델의 미세 조정(Fine-tuning) 및 분석
+                정확도 향상
+              </li>
             </ul>
           </section>
 
@@ -101,7 +110,11 @@ export default function PrivacyPolicy() {
                   삭제
                 </strong>
               </li>
-              <li>회원 정보: 회원 탈퇴 시 즉시 삭제</li>
+              <li>
+                <strong>회원 정보 및 데이터</strong>: 회원 탈퇴 요청일로부터{' '}
+                <strong>7일간 보관 후 영구 삭제</strong> (실수로 인한 탈퇴 복구
+                지원 목적)
+              </li>
               <li>
                 법령 준수: 관련 법령에 명시된 보존 기간(접속로그 3개월 등)을
                 준수
