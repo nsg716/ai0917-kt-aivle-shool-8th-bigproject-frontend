@@ -111,10 +111,14 @@ export const managerService = {
     return response.data;
   },
 
+  getWorks: async (authorId: number) => {
+    const response = await apiClient.get(
+      `/api/v1/manager/authors/${authorId}/works`,
+    );
+    return response.data;
+  },
+
   getLorebooks: async (workId: number) => {
-    // Note: Assuming a manager-specific endpoint or using a shared one.
-    // Since manager should have access, we might need a specific endpoint.
-    // For now, let's assume there is an endpoint to get lorebooks by workId for manager.
     const response = await apiClient.get<LorebookDto[]>(
       `/api/v1/manager/works/${workId}/lorebooks`,
     );
@@ -124,12 +128,62 @@ export const managerService = {
   // IP Expansion
   getIPProposals: async (page = 0, size = 10) => {
     const response = await apiClient.get<PageResponse<IPProposalDto>>(
-      '/api/v1/manager/ip-expansion/proposals',
+      '/api/v1/manager/ip-expansion',
       { params: { page, size } },
     );
     return response.data;
   },
 
+  getIPProposalDetail: async (id: number) => {
+    const response = await apiClient.get<IPProposalDto>(
+      `/api/v1/manager/ip-expansion/${id}`,
+    );
+    return response.data;
+  },
+
+  createIPExpansionProject: async (data: any) => {
+    const response = await apiClient.post('/api/v1/manager/ip-expansion', data);
+    return response.data;
+  },
+
+  updateIPProposal: async (id: number, data: any) => {
+    const response = await apiClient.patch(
+      `/api/v1/manager/ip-expansion/${id}`,
+      data,
+    );
+    return response.data;
+  },
+
+  deleteIPExpansionProject: async (id: number) => {
+    const response = await apiClient.delete(
+      `/api/v1/manager/ip-expansion/${id}`,
+    );
+    return response.data;
+  },
+
+  proposeIPExpansionProject: async (id: number) => {
+    const response = await apiClient.put(
+      `/api/v1/manager/ip-expansion/${id}/propose`,
+    );
+    return response.data;
+  },
+
+  getIPProposalPreview: async (id: number) => {
+    const response = await apiClient.get(
+      `/api/v1/manager/ip-expansion/preview/${id}`,
+    );
+    return response.data;
+  },
+
+  downloadIPProposal: async (id: number) => {
+    const response = await apiClient.get(
+      `/api/v1/manager/ip-expansion/download/${id}`,
+      { responseType: 'blob' },
+    );
+    return response.data;
+  },
+
+  // IP Matching
   getIPMatching: async () => {
     const response = await apiClient.get<IPMatchingDto[]>(
       '/api/v1/manager/ip-expansion/matching',
@@ -137,24 +191,10 @@ export const managerService = {
     return response.data;
   },
 
-  createIPExpansionProject: async (data: any) => {
+  checkIPExpansionConflicts: async (data: any) => {
     const response = await apiClient.post(
-      '/api/v1/manager/ip-expansion/proposals',
+      '/api/v1/manager/ip-expansion/settings',
       data,
-    );
-    return response.data;
-  },
-
-  proposeIPExpansionProject: async (id: number) => {
-    const response = await apiClient.put(
-      `/api/v1/manager/ip-expansion/proposals/${id}/propose`,
-    );
-    return response.data;
-  },
-
-  deleteIPExpansionProject: async (id: number) => {
-    const response = await apiClient.delete(
-      `/api/v1/manager/ip-expansion/proposals/${id}`,
     );
     return response.data;
   },
