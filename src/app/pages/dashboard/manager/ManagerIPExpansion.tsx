@@ -301,11 +301,19 @@ export function ManagerIPExpansion() {
         queryKey: ['manager', 'ip-expansion', 'proposals'],
       });
       setIsCreateDialogOpen(false);
-      toast.success(
-        editingProject
-          ? '프로젝트가 수정되었습니다.'
-          : '새로운 IP 확장 프로젝트가 생성되었습니다.',
-      );
+      toast.success('새로운 IP 확장 프로젝트가 생성되었습니다.');
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: any }) =>
+      managerService.updateIPProposal(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['manager', 'ip-expansion', 'proposals'],
+      });
+      setIsCreateDialogOpen(false);
+      toast.success('프로젝트가 수정되었습니다.');
     },
   });
 
@@ -335,7 +343,11 @@ export function ManagerIPExpansion() {
   });
 
   const handleCreateProject = (project: any) => {
-    createMutation.mutate(project);
+    if (editingProject) {
+      updateMutation.mutate({ id: editingProject.id, data: project });
+    } else {
+      createMutation.mutate(project);
+    }
   };
 
   const handleEditProject = (project: any) => {
@@ -1668,13 +1680,10 @@ function CreateIPExpansionDialog({
 
   const { data: works } = useQuery({
     queryKey: ['manager', 'works', selectedAuthor?.id],
-    queryFn: async () => {
-      if (!selectedAuthor?.id) return [];
-      const res = await apiClient.get(
-        `/api/v1/manager/authors/${selectedAuthor.id}/works`,
-      );
-      return res.data;
-    },
+    queryFn: () =>
+      selectedAuthor?.id
+        ? managerService.getWorks(selectedAuthor.id)
+        : Promise.resolve([]),
     enabled: !!selectedAuthor?.id,
   });
 
@@ -2028,8 +2037,11 @@ function CreateIPExpansionDialog({
 
   const confirmCreate = () => {
     onCreated({
+      authorId: selectedAuthor?.id,
+      workId: selectedWork?.id,
       title: projectTitle,
-      lorebooks: selectedLorebooks,
+      lorebookIds: selectedLorebooks.map((l: any) => l.id),
+      crownLorebookId: selectedCrownSetting,
       format: selectedFormat,
       strategy: {
         genres: selectedGenres,
