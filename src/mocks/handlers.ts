@@ -22,46 +22,108 @@ const generateList = <T>(count: number, generator: (index: number) => T): T[] =>
 const getRandomItem = <T>(items: T[]): T =>
   items[Math.floor(Math.random() * items.length)];
 
-// Use Original Data
-const TITLES = ORIGINAL_TITLES;
-const GENRES = ORIGINAL_GENRES;
-const NAMES = ORIGINAL_NAMES;
+const getRandomInt = (min: number, max: number) =>
+  Math.floor(Math.random() * (max - min + 1)) + min;
 
-const MOCK_PROPOSALS = generateList(10, (i) => ({
-  id: i,
-  title: `${getRandomItem(TITLES)} 웹툰화 제안`,
-  status: getRandomItem(['PENDING', 'REVIEWING', 'APPROVED']),
-  statusDescription: '검토 중입니다.',
-  createdAt: new Date().toISOString(),
-}));
+// ----------------------------------------------------------------------
+// Creative Data (Original & Witty)
+// ----------------------------------------------------------------------
+
+const CREATIVE_WORKS = [
+  {
+    title: '내 여자친구는 AI라니',
+    genre: '로맨스',
+    desc: '완벽한 그녀의 유일한 단점은 충전이 필요하다는 것.',
+  },
+  {
+    title: '코딩하다 과로사했더니 이세계 마왕',
+    genre: '판타지',
+    desc: '버그 없는 세상을 만들기 위한 마왕의 고군분투기.',
+  },
+  {
+    title: '회귀한 재벌 3세의 천재적 투자법',
+    genre: '현대판타지',
+    desc: '비트코인, 테슬라... 이번 생은 내가 접수한다.',
+  },
+  {
+    title: '무림맹주가 아이돌로 데뷔하다',
+    genre: '무협',
+    desc: '천마신교 교주가 센터라고? 프로듀스 무림 101!',
+  },
+  {
+    title: '우주 함대의 취사병 전설',
+    genre: 'SF',
+    desc: '맛없는 전투식량은 가라. 우주 최강 셰프의 탄생.',
+  },
+  {
+    title: '공작 영애는 사실 폭탄마입니다',
+    genre: '로판',
+    desc: '사교계의 꽃? 아니, 사교계의 불꽃.',
+  },
+  {
+    title: 'S급 헌터는 야근이 싫습니다',
+    genre: '현대판타지',
+    desc: '던전 공략보다 칼퇴가 더 중요한 헌터의 일상.',
+  },
+  {
+    title: '좀비 세상에서 나 혼자 힐링 캠프',
+    genre: '스릴러',
+    desc: '남들은 생존 경쟁, 나는 불멍 타임.',
+  },
+  {
+    title: '천재 해커의 이중생활',
+    genre: '드라마',
+    desc: '낮에는 편의점 알바, 밤에는 국가정보원 비밀 요원.',
+  },
+  {
+    title: '마법학교의 낙제생은 네크로맨서',
+    genre: '판타지',
+    desc: '친구를 사귀랬더니 시체를 일으켜 세웠다.',
+  },
+];
+
+const NOTICES = [
+  {
+    title: '서버실이 너무 더워서 옷을 좀 벗겼습니다...',
+    content: '쿨링 팬 커버 말이에요. 오해하지 마세요. (긴급 점검 안내)',
+  },
+  {
+    title: '[이벤트] 밸런타인데이 기념 "초콜릿보다 달콤한 연참" 챌린지',
+    content: '작가님들의 당 충전을 위해 마음만 보냅니다.',
+  },
+  {
+    title: '[업데이트] 작가님들의 멘탈 케어를 위한 "AI 칭찬봇" 도입',
+    content: '이제 악플 보고 상처받지 마세요. AI가 우쭈쭈 해드립니다.',
+  },
+  {
+    title: '새벽 3시에 알림 보내서 죄송합니다.',
+    content: '개발자가 야근하다가 실수로 버튼을 눌렀어요... 살려주세요.',
+  },
+  {
+    title: '매니저 대시보드 리뉴얼 안내',
+    content: '이제 더 직관적이고 섹시한 디자인으로 여러분을 맞이합니다.',
+  },
+];
 
 // ----------------------------------------------------------------------
 // Stateful Mock Data
 // ----------------------------------------------------------------------
 
-const MOCK_WORKS = generateList(5, (i) => ({
-  id: i,
-  title: TITLES[i % TITLES.length],
-  description: '이 작품은...',
-  status: (i === 0
-    ? 'NEW'
-    : i % 3 === 0
-      ? 'NEW'
-      : i % 3 === 1
-        ? 'ONGOING'
-        : 'COMPLETED') as
-    | 'NEW'
-    | 'ONGOING'
-    | 'COMPLETED'
-    | 'HIATUS'
-    | 'DROPPED',
-  synopsis: '시놉시스 내용입니다.',
-  genre: GENRES[i % GENRES.length],
-  coverImageUrl: `https://via.placeholder.com/300?text=Work+${i}`,
-  createdAt: new Date().toISOString(),
+// Works
+const MOCK_WORKS = CREATIVE_WORKS.map((work, i) => ({
+  id: i + 1,
+  title: work.title,
+  description: work.desc,
+  status: getRandomItem(['ONGOING', 'COMPLETED', 'HIATUS', 'NEW']),
+  synopsis: work.desc + ' 주인공의 파란만장한 모험이 시작됩니다.',
+  genre: work.genre,
+  coverImageUrl: `https://via.placeholder.com/300?text=${encodeURIComponent(work.title.substring(0, 5))}`,
+  createdAt: new Date(
+    Date.now() - getRandomInt(1, 100) * 86400000,
+  ).toISOString(),
   updatedAt: new Date().toISOString(),
-  writer: 'Author',
-  statusDescription: '상태 설명',
+  writer: `작가${i + 1}`,
+  statusDescription: '연재 중',
 }));
 
 // Add Original Work
@@ -80,86 +142,89 @@ MOCK_WORKS.push({
   statusDescription: '절찬 연재중',
 });
 
-// Map<WorkId, Lorebook[]>
+// Lorebooks
 const MOCK_LOREBOOKS = new Map<number, any[]>();
-
-// Map<WorkId, Manuscript[]>
-const MOCK_MANUSCRIPTS = new Map<number, any[]>();
-
-// Initialize lorebooks for existing works
 MOCK_WORKS.forEach((work) => {
-  const lorebookCount = 5 + Math.floor(Math.random() * 8); // 5 to 12 lorebooks
-  const lorebooks = generateList(lorebookCount, (i) => {
-    const category = getRandomItem([
+  const lorebooks = generateList(getRandomInt(5, 10), (i) => ({
+    id: work.id * 100 + i,
+    workId: work.id,
+    name: `${work.genre} 설정 ${i}`,
+    category: getRandomItem([
       'characters',
       'places',
       'items',
       'groups',
       'worldviews',
       'plots',
-    ]);
-    // Use generic descriptions instead of specific copyrighted names
-    const keyword = `${category}_${i}`;
-
-    return {
-      id: work.id * 100 + i,
-      workId: work.id,
-      name: keyword,
-      category: category,
-      description: `${category} 카테고리의 ${keyword}에 대한 상세 설정입니다.`,
-      keyword: keyword, // Ensure keyword field exists
-      setting: JSON.stringify({
-        description: `${keyword}에 대한 세부 내용입니다.`,
-        tags: ['중요', '핵심'],
-      }),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-  });
+    ]),
+    description: `${work.title}의 중요한 설정입니다.`,
+    keyword: `키워드${i}`,
+    setting: JSON.stringify({
+      description: `이 설정은 작품의 전개에 매우 중요한 역할을 합니다.`,
+      tags: ['중요', '비밀'],
+    }),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  }));
   MOCK_LOREBOOKS.set(work.id, lorebooks);
-
-  MOCK_MANUSCRIPTS.set(
-    work.id,
-    generateList(3, (i) => ({
-      id: i,
-      workId: work.id,
-      episode: i,
-      subtitle: `Subtitle ${i}`,
-      txt: `Manuscript text ${i}`,
-    })),
-  );
 });
-
-// Initialize Original Lorebooks
 MOCK_LOREBOOKS.set(ORIGINAL_WORK_ID, [...ORIGINAL_LOREBOOKS]);
 
-// Shared resolver for author list
+// Manuscripts
+const MOCK_MANUSCRIPTS = new Map<number, any[]>();
+MOCK_WORKS.forEach((work) => {
+  const manuscripts = generateList(3, (i) => ({
+    id: work.id * 1000 + i,
+    workId: work.id,
+    episode: i,
+    title: `${work.title} 제${i}화`,
+    content: `이것은 ${work.title}의 ${i}번째 에피소드 본문입니다. 흥미진진한 전개가 이어집니다...`,
+    status: 'COMPLETED',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  }));
+  MOCK_MANUSCRIPTS.set(work.id, manuscripts);
+});
+
+// Authors
+const MOCK_AUTHORS = generateList(50, (i) => ({
+  id: i + 1,
+  name: `작가${i + 1}`,
+  email: `author${i + 1}@example.com`,
+  workCount: getRandomInt(1, 5),
+  status: getRandomItem(['ACTIVE', 'INACTIVE', 'BANNED']),
+  joinDate: new Date(
+    Date.now() - getRandomInt(1, 365) * 86400000,
+  ).toISOString(),
+  lastActivityAt: new Date(
+    Date.now() - getRandomInt(0, 48) * 3600000,
+  ).toISOString(),
+}));
+
+// Shared Resolver for Author List
 const authorListResolver = ({ request }: { request: Request }) => {
   const url = new URL(request.url);
   const page = Number(url.searchParams.get('page') || 0);
   const size = Number(url.searchParams.get('size') || 10);
 
-  const authors = generateList(50, (i) => ({
-    id: i,
-    name: `작가 ${i}`,
-    email: `author${i}@example.com`,
-    workCount: Math.floor(Math.random() * 10),
-    status: getRandomItem(['ACTIVE', 'INACTIVE', 'BANNED']),
-    createdAt: new Date().toISOString(),
-  }));
-
   const start = page * size;
   const end = start + size;
-  const content = authors.slice(start, end);
+  const content = MOCK_AUTHORS.slice(start, end).map((author) => ({
+    id: author.id,
+    name: author.name,
+    email: author.email,
+    workCount: author.workCount,
+    status: author.status,
+    createdAt: author.joinDate, // DTO field name matching
+  }));
 
   return HttpResponse.json({
     content,
-    pageable: {
-      pageNumber: page,
-      pageSize: size,
-    },
-    totalElements: authors.length,
-    totalPages: Math.ceil(authors.length / size),
+    pageable: { pageNumber: page, pageSize: size },
+    totalElements: MOCK_AUTHORS.length,
+    totalPages: Math.ceil(MOCK_AUTHORS.length / size),
+    number: page,
+    size: size,
   });
 };
 
@@ -169,34 +234,19 @@ const authorListResolver = ({ request }: { request: Request }) => {
 
 export const handlers: RequestHandler[] = [
   // ======================================================================
-  // 1. Test API
+  // 1. Common / Test API
   // ======================================================================
   http.get(
     `${BACKEND_URL}/api/v1/hello`,
-    () =>
-      new HttpResponse('helloUser AIVLE SCHOOL 8th', {
-        headers: { 'Content-Type': 'text/plain' },
-      }),
+    () => new HttpResponse('helloUser AIVLE SCHOOL 8th'),
   ),
   http.get(
     `${BACKEND_URL}/api/v1/auth/naver/hello`,
-    () =>
-      new HttpResponse('naverhelloUser AIVLE SCHOOL 8th', {
-        headers: { 'Content-Type': 'text/plain' },
-      }),
-  ),
-  http.get(`${BACKEND_URL}/api/v1/api/test`, () =>
-    HttpResponse.json(
-      generateList(30, (i) => ({
-        id: i,
-        name: `테스트 데이터 ${i}`,
-        createdAt: new Date(Date.now() - i * 86400000).toISOString(),
-      })),
-    ),
+    () => new HttpResponse('naverhelloUser AIVLE SCHOOL 8th'),
   ),
 
   // ======================================================================
-  // 2. User API (Auth & Signup)
+  // 2. User API (Auth)
   // ======================================================================
   http.get(`${BACKEND_URL}/api/v1/auth/me`, () => {
     const storedRole = localStorage.getItem('msw-session-role');
@@ -232,52 +282,105 @@ export const handlers: RequestHandler[] = [
     return HttpResponse.json({ success: true });
   }),
 
-  http.post(`${BACKEND_URL}/api/v1/auth/password/reset`, async () => {
-    await delay(1000);
+  // ======================================================================
+  // 3. Manager API
+  // ======================================================================
+
+  // Dashboard Page
+  http.get(`${BACKEND_URL}/api/v1/manager/dashboard`, () => {
     return HttpResponse.json({
-      message: '비밀번호 재설정 이메일이 발송되었습니다.',
+      summary: {
+        pendingProposals: getRandomInt(5, 20),
+        managedAuthors: MOCK_AUTHORS.length,
+        activeAuthors: MOCK_AUTHORS.filter((a) => a.status === 'ACTIVE').length,
+      },
+      notices: NOTICES.map((n, i) => ({
+        id: i + 1,
+        title: n.title,
+        content: n.content,
+        createdAt: new Date().toISOString(),
+        viewCount: getRandomInt(10, 500),
+      })),
     });
   }),
 
-  http.post(`${BACKEND_URL}/api/v1/auth/password/verify-code`, async () => {
-    await delay(500);
-    return HttpResponse.json({ verified: true });
+  // Dashboard Summary (Standalone)
+  http.get(`${BACKEND_URL}/api/v1/manager/dashboard/summary`, () => {
+    return HttpResponse.json({
+      pendingProposals: getRandomInt(5, 20),
+      managedAuthors: MOCK_AUTHORS.length,
+      activeAuthors: MOCK_AUTHORS.filter((a) => a.status === 'ACTIVE').length,
+    });
   }),
 
-  http.post(`${BACKEND_URL}/api/v1/auth/password/change`, async () => {
-    await delay(1000);
-    return HttpResponse.json({ success: true });
+  // Author Summary
+  http.get(`${BACKEND_URL}/api/v1/manager/authors/summary`, () => {
+    return HttpResponse.json({
+      totalAuthors: MOCK_AUTHORS.length,
+      newAuthors: getRandomInt(1, 10),
+      activeAuthors: MOCK_AUTHORS.filter((a) => a.status === 'ACTIVE').length,
+    });
   }),
 
-  http.post(`${BACKEND_URL}/api/v1/auth/join`, async () => {
-    await delay(1000);
-    return HttpResponse.json({ success: true });
+  // Author List
+  http.get(`${BACKEND_URL}/api/v1/manager/authors`, authorListResolver),
+  http.get(`${BACKEND_URL}/api/v1/manager/authors/list`, authorListResolver),
+
+  // Author Detail
+  http.get(`${BACKEND_URL}/api/v1/manager/authors/:id`, ({ params }) => {
+    const id = Number(params.id);
+    const author = MOCK_AUTHORS.find((a) => a.id === id);
+    if (!author) return new HttpResponse(null, { status: 404 });
+    return HttpResponse.json({
+      ...author,
+      phone: '010-1234-5678',
+      works: MOCK_WORKS.slice(0, 3), // Return some works
+    });
   }),
 
-  http.get(`${BACKEND_URL}/api/v1/auth/check-email`, async () => {
-    await delay(500);
-    return HttpResponse.json({ available: true });
+  // Invite Code Match
+  http.post(`${BACKEND_URL}/api/v1/manager/authors/:pwd`, ({ params }) => {
+    if (params.pwd === '123456') {
+      return HttpResponse.json({ ok: true, matched: true, authorId: 1 });
+    }
+    return HttpResponse.json({
+      ok: false,
+      message: '유효하지 않은 코드입니다.',
+    });
   }),
 
-  http.post(`${BACKEND_URL}/api/v1/auth/send-verification`, async () => {
-    await delay(500);
-    return HttpResponse.json({ success: true });
-  }),
+  // IP Trend
+  http.get(`${BACKEND_URL}/api/v1/manager/iptrend`, () =>
+    HttpResponse.json({
+      latestReport: {
+        id: 1,
+        title: '2025년 2월 1주차 트렌드 리포트',
+        date: new Date().toISOString(),
+      },
+      statistics: { topGenre: '로맨스판타지', emergingKeyword: '회귀, 복수' },
+    }),
+  ),
 
-  http.post(`${BACKEND_URL}/api/v1/auth/verify-email`, async () => {
-    await delay(500);
-    return HttpResponse.json({ verified: true });
-  }),
+  http.get(`${BACKEND_URL}/api/v1/manager/iptrend/list`, () =>
+    HttpResponse.json({
+      content: generateList(10, (i) => ({
+        id: i,
+        title: `2025년 2월 ${i}주차 트렌드 리포트`,
+        createdAt: new Date().toISOString(),
+      })),
+      totalPages: 1,
+      totalElements: 10,
+    }),
+  ),
 
   // ======================================================================
-  // 3. Author API
+  // 4. Author API
   // ======================================================================
 
-  // WorkController
+  // Works
   http.get(`${BACKEND_URL}/api/v1/author/works`, ({ request }) => {
     const url = new URL(request.url);
     const authorId = url.searchParams.get('authorId');
-    // In a real app, filter by authorId. Here we just return all mock works.
     return HttpResponse.json(MOCK_WORKS);
   }),
 
@@ -300,53 +403,16 @@ export const handlers: RequestHandler[] = [
     return HttpResponse.json(newWork.id);
   }),
 
-  http.patch(
-    `${BACKEND_URL}/api/v1/author/works/:id/status`,
-    async ({ params, request }) => {
-      const id = Number(params.id);
-      const status = new URL(request.url).searchParams.get('status');
-      const work = MOCK_WORKS.find((w) => w.id === id);
-      if (work && status) {
-        work.status = status as any;
-      }
-      return new HttpResponse(null, { status: 200 });
-    },
-  ),
-
-  http.patch(
-    `${BACKEND_URL}/api/v1/author/works/:id`,
-    async ({ params, request }) => {
-      const id = Number(params.id);
-      const body = (await request.json()) as any;
-      const work = MOCK_WORKS.find((w) => w.id === id);
-      if (work) {
-        Object.assign(work, body);
-      }
-      return new HttpResponse(null, { status: 200 });
-    },
-  ),
-
-  http.delete(`${BACKEND_URL}/api/v1/author/works/:id`, ({ params }) => {
-    const id = Number(params.id);
-    const index = MOCK_WORKS.findIndex((w) => w.id === id);
-    if (index > -1) {
-      MOCK_WORKS.splice(index, 1);
-    }
-    return new HttpResponse(null, { status: 204 });
-  }),
-
-  // ManuscriptController
+  // Manuscripts
   http.get(
     `${BACKEND_URL}/api/v1/author/:userId/:title/manuscript/list`,
     ({ params }) => {
-      // Logic to filter manuscripts by work title/id would go here
-      // For mock, we just return manuscripts for the first work or generic ones
-      const work = MOCK_WORKS.find(
-        (w) => w.title === decodeURIComponent(params.title as string),
-      );
+      const title = decodeURIComponent(params.title as string);
+      // Find work by title to get workId, or fallback
+      const work = MOCK_WORKS.find((w) => w.title === title);
       const workId = work ? work.id : ORIGINAL_WORK_ID;
-      const manuscripts = MOCK_MANUSCRIPTS.get(workId) || [];
 
+      const manuscripts = MOCK_MANUSCRIPTS.get(workId) || [];
       return HttpResponse.json({
         content: manuscripts,
         totalPages: 1,
@@ -361,7 +427,6 @@ export const handlers: RequestHandler[] = [
     `${BACKEND_URL}/api/v1/author/:userId/:title/manuscript/:id`,
     ({ params }) => {
       const id = Number(params.id);
-      // Flatten all manuscripts to find by ID
       const allManuscripts = Array.from(MOCK_MANUSCRIPTS.values()).flat();
       const manuscript = allManuscripts.find((m) => m.id === id);
       if (!manuscript) return new HttpResponse(null, { status: 404 });
@@ -369,85 +434,7 @@ export const handlers: RequestHandler[] = [
     },
   ),
 
-  // Manuscript Upload (Create)
-  http.post(
-    `${BACKEND_URL}/api/v1/author/:userId/:title/manuscript/upload`,
-    async ({ request, params }) => {
-      const body = (await request.json()) as any;
-      const work = MOCK_WORKS.find(
-        (w) => w.title === decodeURIComponent(params.title as string),
-      );
-      const workId = work ? work.id : ORIGINAL_WORK_ID;
-
-      const newId = Math.floor(Math.random() * 100000);
-      const newManuscript = {
-        id: newId,
-        workId: workId,
-        ...body,
-        createdAt: new Date().toISOString(),
-      };
-
-      const current = MOCK_MANUSCRIPTS.get(workId) || [];
-      current.push(newManuscript);
-      MOCK_MANUSCRIPTS.set(workId, current);
-
-      return HttpResponse.json(newId);
-    },
-  ),
-
-  // Manuscript Update Text
-  http.patch(
-    `${BACKEND_URL}/api/v1/author/:userId/:title/manuscript/upload`,
-    async ({ request }) => {
-      const body = (await request.json()) as any;
-      // Mock update success
-      return HttpResponse.json(body.id || 1);
-    },
-  ),
-
-  // Manuscript Category Extraction
-  http.post(
-    `${BACKEND_URL}/api/v1/author/:userId/:title/manuscript/categories`,
-    async () => {
-      await delay(1000);
-      return HttpResponse.json({
-        categories: [
-          { name: '엘라라', category: 'character', confidence: 0.9 },
-          { name: '기어헤이븐', category: 'place', confidence: 0.85 },
-        ],
-      });
-    },
-  ),
-
-  // Manuscript Setting Conflict Check
-  http.post(
-    `${BACKEND_URL}/api/v1/author/:userId/:title/manuscript/setting`,
-    async () => {
-      await delay(1000);
-      return HttpResponse.json({
-        conflicts: [],
-        status: 'PASS',
-      });
-    },
-  ),
-
-  // Manuscript Delete
-  http.delete(
-    `${BACKEND_URL}/api/v1/author/:userId/:title/manuscript/:id`,
-    () => {
-      return HttpResponse.json('삭제 완료');
-    },
-  ),
-
-  // Manuscript Update Info
-  http.patch(
-    `${BACKEND_URL}/api/v1/author/:userId/:title/manuscript/:id`,
-    () => {
-      return HttpResponse.json('수정 완료');
-    },
-  ),
-
-  // AuthorLorebookController & AiLorebookController
+  // Lorebooks
   http.get(
     `${BACKEND_URL}/api/v1/author/:userId/:title/lorebook`,
     ({ request, params }) => {
@@ -457,9 +444,7 @@ export const handlers: RequestHandler[] = [
       if (!workId) {
         const title = decodeURIComponent(params.title as string);
         const work = MOCK_WORKS.find((w) => w.title === title);
-        if (work) {
-          workId = work.id;
-        }
+        if (work) workId = work.id;
       }
 
       const lorebooks = MOCK_LOREBOOKS.get(workId) || [];
@@ -484,6 +469,16 @@ export const handlers: RequestHandler[] = [
     },
   ),
 
+  // Conflict Solve (Mock)
+  http.post(
+    `${BACKEND_URL}/api/v1/ai/author/:userId/:title/lorebook/conflict_solve`,
+    async () => {
+      await delay(500);
+      return HttpResponse.json('충돌이 해결되었습니다.');
+    },
+  ),
+
+  // Setting Save
   http.post(
     `${BACKEND_URL}/api/v1/ai/author/:userId/:title/lorebook/setting_save`,
     async ({ request }) => {
@@ -491,9 +486,8 @@ export const handlers: RequestHandler[] = [
       const targetWorkId = body.workId ? Number(body.workId) : ORIGINAL_WORK_ID;
       const currentLorebooks = MOCK_LOREBOOKS.get(targetWorkId) || [];
 
-      const newId = Math.max(...currentLorebooks.map((l) => l.id), 0) + 1;
       const newLorebook = {
-        id: newId,
+        id: Math.max(...currentLorebooks.map((l) => l.id), 0) + 1,
         workId: targetWorkId,
         ...body,
         createdAt: new Date().toISOString(),
@@ -511,62 +505,6 @@ export const handlers: RequestHandler[] = [
     },
   ),
 
-  http.post(
-    `${BACKEND_URL}/api/v1/ai/author/:userId/:title/lorebook/conflict_solve`,
-    async ({ request }) => {
-      // Mock conflict solve success
-      return HttpResponse.json('충돌이 해결되었습니다.');
-    },
-  ),
-
-  http.patch(
-    `${BACKEND_URL}/api/v1/ai/author/:userId/:title/lorebook/:tags/:itemId`,
-    async ({ params, request }) => {
-      const itemId = Number(params.itemId);
-      const body = (await request.json()) as any;
-
-      // Find lorebook in all works
-      let targetLorebook = null;
-      let targetWorkId = -1;
-
-      for (const [workId, lorebooks] of MOCK_LOREBOOKS.entries()) {
-        const found = lorebooks.find((l) => l.id === itemId);
-        if (found) {
-          targetLorebook = found;
-          targetWorkId = workId;
-          break;
-        }
-      }
-
-      if (targetLorebook) {
-        Object.assign(targetLorebook, body);
-        targetLorebook.updatedAt = new Date().toISOString();
-        return HttpResponse.json({
-          ...targetLorebook,
-          similarSettings: [],
-          checkResult: 'PASS',
-        });
-      }
-
-      return new HttpResponse(null, { status: 404 });
-    },
-  ),
-
-  http.delete(
-    `${BACKEND_URL}/api/v1/author/:userId/:title/lorebook/:tags/:id`,
-    ({ params }) => {
-      const id = Number(params.id);
-      for (const [workId, lorebooks] of MOCK_LOREBOOKS.entries()) {
-        const index = lorebooks.findIndex((l) => l.id === id);
-        if (index > -1) {
-          lorebooks.splice(index, 1);
-          return HttpResponse.json('삭제 완료');
-        }
-      }
-      return new HttpResponse(null, { status: 404 });
-    },
-  ),
-
   // Invite Code
   http.get(`${BACKEND_URL}/api/v1/author/invite-code`, () =>
     HttpResponse.json({
@@ -577,213 +515,100 @@ export const handlers: RequestHandler[] = [
   ),
 
   // ======================================================================
-  // 4. Manager API
+  // 5. Admin API
   // ======================================================================
 
-  // Manager Author Controller
-  http.get(`${BACKEND_URL}/api/v1/manager/authors/summary`, () =>
-    HttpResponse.json({
-      totalAuthors: 150,
-      newAuthorsToday: 3,
-      activeAuthors: 120,
-      totalWorks: 450,
-    }),
-  ),
-
-  http.get(`${BACKEND_URL}/api/v1/manager/authors`, authorListResolver),
-
-  http.get(`${BACKEND_URL}/api/v1/manager/authors/list`, authorListResolver),
-
-  http.get(`${BACKEND_URL}/api/v1/manager/authors/:id`, ({ params }) => {
-    const id = Number(params.id);
+  // Dashboard Page
+  http.get(`${BACKEND_URL}/api/v1/admin/dashboard`, () => {
     return HttpResponse.json({
-      id,
-      name: `작가 ${id}`,
-      email: `author${id}@example.com`,
-      phone: '010-1234-5678',
-      status: 'ACTIVE',
-      joinDate: '2025-01-01',
-      works: MOCK_WORKS,
+      summary: {
+        totalUsers: 1234,
+        activeUsers: 850,
+        totalSales: 98765000,
+        serverStatus: 'STABLE',
+      },
+      dauData: {
+        dates: generateList(7, (i) => `2025-02-0${i}`),
+        values: generateList(7, () => getRandomInt(100, 300)),
+      },
+      resourceUsage: {
+        cpu: getRandomInt(20, 80),
+        memory: getRandomInt(40, 90),
+        disk: getRandomInt(30, 60),
+      },
+      recentLogs: generateList(5, (i) => ({
+        id: i,
+        timestamp: new Date().toISOString(),
+        level: getRandomItem(['INFO', 'WARN', 'ERROR']),
+        message: getRandomItem([
+          '사용자가 비밀번호를 까먹었습니다.',
+          '서버실 온도가 약간 높습니다 (25도).',
+          '누군가 관리자 페이지에 접근을 시도했습니다.',
+          '배포가 성공적으로 완료되었습니다.',
+          '커피 머신 물 부족 알림.',
+        ]),
+        source: 'System',
+      })),
     });
   }),
 
-  http.post(`${BACKEND_URL}/api/v1/manager/authors/:pwd`, ({ params }) => {
-    if (params.pwd === '123456') {
-      return HttpResponse.json({ ok: true, matched: true, authorId: 1 });
-    }
-    return HttpResponse.json({ ok: false, message: 'Invalid code' });
+  // Summary
+  http.get(`${BACKEND_URL}/api/v1/admin/dashboard/summary`, () => {
+    return HttpResponse.json({
+      totalUsers: 1234,
+      activeUsers: 850,
+      totalSales: 98765000,
+      serverStatus: 'STABLE',
+    });
   }),
 
-  // Manager Dashboard Controller
-  http.get(`${BACKEND_URL}/api/v1/manager/dashboard`, () =>
-    HttpResponse.json({
-      stats: {
-        totalUsers: 1000,
-        dau: 150,
-        mau: 800,
-      },
-      notices: [
-        { id: 1, title: '점검 안내', content: '...', date: '2025-02-07' },
-      ],
-    }),
-  ),
+  // DAU
+  http.get(`${BACKEND_URL}/api/v1/admin/dashboard/dau`, () => {
+    return HttpResponse.json({
+      dates: generateList(7, (i) => `2025-02-0${i}`),
+      values: generateList(7, () => getRandomInt(100, 300)),
+    });
+  }),
 
-  http.get(`${BACKEND_URL}/api/v1/manager/dashboard/summary`, () =>
-    HttpResponse.json({
-      activeCampaigns: 5,
-      pendingProposals: 3,
-      systemStatus: 'NORMAL',
-    }),
-  ),
+  // Resources
+  http.get(`${BACKEND_URL}/api/v1/admin/dashboard/resources`, () => {
+    return HttpResponse.json({
+      cpu: getRandomInt(20, 80),
+      memory: getRandomInt(40, 90),
+      disk: getRandomInt(30, 60),
+    });
+  }),
 
-  // IP Trend Controller
-  http.get(`${BACKEND_URL}/api/v1/manager/iptrend`, () =>
-    HttpResponse.json({
-      latestReport: {
-        id: 1,
-        title: '2025년 2월 1주차 트렌드',
-        date: '2025-02-07',
-      },
-      statistics: { topGenre: '판타지', emergingKeyword: '회귀' },
-    }),
-  ),
-
-  http.get(`${BACKEND_URL}/api/v1/manager/iptrend/list`, () =>
-    HttpResponse.json({
-      content: generateList(10, (i) => ({
+  // Logs
+  http.get(`${BACKEND_URL}/api/v1/admin/dashboard/logs`, () => {
+    return HttpResponse.json({
+      logs: generateList(20, (i) => ({
         id: i,
-        title: `2025년 2월 ${i}주차 트렌드 리포트`,
-        createdAt: new Date().toISOString(),
+        timestamp: new Date(Date.now() - i * 60000).toISOString(),
+        level: getRandomItem(['INFO', 'WARN', 'ERROR']),
+        message: getRandomItem([
+          '사용자가 비밀번호를 까먹었습니다.',
+          '서버실 온도가 약간 높습니다 (25도).',
+          '누군가 관리자 페이지에 접근을 시도했습니다.',
+          '배포가 성공적으로 완료되었습니다.',
+          '커피 머신 물 부족 알림.',
+          'DB 커넥션 풀이 목마르다고 합니다.',
+          '신규 가입자가 폭주하고 있습니다! (희망사항)',
+        ]),
+        source: 'System',
       })),
-      totalPages: 1,
-      totalElements: 10,
-    }),
-  ),
-
-  http.get(`${BACKEND_URL}/api/v1/manager/iptrend/preview/:reportId`, () =>
-    HttpResponse.json({
-      previewUrl: 'https://via.placeholder.com/600x800?text=Report+Preview',
-    }),
-  ),
-
-  http.get(
-    `${BACKEND_URL}/api/v1/manager/iptrend/report`,
-    () =>
-      new HttpResponse(new ArrayBuffer(10), {
-        headers: { 'Content-Type': 'application/pdf' },
-      }),
-  ),
-
-  http.get(
-    `${BACKEND_URL}/api/v1/manager/iptrend/download/:reportId`,
-    () =>
-      new HttpResponse(new ArrayBuffer(10), {
-        headers: { 'Content-Type': 'application/pdf' },
-      }),
-  ),
-
-  http.post(`${BACKEND_URL}/api/v1/manager/iptrend/generate`, () =>
-    HttpResponse.json({
-      status: 'STARTED',
-      message: '리포트 생성이 시작되었습니다.',
-    }),
-  ),
-
-  http.get(`${BACKEND_URL}/api/v1/manager/iptrend/exists-today`, () =>
-    HttpResponse.json(true),
-  ),
-
-  http.post(`${BACKEND_URL}/api/v1/manager/iptrend/scheduler/run`, () =>
-    HttpResponse.json({ success: true, message: '스케줄러 실행됨' }),
-  ),
-
-  // IP Expansion (Manager)
-  http.get(
-    `${BACKEND_URL}/api/v1/manager/ip-expansion/proposals`,
-    ({ request }) => {
-      const url = new URL(request.url);
-      const status = url.searchParams.get('status');
-      const filtered =
-        status && status !== 'ALL'
-          ? ORIGINAL_IP_EXPANSION_PROPOSALS.filter((p) => p.status === status)
-          : ORIGINAL_IP_EXPANSION_PROPOSALS;
-
-      return HttpResponse.json({
-        content: filtered,
-        totalPages: 1,
-        totalElements: filtered.length,
-      });
-    },
-  ),
-
-  http.get(`${BACKEND_URL}/api/v1/manager/ip-expansion/:id`, ({ params }) => {
-    const id = Number(params.id);
-    const proposal = ORIGINAL_IP_EXPANSION_PROPOSALS.find((p) => p.id === id);
-    if (!proposal) return new HttpResponse(null, { status: 404 });
-    return HttpResponse.json(proposal);
+      totalCount: 100,
+    });
   }),
 
-  http.post(
-    `${BACKEND_URL}/api/v1/manager/ip-expansion`,
-    async ({ request }) => {
-      const body = (await request.json()) as any;
-      const newProposal = {
-        id: Math.floor(Math.random() * 100000) + 20000,
-        ...body,
-        status: 'PENDING',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      ORIGINAL_IP_EXPANSION_PROPOSALS.unshift(newProposal);
-      return HttpResponse.json(newProposal);
-    },
-  ),
-
-  http.patch(
-    `${BACKEND_URL}/api/v1/manager/ip-expansion/:id`,
-    async ({ params, request }) => {
-      const id = Number(params.id);
-      const body = (await request.json()) as any;
-      const proposal = ORIGINAL_IP_EXPANSION_PROPOSALS.find((p) => p.id === id);
-      if (proposal) {
-        Object.assign(proposal, body);
-        proposal.updatedAt = new Date().toISOString();
-        return HttpResponse.json(proposal);
-      }
-      return new HttpResponse(null, { status: 404 });
-    },
-  ),
-
-  http.delete(
-    `${BACKEND_URL}/api/v1/manager/ip-expansion/:id`,
-    ({ params }) => {
-      const id = Number(params.id);
-      const index = ORIGINAL_IP_EXPANSION_PROPOSALS.findIndex(
-        (p) => p.id === id,
-      );
-      if (index > -1) {
-        ORIGINAL_IP_EXPANSION_PROPOSALS.splice(index, 1);
-      }
-      return new HttpResponse(null, { status: 204 });
-    },
-  ),
-
-  // Admin API
-  http.get(`${BACKEND_URL}/api/v1/admin/dashboard`, () =>
-    HttpResponse.json({
-      visitors: 1200,
-      revenue: 5000000,
-      activeUsers: 800,
-    }),
-  ),
-
-  http.get(`${BACKEND_URL}/api/v1/admin/users`, () =>
-    HttpResponse.json({
-      content: [
-        { id: 1, name: 'User 1', email: 'user1@example.com', role: 'AUTHOR' },
-        { id: 2, name: 'User 2', email: 'user2@example.com', role: 'MANAGER' },
-      ],
-      totalPages: 1,
-    }),
-  ),
+  // Deployment
+  http.get(`${BACKEND_URL}/api/v1/admin/dashboard/deployment`, () => {
+    return HttpResponse.json({
+      version: 'v1.2.3 (Hotfix)',
+      lastDeployedAt: new Date().toISOString(),
+      deployedBy: '김인턴',
+      environment: 'PRODUCTION',
+      status: 'HEALTHY',
+    });
+  }),
 ];
