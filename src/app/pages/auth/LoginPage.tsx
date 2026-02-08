@@ -20,6 +20,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import NaverLogin from '../../components/NaverLogin/NaverLoginButton';
 import { authService } from '../../services/authService';
+import { Logo } from '../../components/common/Logo';
 import {
   Dialog,
   DialogContent,
@@ -250,8 +251,8 @@ export function LoginPage({ onLogin, onBack }: LoginPageProps) {
           </div>
 
           <div className="flex flex-col items-center gap-4">
-            <div className="flex h-16 w-16 items-center justify-center rounded-[1.25rem] bg-primary shadow-xl shadow-primary/20 ring-1 ring-primary/10">
-              <Brain className="h-8 w-8 text-primary-foreground" />
+            <div className="scale-150 py-4">
+              <Logo />
             </div>
             <h1 className="text-2xl font-black tracking-tight dark:text-foreground">
               반가워요!
