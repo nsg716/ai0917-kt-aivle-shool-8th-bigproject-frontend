@@ -36,9 +36,12 @@ import React, {
   useEffect,
 } from 'react';
 import { ThemeToggle } from '../../components/ui/theme-toggle';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { authService } from '../../services/authService';
+import { authorService } from '../../services/authorService';
+import { AuthorNoticeDto } from '../../types/author';
 import { PasswordChangeModal } from '../../components/dashboard/PasswordChangeModal';
+import { toast } from 'sonner';
 
 // Import sub-components
 import { AuthorHome } from './author/AuthorHome';
@@ -65,25 +68,10 @@ export function AuthorDashboard({ onLogout, onHome }: AuthorDashboardProps) {
     useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const profileDropdownRef = useRef<HTMLDivElement>(null);
+  const notificationDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        profileDropdownRef.current &&
-        !profileDropdownRef.current.contains(event.target as Node)
-      ) {
-        setShowProfileDropdown(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
-
-  // Password Change State
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const queryClient = useQueryClient();
+  const [newNotification, setNewNotification] = useState(false);
 
   // Fetch User Profile
   const { data: userData } = useQuery({
@@ -101,6 +89,118 @@ export function AuthorDashboard({ onLogout, onHome }: AuthorDashboardProps) {
       : userData && 'userId' in userData
         ? String(userData.userId)
         : '';
+
+  // System Notices (Real-time)
+  const { data: notificationsData, refetch: refetchNotifications } = useQuery({
+    queryKey: ['author', 'system-notices', integrationId],
+    queryFn: () => {
+      if (!integrationId)
+        return {
+          content: [],
+          totalElements: 0,
+          totalPages: 0,
+          size: 0,
+          number: 0,
+          last: true,
+          page: 0,
+        };
+      return authorService.getSystemNotices(integrationId);
+    },
+    enabled: !!integrationId,
+    // Poll every minute as fallback if SSE fails or just to sync
+    refetchInterval: 60000,
+  });
+
+  const notifications = notificationsData?.content || [];
+  const unreadCount = notifications.filter(
+    (n: AuthorNoticeDto) => !n.read,
+  ).length;
+
+  // SSE Subscription
+  useEffect(() => {
+    if (!integrationId) return;
+
+    const eventSource = new EventSource(
+      authorService.getSystemNoticeSubscribeUrl(integrationId),
+      { withCredentials: true },
+    );
+
+    eventSource.onopen = () => {
+      console.log('SSE Connected');
+    };
+
+    eventSource.addEventListener('system-notice', (event) => {
+      console.log('New Notification:', event.data);
+      try {
+        const newNotice = JSON.parse(event.data);
+        toast.info(newNotice.title || '새로운 알림이 도착했습니다.');
+        setNewNotification(true);
+        refetchNotifications();
+      } catch (e) {
+        console.error('Failed to parse notification', e);
+      }
+    });
+
+    eventSource.onerror = (err) => {
+      console.error('SSE Error:', err);
+      eventSource.close();
+    };
+
+    return () => {
+      eventSource.close();
+    };
+  }, [integrationId, refetchNotifications]);
+
+  const handleNotificationClick = async (notice: AuthorNoticeDto) => {
+    if (!notice.read && integrationId) {
+      try {
+        // source is required for the API: /api/v1/author/sysnotice/{source}/{id}/read
+        // Assuming notice object has 'source' field. If not, we might need to fallback or check type.
+        // Based on DTO, it should have it.
+        const source = notice.source || 'system';
+        await authorService.readSystemNotice(notice.id, source, integrationId);
+        refetchNotifications();
+      } catch (error) {
+        console.error('Failed to mark notice as read', error);
+      }
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    if (!integrationId) return;
+    try {
+      await authorService.readAllSystemNotices(integrationId);
+      refetchNotifications();
+      toast.success('모든 알림을 읽음 처리했습니다.');
+    } catch (error) {
+      toast.error('알림 읽음 처리에 실패했습니다.');
+    }
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        profileDropdownRef.current &&
+        !profileDropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowProfileDropdown(false);
+      }
+      if (
+        notificationDropdownRef.current &&
+        !notificationDropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowNotificationDropdown(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Password Change State
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
 
   const handleMenuClick = useCallback((menu: string) => {
     setActiveMenu(menu);
@@ -375,70 +475,80 @@ export function AuthorDashboard({ onLogout, onHome }: AuthorDashboardProps) {
 
             <div className="flex items-center gap-2">
               <ThemeToggle />
-              <div className="relative">
+              <div className="relative" ref={notificationDropdownRef}>
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="border-border"
+                  className="border-border relative"
                   onClick={() =>
                     setShowNotificationDropdown(!showNotificationDropdown)
                   }
                 >
                   <Bell className="w-4 h-4" />
+                  {(unreadCount > 0 || newNotification) && (
+                    <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border border-card" />
+                  )}
                 </Button>
 
                 {showNotificationDropdown && (
                   <div className="absolute top-full right-0 mt-2 w-[calc(100vw-2rem)] sm:w-96 max-w-[32rem] bg-card border border-border rounded-lg shadow-lg z-50">
-                    <div className="p-3 sm:p-4 border-b border-border">
+                    <div className="p-3 sm:p-4 border-b border-border flex justify-between items-center">
                       <h3 className="text-xs sm:text-sm font-semibold text-foreground">
-                        최근 활동
+                        알림
                       </h3>
+                      {unreadCount > 0 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-auto p-0 text-xs text-muted-foreground hover:text-primary"
+                          onClick={handleMarkAllAsRead}
+                        >
+                          모두 읽음
+                        </Button>
+                      )}
                     </div>
-                    <div className="p-3 sm:p-4 space-y-3 sm:space-y-4 max-h-96 overflow-y-auto">
-                      <div className="flex items-center gap-3 sm:gap-4">
-                        <div className="w-10 h-14 sm:w-12 sm:h-16 bg-gradient-to-br from-slate-700 to-slate-900 rounded flex items-center justify-center flex-shrink-0">
-                          <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-xs sm:text-sm text-foreground mb-0.5 sm:mb-1 truncate">
-                            암흑의 영역 연대기 - 47화
+                    <div className="p-0 max-h-96 overflow-y-auto">
+                      {notifications.length > 0 ? (
+                        notifications.map((notice) => (
+                          <div
+                            key={notice.id}
+                            className={`flex items-start gap-3 sm:gap-4 p-3 sm:p-4 hover:bg-accent/50 transition-colors cursor-pointer border-b border-border last:border-0 ${
+                              !notice.read ? 'bg-accent/10' : ''
+                            }`}
+                            onClick={() => handleNotificationClick(notice)}
+                          >
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 text-primary">
+                              <Megaphone className="w-4 h-4 sm:w-5 sm:h-5" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex justify-between items-start mb-0.5">
+                                <span
+                                  className={`text-xs sm:text-sm font-medium ${
+                                    !notice.read
+                                      ? 'text-foreground'
+                                      : 'text-muted-foreground'
+                                  }`}
+                                >
+                                  {notice.title}
+                                </span>
+                                {!notice.read && (
+                                  <span className="w-1.5 h-1.5 rounded-full bg-red-500 mt-1.5" />
+                                )}
+                              </div>
+                              <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">
+                                {notice.content}
+                              </p>
+                              <div className="text-[10px] sm:text-xs text-muted-foreground mt-1">
+                                {new Date(notice.createdAt).toLocaleString()}
+                              </div>
+                            </div>
                           </div>
-                          <div className="text-[11px] sm:text-xs text-muted-foreground">
-                            2시간 전 업로드됨
-                          </div>
+                        ))
+                      ) : (
+                        <div className="p-8 text-center text-muted-foreground text-sm">
+                          새로운 알림이 없습니다.
                         </div>
-                        <Badge className="bg-green-500 text-white text-[10px] sm:text-xs flex-shrink-0">
-                          활성
-                        </Badge>
-                      </div>
-
-                      <div className="flex items-center gap-3 sm:gap-4">
-                        <div className="w-10 h-14 sm:w-12 sm:h-16 bg-gradient-to-br from-slate-700 to-slate-900 rounded flex items-center justify-center flex-shrink-0">
-                          <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-xs sm:text-sm text-foreground mb-0.5 sm:mb-1 truncate">
-                            암흑의 영역 연대기 - 46화
-                          </div>
-                          <div className="text-[11px] sm:text-xs text-muted-foreground">
-                            1일 전 업로드됨
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-3 sm:gap-4">
-                        <div className="w-10 h-14 sm:w-12 sm:h-16 bg-gradient-to-br from-purple-500 to-purple-700 rounded flex items-center justify-center flex-shrink-0">
-                          <Database className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-xs sm:text-sm text-foreground mb-0.5 sm:mb-1 truncate">
-                            설정집 자동 생성 완료
-                          </div>
-                          <div className="text-[11px] sm:text-xs text-muted-foreground">
-                            2일 전
-                          </div>
-                        </div>
-                      </div>
+                      )}
                     </div>
                   </div>
                 )}
