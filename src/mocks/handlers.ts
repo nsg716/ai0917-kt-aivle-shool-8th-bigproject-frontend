@@ -489,7 +489,7 @@ export const handlers: RequestHandler[] = [
 
   // Manager IP Expansion Author Works
   http.get(
-    `${BACKEND_URL}/api/v1/manager/ipext/:authorId/authorwork`,
+    `${BACKEND_URL}/api/v1/manager/ipext/:authorIntegrationId/authorwork`,
     ({ params }) => {
       // Mock returning works for the author
       // For simplicity, just return all mock works
@@ -498,50 +498,85 @@ export const handlers: RequestHandler[] = [
   ),
 
   // Manager IP Expansion Conflict Check
-  http.post(`${BACKEND_URL}/api/v1/ai/manager/ipext/settings`, async () => {
-    await delay(1000);
+  http.post(
+    `${BACKEND_URL}/api/v1/manager/ipext/:workId/conflict-check`,
+    async () => {
+      await delay(1000);
+      return HttpResponse.json({
+        conflict: false,
+        message: '충돌이 발견되지 않았습니다.',
+      });
+    },
+  ),
+
+  // ======================================================================
+  // 5. Author IP Expansion API
+  // ======================================================================
+
+  // Get My Manager
+  http.get(`${BACKEND_URL}/api/v1/author/manager`, () => {
     return HttpResponse.json({
-      충돌: {
-        인물: [
-          {
-            강태호: '[결과: 충돌]\n [판단사유: 인물의 성격 묘사가 상충됩니다.]',
-            신규설정: {
-              별명: ['불도저'],
-              성격: ['저돌적임', '다혈질'],
-              배경: ['특수부대 출신 경호원'],
-              종족: ['인간'],
-            },
-            기존설정: {
-              별명: ['그림자'],
-              성격: ['냉철함', '신중함'],
-              배경: ['정보국 요원'],
-              종족: ['인간'],
-            },
-          },
-        ],
-        세계: [],
-        장소: [],
-        사건: [
-          {
-            '대규모 투자 설명회':
-              '[결과: 충돌]\n [판단사유: 사건 이름이 동일한 사건이 존재합니다. 키워드를 변경해주세요.]',
-            신규설정: {
-              '관련 인물': ['이준', '이사진', '강독고 팀장'],
-              설명: [
-                '이준이 아틀라스 네트웍스의 위상을 증명하는 화려한 대규모 투자 설명회 단상에 올라 발표를 진행함. 이사진들은 갑작스러운 사고나 복통으로 자리를 비웠고, 설명회는 이준의 독무대가 됨.',
-              ],
-            },
-            기존설정: {
-              '관련 인물': ['이준', '김회장'],
-              설명: ['이준이 투자 설명회를 망치는 사건.'],
-            },
-          },
-        ],
-        물건: [],
-        집단: [],
-      },
+      ok: true,
+      managerIntegrationId: 'manager_001',
+      managerName: '김매니저',
+      managerSiteEmail: 'manager@company.com',
     });
   }),
+
+  // Get IP Proposals
+  http.get(`${BACKEND_URL}/api/v1/author/ip-expansion/proposals`, () => {
+    const proposals = generateList(5, (i) => ({
+      id: i,
+      title: `${getItem(ORIGINAL_TITLES, i)} IP 확장 프로젝트 제안`,
+      status: getItem(['PROPOSED', 'APPROVED', 'REJECTED'], i),
+      statusDescription: getItem(['제안됨', '승인됨', '반려됨'], i),
+      sender: '김매니저',
+      authorName: '김작가',
+      receivedAt: new Date().toISOString(),
+      // Detailed Mock Data
+      targetMediaType: getItem(['WEBTOON', 'DRAMA', 'GAME', 'MOVIE'], i),
+      targetGenre: getItem(['ROFAN', 'FANTASY', 'MODERN', 'THRILLER'], i),
+      direction:
+        '원작의 독창적인 세계관을 유지하면서 대중적인 요소를 가미하여 각색합니다.',
+      budget: '500,000,000 KRW',
+      schedule: '2025-06-01 ~ 2025-12-31',
+      originalWork: {
+        id: i,
+        title: getItem(ORIGINAL_TITLES, i),
+        coverImageUrl: `https://via.placeholder.com/300?text=${encodeURIComponent(getItem(ORIGINAL_TITLES, i).substring(0, 5))}`,
+      },
+      selectedLorebooks: [
+        { name: '주인공: 강철민', category: 'characters' },
+        { name: '제국 아카데미', category: 'places' },
+        { name: '마나 연공법', category: 'skills' },
+      ],
+    }));
+    return HttpResponse.json(proposals);
+  }),
+
+  // Approve Proposal
+  http.post(
+    `${BACKEND_URL}/api/v1/author/ip-expansion/proposals/:id/approve`,
+    async () => {
+      await delay(500);
+      return HttpResponse.json({
+        success: true,
+        message: '제안이 승인되었습니다.',
+      });
+    },
+  ),
+
+  // Reject Proposal
+  http.post(
+    `${BACKEND_URL}/api/v1/author/ip-expansion/proposals/:id/reject`,
+    async () => {
+      await delay(500);
+      return HttpResponse.json({
+        success: true,
+        message: '제안이 반려되었습니다.',
+      });
+    },
+  ),
 
   // Manager IP Expansion Authors
   http.get(
@@ -554,32 +589,6 @@ export const handlers: RequestHandler[] = [
           workCount: a.workCount || 0,
         })),
       );
-    },
-  ),
-
-  // Manager IP Expansion Author Works
-  http.get(
-    `${BACKEND_URL}/api/v1/manager/ipext/:authorId/authorwork`,
-    ({ params }) => {
-      const authorId = Number(params.authorId);
-      // Return works, ensuring they have IDs and titles
-      const works = MOCK_WORKS.map((w) => ({
-        id: w.id,
-        title: w.title,
-        genre: w.genre,
-        status: w.status,
-      }));
-      return HttpResponse.json(works);
-    },
-  ),
-
-  // Manager IP Expansion Work Lorebooks
-  http.get(
-    `${BACKEND_URL}/api/v1/manager/ipext/:workId/authorworklorebook`,
-    ({ params }) => {
-      const workId = Number(params.workId);
-      // Return lorebooks for the work
-      return HttpResponse.json(MOCK_LOREBOOKS);
     },
   ),
 
