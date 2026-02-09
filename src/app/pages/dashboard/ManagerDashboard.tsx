@@ -45,6 +45,7 @@ export function ManagerDashboard({ onLogout, onHome }: ManagerDashboardProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showActivityDropdown, setShowActivityDropdown] = useState(false);
   const profileDropdownRef = useRef<HTMLDivElement>(null);
+  const notificationDropdownRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -54,6 +55,12 @@ export function ManagerDashboard({ onLogout, onHome }: ManagerDashboardProps) {
         !profileDropdownRef.current.contains(event.target as Node)
       ) {
         setShowProfileDropdown(false);
+      }
+      if (
+        notificationDropdownRef.current &&
+        !notificationDropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowActivityDropdown(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -340,7 +347,7 @@ export function ManagerDashboard({ onLogout, onHome }: ManagerDashboardProps) {
 
             <div className="flex items-center gap-3">
               <ThemeToggle />
-              <div className="relative">
+              <div className="relative" ref={notificationDropdownRef}>
                 <Button
                   variant="ghost"
                   size="icon"
