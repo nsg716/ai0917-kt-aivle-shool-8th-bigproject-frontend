@@ -123,24 +123,58 @@ export function AuthorIPExpansion({
     setBreadcrumbs(breadcrumbs);
   }, [setBreadcrumbs, onNavigate, activeTab]);
 
-  // Fetch Proposals
-  const { data: proposals, isLoading: isProposalsLoading } = useQuery({
-    queryKey: ['author', 'ip-proposals'],
-    queryFn: authorService.getIPProposals,
-  });
-
   const { data: myManager, refetch: refetchMyManager } = useQuery({
     queryKey: ['author', 'my-manager'],
     queryFn: authorService.getMyManager,
   });
 
+  // Fetch Proposals (Manager's IP Expansions)
+  const { data: proposals, isLoading: isProposalsLoading } = useQuery({
+    queryKey: ['author', 'ip-proposals', myManager?.managerIntegrationId],
+    queryFn: async () => {
+      if (!myManager?.managerIntegrationId) return [];
+      // Use the manager ID to fetch IP expansions (proposals from manager)
+      // GET /api/v1/manager/ipext/{managerid}
+      const data = await authorService.getManagerIPExpansions(
+        myManager.managerIntegrationId,
+      );
+      return data || [];
+    },
+    enabled: !!myManager?.managerIntegrationId,
+  });
+
   const proposalList = proposals || [];
 
-  const handleOpenDetail = (proposal: IPProposalDto) => {
-    setSelectedProposal(proposal);
-    setIsDetailOpen(true);
-    setActionType(null);
-    setActionComment('');
+  const handleOpenDetail = async (proposal: IPProposalDto) => {
+    if (!myManager?.managerId) return;
+
+    try {
+      // Fetch full detail before opening
+      // GET /api/v1/manager/ipext/{managerid}/{ipextId}
+      const detail = await authorService.getManagerIPExpansionDetail(
+        myManager.managerId.toString(),
+        proposal.id.toString(),
+      );
+
+      // Parse contentStrategy if it's a string
+      let parsedDetail = { ...detail };
+      if (typeof parsedDetail.contentStrategy === 'string') {
+        try {
+          parsedDetail.contentStrategy = JSON.parse(
+            parsedDetail.contentStrategy,
+          );
+        } catch (e) {
+          console.error('Failed to parse contentStrategy', e);
+        }
+      }
+
+      setSelectedProposal(parsedDetail);
+      setIsDetailOpen(true);
+      setActionType(null);
+      setActionComment('');
+    } catch (error) {
+      toast.error('제안서 상세 정보를 불러오는데 실패했습니다.');
+    }
   };
 
   const openActionDialog = (type: 'APPROVE' | 'REJECT') => {
@@ -280,7 +314,13 @@ export function AuthorIPExpansion({
             </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {proposalList.length > 0 ? (
+              {!myManager?.managerIntegrationId ? (
+                 <div className="col-span-full text-center py-12 text-muted-foreground border-2 border-dashed rounded-lg">
+                  담당 매니저와 연동되지 않아 제안서를 확인할 수 없습니다.
+                  <br />
+                  먼저 매니저와 연동을 진행해주세요.
+                </div>
+              ) : proposalList.length > 0 ? (
                 proposalList.map((proposal) => (
                   <Card
                     key={proposal.id}
@@ -364,7 +404,8 @@ export function AuthorIPExpansion({
                     </Badge>
                     <Badge
                       variant={
-                        extendedProposal?.status === 'APPROVED'
+                        extendedProposal?.status === 'APPROVED' ||
+                        extendedProposal?.status === 'COMPLETED'
                           ? 'default'
                           : extendedProposal?.status === 'REVIEWING'
                             ? 'secondary'
@@ -376,11 +417,13 @@ export function AuthorIPExpansion({
                         'border-0',
                         extendedProposal?.status === 'APPROVED'
                           ? 'bg-emerald-500 text-white hover:bg-emerald-600'
-                          : extendedProposal?.status === 'REVIEWING'
-                            ? 'bg-amber-500 text-white hover:bg-amber-600'
-                            : extendedProposal?.status === 'PENDING'
-                              ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-                              : 'bg-rose-500 text-white hover:bg-rose-600',
+                          : extendedProposal?.status === 'COMPLETED'
+                            ? 'bg-blue-600 text-white hover:bg-blue-700'
+                            : extendedProposal?.status === 'REVIEWING'
+                              ? 'bg-amber-500 text-white hover:bg-amber-600'
+                              : extendedProposal?.status === 'PENDING'
+                                ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+                                : 'bg-rose-500 text-white hover:bg-rose-600',
                       )}
                     >
                       {extendedProposal?.statusDescription ||
@@ -590,14 +633,30 @@ export function AuthorIPExpansion({
 
                 {/* Summary Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                  {/* [Card 1] Source Work (Priority) */}
+                  <div className="bg-amber-50/30 rounded-xl p-4 border-2 border-amber-400 shadow-sm flex items-start gap-3 relative group hover:border-amber-500 transition-colors order-first">
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-amber-100 text-amber-600">
+                      <Crown className="w-4 h-4" />
+                    </div>
+                    <div className="overflow-hidden flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-xs font-bold text-amber-600">
+                          Source Work
+                        </p>
+                        <Badge
+                          variant="secondary"
+                          className="text-[10px] h-4 px-1 bg-amber-100 text-amber-700 border-amber-200"
+                        >
+                          Core
+                        </Badge>
+                      </div>
+                      <p className="text-sm font-bold text-slate-800 truncate">
+                        {extendedProposal?.workTitle || '선택된 작품 없음'}
+                      </p>
+                    </div>
+                  </div>
+
                   {[
-                    {
-                      label: 'Source Work',
-                      value: extendedProposal?.workTitle,
-                      icon: BookOpen,
-                      color: 'text-slate-600',
-                      bg: 'bg-slate-50',
-                    },
                     {
                       label: 'Manager',
                       value: extendedProposal?.sender || '매니저',
@@ -640,10 +699,32 @@ export function AuthorIPExpansion({
                     },
                     {
                       label: '예산 규모',
-                      value: extendedProposal?.business?.budgetRange || '미정',
+                      value: extendedProposal?.business?.budgetRange
+                        ? extendedProposal.business.budgetRange === 'low'
+                          ? '저예산 (Low)'
+                          : extendedProposal.business.budgetRange === 'high'
+                            ? '블록버스터 (High)'
+                            : '중형 예산 (Medium)'
+                        : '미정',
                       icon: DollarSign,
                       color: 'text-green-600',
                       bg: 'bg-green-50',
+                    },
+                    {
+                      label: '제작 톤앤매너',
+                      value: extendedProposal?.mediaDetails?.tone || '미지정',
+                      icon: Palette,
+                      color: 'text-purple-600',
+                      bg: 'bg-purple-50',
+                    },
+                    {
+                      label: '세계관 설정',
+                      value:
+                        extendedProposal?.mediaDetails?.worldSetting ||
+                        '미지정',
+                      icon: Globe,
+                      color: 'text-emerald-600',
+                      bg: 'bg-emerald-50',
                     },
                     // Format Specific Details
                     ...(extendedProposal?.format === 'webtoon'
@@ -868,65 +949,6 @@ export function AuthorIPExpansion({
                         ]
                       : []),
                     {
-                      label: '제작 톤앤매너',
-                      value: extendedProposal?.mediaDetails?.tone || '미지정',
-                      icon: Palette,
-                      color: 'text-purple-600',
-                      bg: 'bg-purple-50',
-                    },
-                    {
-                      label: '핵심 재미요소',
-                      value:
-                        extendedProposal?.mediaDetails?.coreLoop || '미지정',
-                      icon: Zap,
-                      color: 'text-yellow-600',
-                      bg: 'bg-yellow-50',
-                    },
-                    {
-                      label: '비즈니스 모델',
-                      value:
-                        extendedProposal?.mediaDetails?.bmStrategy || '미지정',
-                      icon: BarChart,
-                      color: 'text-cyan-600',
-                      bg: 'bg-cyan-50',
-                    },
-                    {
-                      label: '세계관 설정',
-                      value:
-                        extendedProposal?.mediaDetails?.worldSetting ||
-                        '미지정',
-                      icon: Globe,
-                      color: 'text-emerald-600',
-                      bg: 'bg-emerald-50',
-                    },
-                    {
-                      label: '캐릭터 각색',
-                      value:
-                        extendedProposal?.mediaDetails?.characterAdaptation ||
-                        '미지정',
-                      icon: Users,
-                      color: 'text-pink-600',
-                      bg: 'bg-pink-50',
-                    },
-                    {
-                      label: '플랫폼 전략',
-                      value:
-                        extendedProposal?.mediaDetails?.platformStrategy ||
-                        '미지정',
-                      icon: Smartphone,
-                      color: 'text-blue-600',
-                      bg: 'bg-blue-50',
-                    },
-                    {
-                      label: '마케팅 포인트',
-                      value:
-                        extendedProposal?.mediaDetails?.marketingPoint ||
-                        '미지정',
-                      icon: Megaphone,
-                      color: 'text-orange-600',
-                      bg: 'bg-orange-50',
-                    },
-                    {
                       label: '추가 프롬프트',
                       value: extendedProposal?.mediaPrompt || '없음',
                       icon: MessageSquare,
@@ -1099,7 +1121,36 @@ export function AuthorIPExpansion({
               <div>
                 <h4 className="font-bold mb-2 text-sm text-slate-500">내용</h4>
                 <div className="p-4 bg-white border rounded-lg min-h-[100px] text-sm leading-relaxed">
-                  {selectedLorebookDetail.description || '내용이 없습니다.'}
+                  {typeof selectedLorebookDetail.description === 'object' &&
+                  selectedLorebookDetail.description !== null ? (
+                    <div className="space-y-2">
+                      {Object.entries(selectedLorebookDetail.description).map(
+                        ([key, value]) => (
+                          <div key={key} className="flex flex-col">
+                            <span className="font-bold text-slate-700">
+                              {key}
+                            </span>
+                            <span className="text-slate-600 whitespace-pre-wrap">
+                              {typeof value === 'object'
+                                ? JSON.stringify(value, null, 2)
+                                : String(value)}
+                            </span>
+                          </div>
+                        ),
+                      )}
+                    </div>
+                  ) : (
+                    <span className="whitespace-pre-wrap">
+                      {typeof selectedLorebookDetail.description === 'object'
+                        ? JSON.stringify(
+                            selectedLorebookDetail.description,
+                            null,
+                            2,
+                          )
+                        : selectedLorebookDetail.description ||
+                          '내용이 없습니다.'}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
