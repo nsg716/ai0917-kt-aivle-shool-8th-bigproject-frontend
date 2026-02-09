@@ -32,6 +32,7 @@ export const authService = {
   logout: async () => {
     const response = await apiClient.post('/api/v1/auth/logout');
     localStorage.removeItem('accessToken');
+    localStorage.removeItem('XSRF-TOKEN');
     return response.data;
   },
 

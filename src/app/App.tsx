@@ -18,6 +18,7 @@ import { authService } from './services/authService';
 import AILabPage from './pages/lab/AILabPage';
 import { Toaster } from './components/ui/sonner';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
+import { ensureCsrfToken } from './utils/csrf';
 
 type UserType = 'Manager' | 'Author' | 'Admin' | 'Deactivated' | null;
 
@@ -32,6 +33,11 @@ export default function App() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  useEffect(() => {
+    // 앱 초기 진입 시 CSRF 토큰 발급 보장
+    ensureCsrfToken();
+  }, []);
 
   useEffect(() => {
     const verifySession = async () => {
