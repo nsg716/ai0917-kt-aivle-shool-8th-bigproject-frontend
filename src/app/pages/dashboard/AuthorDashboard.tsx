@@ -267,7 +267,7 @@ export function AuthorDashboard({ onLogout, onHome }: AuthorDashboardProps) {
           className="h-16 flex items-center px-6 border-b border-sidebar-border cursor-pointer"
           onClick={() => handleMenuClick('home')}
         >
-          <Logo />
+          <Logo role="Author" />
         </div>
 
         {/* Navigation Menu */}
