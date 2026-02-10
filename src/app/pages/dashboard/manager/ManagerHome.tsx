@@ -5,6 +5,7 @@ import {
   Bell,
   ArrowRight,
   BookOpen,
+  Clock,
 } from 'lucide-react';
 import { useContext } from 'react';
 import {
@@ -17,6 +18,8 @@ import { Button } from '../../../components/ui/button';
 import { Badge } from '../../../components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import { managerService } from '../../../services/managerService';
+import { authService } from '../../../services/authService';
+import { authorService } from '../../../services/authorService';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -28,6 +31,19 @@ interface ManagerHomeProps {
 export function ManagerHome({ onNavigate }: ManagerHomeProps) {
   const navigate = useNavigate();
 
+  // Fetch User Profile for Integration ID
+  const { data: userData } = useQuery({
+    queryKey: ['auth', 'me'],
+    queryFn: authService.me,
+  });
+
+  const integrationId =
+    userData && 'integrationId' in userData && userData.integrationId
+      ? userData.integrationId
+      : userData && 'userId' in userData
+        ? String(userData.userId)
+        : '';
+
   // Manager Dashboard Page
   const { data: pageData, isLoading } = useQuery({
     queryKey: ['manager', 'dashboard', 'page'],
@@ -35,6 +51,22 @@ export function ManagerHome({ onNavigate }: ManagerHomeProps) {
   });
   const summary = pageData?.summary;
   const notices = pageData?.notices || [];
+
+  // Recent Activity (System Notices)
+  const { data: activityData } = useQuery({
+    queryKey: ['manager', 'system-notices', integrationId],
+    queryFn: async () => {
+      if (!integrationId)
+        return {
+          notices: [],
+          count: 0,
+        };
+      return managerService.getNotices(integrationId);
+    },
+    enabled: !!integrationId,
+  });
+
+  const recentActivities = activityData?.notices || [];
 
   const handleNavigate = (path: string) => {
     navigate(path);
@@ -99,7 +131,7 @@ export function ManagerHome({ onNavigate }: ManagerHomeProps) {
       {/* Notices & Recent Activity Section */}
       <div className="grid gap-6 md:grid-cols-2">
         {/* Notices */}
-        <Card className="col-span-2 border-border shadow-sm">
+        <Card className="border-border shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
             <div className="flex items-center gap-2">
               <Bell className="w-4 h-4 text-primary" />
@@ -122,7 +154,7 @@ export function ManagerHome({ onNavigate }: ManagerHomeProps) {
                 {notices.map((notice) => (
                   <div
                     key={notice.id}
-                    className="flex items-center justify-between p-4 hover:bg-muted/50 transition-colors group"
+                    className="flex items-center justify-between p-4 hover:bg-muted/50 transition-colors group cursor-pointer"
                     onClick={() =>
                       handleNavigate(`/manager/notices/${notice.id}`)
                     }
