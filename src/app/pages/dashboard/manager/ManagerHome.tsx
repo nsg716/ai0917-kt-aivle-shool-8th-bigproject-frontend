@@ -2,11 +2,11 @@ import {
   FileText,
   Users,
   Activity,
-  Bell,
-  ArrowRight,
-  BookOpen,
+  Megaphone,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
-import { useContext } from 'react';
+import { useContext, useState } from 'react';
 import {
   Card,
   CardContent,
@@ -20,6 +20,14 @@ import { managerService } from '../../../services/managerService';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '../../../components/ui/dialog';
+import { ManagerDashboardNoticeDto } from '../../../types/manager';
 
 interface ManagerHomeProps {
   onNavigate?: (menu: string) => void;
@@ -35,6 +43,33 @@ export function ManagerHome({ onNavigate }: ManagerHomeProps) {
   });
   const summary = pageData?.summary;
   const notices = pageData?.notices || [];
+
+  const [currentNoticeIndex, setCurrentNoticeIndex] = useState(0);
+  const [selectedNotice, setSelectedNotice] =
+    useState<ManagerDashboardNoticeDto | null>(null);
+  const [isNoticeDetailOpen, setIsNoticeDetailOpen] = useState(false);
+
+  const currentNotice =
+    notices.length > 0
+      ? notices[currentNoticeIndex % notices.length]
+      : null;
+
+  const handleNextNotice = () => {
+    if (notices.length === 0) return;
+    setCurrentNoticeIndex((prev) => (prev + 1) % notices.length);
+  };
+
+  const handlePrevNotice = () => {
+    if (notices.length === 0) return;
+    setCurrentNoticeIndex(
+      (prev) => (prev - 1 + notices.length) % notices.length,
+    );
+  };
+
+  const handleNoticeClick = (notice: ManagerDashboardNoticeDto) => {
+    setSelectedNotice(notice);
+    setIsNoticeDetailOpen(true);
+  };
 
   const handleNavigate = (path: string) => {
     navigate(path);
@@ -96,62 +131,99 @@ export function ManagerHome({ onNavigate }: ManagerHomeProps) {
         </Card>
       </div>
 
-      {/* Notices & Recent Activity Section */}
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Notices */}
-        <Card className="col-span-2 border-border shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
-            <div className="flex items-center gap-2">
-              <Bell className="w-4 h-4 text-primary" />
-              <CardTitle className="text-sm font-semibold">
-                최신 공지사항
-              </CardTitle>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 text-xs text-muted-foreground hover:text-primary"
-              onClick={() => handleNavigate('/manager/notices')}
-            >
-              더보기 <ArrowRight className="w-3 h-3 ml-1" />
-            </Button>
+      {/* Notices Section - align with Author Home design */}
+      <div className="grid grid-cols-1 gap-6">
+        <Card className="border-border relative overflow-hidden group shadow-sm">
+          <CardHeader className="pb-2 p-4 flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+              <Megaphone className="w-4 h-4 text-primary" />
+              주요 공지사항
+            </CardTitle>
           </CardHeader>
-          <CardContent className="p-0">
-            {notices.length > 0 ? (
-              <div className="divide-y divide-border">
-                {notices.map((notice) => (
-                  <div
-                    key={notice.id}
-                    className="flex items-center justify-between p-4 hover:bg-muted/50 transition-colors group"
-                    onClick={() =>
-                      handleNavigate(`/manager/notices/${notice.id}`)
-                    }
-                  >
-                    <div className="space-y-1 min-w-0 flex-1 mr-4">
-                      <p className="text-sm font-medium leading-none group-hover:text-primary truncate transition-colors">
-                        {notice.title}
-                      </p>
-                      <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                        <span>{notice.writer}</span>
-                        <span>•</span>
-                        <span>
-                          {format(new Date(notice.createdAt), 'yyyy.MM.dd', {
-                            locale: ko,
-                          })}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+          <CardContent className="h-[120px] flex flex-col justify-center relative p-4 pt-0">
+            {currentNotice ? (
+              <div
+                className="space-y-1.5 px-8 transition-all duration-300 hover:opacity-80 cursor-pointer"
+                onClick={() => handleNoticeClick(currentNotice)}
+              >
+                <div className="flex items-center gap-2">
+                  <Badge variant="default" className="text-[10px] h-5 px-1.5">
+                    공지
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">
+                    {format(new Date(currentNotice.createdAt), 'yyyy.MM.dd', {
+                      locale: ko,
+                    })}
+                  </span>
+                </div>
+                <h3 className="text-base font-bold line-clamp-1">
+                  {currentNotice.title}
+                </h3>
+                <p className="text-xs text-muted-foreground line-clamp-2">
+                  {currentNotice.content || '공지사항 내용을 확인하세요.'}
+                </p>
               </div>
             ) : (
-              <div className="p-8 text-center text-xs text-muted-foreground">
+              <div className="text-center text-xs text-muted-foreground">
                 등록된 공지사항이 없습니다.
               </div>
+            )}
+
+            {notices.length > 1 && (
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute left-1 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-background/50 hover:bg-background shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={handlePrevNotice}
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-background/50 hover:bg-background shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={handleNextNotice}
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </>
             )}
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={isNoticeDetailOpen} onOpenChange={setIsNoticeDetailOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>공지사항 상세</DialogTitle>
+          </DialogHeader>
+          {selectedNotice && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Badge variant="default">공지</Badge>
+                  <span className="text-sm text-muted-foreground">
+                    {format(new Date(selectedNotice.createdAt), 'yyyy.MM.dd', {
+                      locale: ko,
+                    })}
+                  </span>
+                </div>
+                <h3 className="text-xl font-bold">{selectedNotice.title}</h3>
+              </div>
+              <div className="p-4 bg-muted/50 rounded-lg text-sm leading-relaxed whitespace-pre-wrap min-h-[200px]">
+                {selectedNotice.content}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                작성자: {selectedNotice.writer}
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setIsNoticeDetailOpen(false)}>닫기</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
