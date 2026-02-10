@@ -65,6 +65,10 @@ export default function PrivacyPolicy() {
                   주소
                 </li>
                 <li>
+                  <strong>창작 활동 데이터</strong>: IP 확장을 위한 설정집(Lorebook), 시놉시스, 캐릭터 시트 등 창작 활동과 관련된 텍스트 및 메타데이터
+                </li>
+                </li>
+                <li>
                   <strong>작품 데이터</strong>: 사용자가 업로드한 원문 파일,
                   시놉시스, 스크립트 등 서비스 이용 과정에서 제공된 콘텐츠
                 </li>
@@ -132,6 +136,9 @@ export default function PrivacyPolicy() {
               회사는 현재 외부 업체에 개인정보 처리를 위탁하지 않으며, 이용자의
               동의 없이 개인정보를 제3자에게 제공하지 않습니다. (추후 클라우드
               인프라 활용 등 위탁 발생 시 본 방침을 통해 고지하겠습니다.)
+            </p>
+            <p className="text-muted-foreground mt-2">
+              단, 회원의 원활한 창작 활동 지원 및 프로젝트 관리를 위해, 해당 회원을 담당하는 '매니저' 권한을 가진 사용자에게 회원의 활동 내역(작품 제출 현황, 제안서, 통계 등) 및 연락처 정보가 제공될 수 있습니다.
             </p>
           </section>
 
