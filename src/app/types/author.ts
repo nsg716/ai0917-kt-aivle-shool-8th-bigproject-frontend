@@ -73,6 +73,16 @@ export interface LorebookDto {
   epNum?: number[];
 }
 
+// MatchedLorebook DTO
+export interface MatchedLorebookDto {
+  id: number;
+  workId: number;
+  workTitle: string;
+  category: string;
+  keyword: string;
+  description: string;
+}
+
 // Publish Process
 export interface KeywordExtractionRequestDto {
   content: string;
@@ -206,33 +216,61 @@ export interface SettingBookDiffDto {
 // IP Expansion
 export interface IPProposalDto {
   id: number;
+  workId: number;
+  authorId?: number;
+  managerId: string;
   title: string;
-  sender?: string;
-  authorName?: string;
-  status:
-    | 'PENDING'
-    | 'REVIEWING'
-    | 'ACCEPTED'
-    | 'REJECTED'
-    | 'APPROVED'
-    | 'PROPOSED'
-    | 'NEW'
-    | 'DELETED'
-    | 'COMPLETED';
-  statusDescription: string;
-  content?: string;
-  receivedAt?: string;
-  createdAt?: string;
-  contentStrategy?: any;
-  targetFormat?: string;
-  targetGenre?: string;
-  worldSetting?: string;
-  targetAges?: string;
-  targetGender?: string;
-  budgetScale?: string;
-  toneAndManner?: string;
+  status: 'NEW' | 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | 'DELETED';
+  statusDescription?: string;
+  createdAt: string;
+  updatedAt: string;
+
+  // Detail Info
+  lorebookIds: number[];
+  targetFormat: string; // ENUM
+  targetGenre: string;
+  worldSetting: string; // ENUM
+  targetAges: string[];
+  targetGender: string; // ENUM
+  budgetScale: string; // ENUM
+  toneAndManner: string;
+  mediaDetail: any; // JsonNode
   addPrompt?: string;
-  mediaDetail?: any;
+
+  // Analysis/Strategy Info
+  expMarket?: string;
+  expCreative?: string;
+  expVisual?: string;
+  expWorld?: string;
+  expBusiness?: string;
+  expProduction?: string;
+
+  // File Info
+  filePath?: string;
+
+  // Additional/Legacy fields for UI compatibility
+  authorName?: string;
+  workTitle?: string;
+  processed_lorebooks?: any[];
+  lorebooks?: any[];
+
+  // Frontend specific / Legacy fields
+  contentStrategy?: any;
+  format?: string;
+  content?: string;
+  coreNarrative?: string;
+  receivedAt?: string;
+  sender?: string;
+}
+
+export interface IPProposalCommentDto {
+  id: number;
+  ipProposalId: number;
+  userId: string;
+  writerName: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  comment: string;
+  createdAt: string;
 }
 
 export interface IPMatchingDto {

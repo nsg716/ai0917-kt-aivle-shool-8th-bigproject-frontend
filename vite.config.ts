@@ -43,14 +43,7 @@ export default defineConfig(({ mode }) => {
           manualChunks: {
             // 벤더 라이브러리 분리
             'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-            'vendor-ui': [
-              '@radix-ui/react-dialog',
-              '@radix-ui/react-slot',
-              'lucide-react',
-              'class-variance-authority',
-              'clsx',
-              'tailwind-merge',
-            ],
+            // lucide-react 등 UI 라이브러리는 사용처에 따라 자동 분리되도록 제거 (초기 로딩 최적화)
             'vendor-charts': ['recharts'],
             'vendor-utils': ['date-fns'],
             'vendor-query': ['@tanstack/react-query'],
