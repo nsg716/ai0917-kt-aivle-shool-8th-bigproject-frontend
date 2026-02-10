@@ -53,7 +53,9 @@ import {
   HelpCircle,
   Layout,
   Info,
+  ClipboardList,
 } from 'lucide-react';
+import { IPProposalCommentDto } from '../../../types/author';
 import { PdfPreview, VisualPreview } from '../../../components/ProjectPreviews';
 import { Button } from '../../../components/ui/button';
 import {
@@ -66,6 +68,22 @@ import {
 } from '../../../components/ui/card';
 import { Badge } from '../../../components/ui/badge';
 import { Input } from '../../../components/ui/input';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../../components/ui/table';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '../../../components/ui/dropdown-menu';
 import {
   Tooltip,
   TooltipContent,
@@ -149,7 +167,52 @@ const parseConflictReason = (text: string) => {
   return match ? match[1] : text.replace('[결과: 충돌]', '').trim();
 };
 
-// Helper component for setting comparison
+// Formats definition moved to module scope
+const formats = [
+  {
+    id: 'webtoon',
+    title: '웹툰',
+    icon: BookOpen,
+    desc: '원작의 시각화 및 웹툰 플랫폼 연재',
+    color: 'green',
+  },
+  {
+    id: 'drama',
+    title: '드라마',
+    icon: Tv,
+    desc: 'OTT 및 방송사 드라마 제작',
+    color: 'purple',
+  },
+  {
+    id: 'game',
+    title: '게임',
+    icon: Smartphone,
+    desc: '모바일 및 PC 게임 개발',
+    color: 'blue',
+  },
+  {
+    id: 'movie',
+    title: '영화',
+    icon: Clapperboard,
+    desc: '극장 상영용 장편 영화 제작',
+    color: 'red',
+  },
+  {
+    id: 'spinoff',
+    title: '스핀오프',
+    icon: Zap,
+    desc: '조연 캐릭터 중심의 새로운 스토리',
+    color: 'amber',
+  },
+  {
+    id: 'commercial',
+    title: '상업 이미지',
+    icon: ImageIcon,
+    desc: '광고 및 브랜드 콜라보레이션 이미지',
+    color: 'pink',
+  },
+];
+
 const SettingComparison = ({
   original,
   updated,
@@ -159,7 +222,6 @@ const SettingComparison = ({
 }) => {
   if (!original && !updated) return null;
 
-  // Collect all keys from both objects
   const allKeys = Array.from(
     new Set([...Object.keys(original || {}), ...Object.keys(updated || {})]),
   );
@@ -254,6 +316,67 @@ const SettingComparison = ({
       })}
     </div>
   );
+};
+
+const LorebookContentViewer = ({
+  content,
+  keyword,
+}: {
+  content: string | object;
+  keyword: string;
+}) => {
+  let parsedContent: any = content;
+
+  if (typeof content === 'string') {
+    try {
+      if (content.startsWith('{') || content.startsWith('[')) {
+        parsedContent = JSON.parse(content);
+      }
+    } catch (e) {
+      // plain string
+    }
+  }
+
+  if (typeof parsedContent === 'string') {
+    return <div className="whitespace-pre-wrap">{parsedContent}</div>;
+  }
+
+  if (typeof parsedContent === 'object' && parsedContent !== null) {
+    const entries = Object.entries(parsedContent).filter(([key]) => {
+      // Filter out keys that match the keyword or generic name keys
+      return (
+        key !== keyword &&
+        key !== '이름' &&
+        key !== 'name' &&
+        key !== '설정집명' &&
+        key !== 'id'
+      );
+    });
+
+    if (entries.length === 0) {
+      return <div className="text-slate-500 italic">내용 없음</div>;
+    }
+
+    return (
+      <div className="space-y-3">
+        {entries.map(([key, value]) => (
+          <div
+            key={key}
+            className="bg-slate-50 rounded p-3 border border-slate-100"
+          >
+            <div className="text-xs font-bold text-slate-500 mb-1">{key}</div>
+            <div className="text-sm text-slate-800 whitespace-pre-wrap">
+              {typeof value === 'object'
+                ? JSON.stringify(value, null, 2)
+                : String(value)}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  return <div className="whitespace-pre-wrap">{String(content)}</div>;
 };
 
 function getContentStrategy(formatId: string | null) {
@@ -395,6 +518,24 @@ function getContentStrategy(formatId: string | null) {
   }
 }
 
+const STATUS_MAP: Record<string, string> = {
+  NEW: '신규',
+  PENDING_APPROVAL: '승인대기',
+  APPROVED: '승인',
+  REJECTED: '반려',
+  DELETED: '삭제',
+  COMPLETED: '완료',
+};
+
+const FORMAT_MAP: Record<string, string> = {
+  WEBTOON: '웹툰',
+  DRAMA: '드라마',
+  MOVIE: '영화',
+  GAME: '게임',
+  SPINOFF: '스핀오프',
+  COMMERCIAL_IMAGE: '상업 이미지',
+};
+
 export function ManagerIPExpansion() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<any>(null);
@@ -439,8 +580,15 @@ export function ManagerIPExpansion() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) =>
-      managerService.updateIPProposal(id, data),
+    mutationFn: ({
+      id,
+      data,
+      managerId,
+    }: {
+      id: number;
+      data: any;
+      managerId: string;
+    }) => managerService.updateIPProposal(id, data, managerId),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: ['manager', 'ip-expansion', 'proposals'],
@@ -468,7 +616,7 @@ export function ManagerIPExpansion() {
         queryKey: ['manager', 'ip-expansion', 'proposals'],
       });
       setSelectedProject(null);
-      toast.success('프로젝트 상태가 삭제됨으로 변경되었습니다.');
+      toast.success('프로젝트가 삭제되었습니다.');
     },
     onError: () => {
       toast.error('프로젝트 삭제에 실패했습니다.');
@@ -480,7 +628,11 @@ export function ManagerIPExpansion() {
     setIsCreateDialogOpen(false);
 
     if (editingProject) {
-      updateMutation.mutate({ id: editingProject.id, data: project });
+      updateMutation.mutate({
+        id: editingProject.id,
+        data: project,
+        managerId: editingProject.managerId || 'me',
+      });
     } else {
       createMutation.mutate(project);
     }
@@ -489,10 +641,37 @@ export function ManagerIPExpansion() {
   const handleEditProject = async (project: any) => {
     if (me?.integrationId) {
       try {
-        const detail = await managerService.getIPProposalDetail(
-          project.id,
+        // Use the same endpoint as Detail view to ensure we get populated data (e.g. lorebooks)
+        const detail = await managerService.getIPExpansionDetail(
           me.integrationId,
+          project.id,
         );
+
+        // Pre-fill fix: If lorebooks (objects) are missing but lorebookIds exist, fetch and populate them
+        if (
+          (!detail.lorebooks || detail.lorebooks.length === 0) &&
+          detail.lorebookIds &&
+          detail.lorebookIds.length > 0 &&
+          (detail.workId || project.workId)
+        ) {
+          try {
+            const workId = detail.workId || project.workId;
+            const allLorebooks =
+              await managerService.getAuthorWorkLorebooks(workId);
+
+            // Map IDs to full objects
+            const selectedLorebooks = allLorebooks.filter((lb: any) =>
+              detail.lorebookIds.includes(lb.lorebookId || lb.id),
+            );
+
+            // Attach to detail object for the form to use
+            detail.lorebooks = selectedLorebooks;
+            detail.processed_lorebooks = selectedLorebooks; // Also set processed_lorebooks as fallback
+          } catch (err) {
+            console.error('Failed to fetch lorebooks for pre-fill', err);
+          }
+        }
+
         setEditingProject(detail);
       } catch (error) {
         console.error('Failed to fetch detail for edit', error);
@@ -506,18 +685,31 @@ export function ManagerIPExpansion() {
   };
 
   const handleOpenDetail = async (proposal: any) => {
-    if (me?.integrationId) {
+    // Ensure we have both ID and manager ID
+    if (!proposal || !proposal.id || proposal.id === 'undefined') {
+      console.error('Invalid proposal ID');
+      return;
+    }
+
+    // Use me.integrationId if available
+    const managerId = me?.integrationId;
+
+    if (managerId) {
       try {
-        const detail = await managerService.getIPProposalDetail(
+        const detail = await managerService.getIPExpansionDetail(
+          managerId,
           proposal.id,
-          me.integrationId,
         );
         setSelectedProject(detail);
       } catch (error) {
         console.error('Failed to fetch detail', error);
+        toast.error('상세 정보를 불러오는데 실패했습니다.');
+        // Still open modal with available summary data, but warn user
         setSelectedProject(proposal);
       }
     } else {
+      // If no manager ID, we can't fetch details properly
+      toast.error('매니저 정보를 찾을 수 없습니다.');
       setSelectedProject(proposal);
     }
   };
@@ -533,14 +725,7 @@ export function ManagerIPExpansion() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-20">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-            IP 확장
-          </h1>
-          <p className="text-slate-500 mt-2">
-            다양한 IP 확장 프로젝트를 관리하고 제안서를 생성합니다.
-          </p>
-        </div>
+        <div></div>
         <Button
           onClick={() => {
             setEditingProject(null);
@@ -553,94 +738,175 @@ export function ManagerIPExpansion() {
         </Button>
       </div>
 
-      {/* Project List */}
-      <div className="mt-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {isLoading ? (
-            <div className="col-span-full py-20 text-center text-slate-500">
-              <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />
-              로딩 중...
-            </div>
-          ) : proposals && proposals.length > 0 ? (
-            proposals.map((proposal) => (
+      {/* Project List - Card Grid */}
+      <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {isLoading ? (
+          Array.from({ length: 8 }).map((_, i) => (
+            <div
+              key={i}
+              className="h-[200px] rounded-lg border border-slate-200 bg-slate-50 animate-pulse"
+            />
+          ))
+        ) : proposals && proposals.length > 0 ? (
+          proposals.map((proposal) => {
+            const formatId = (
+              proposal.targetFormat || proposal.format
+            )?.toLowerCase();
+            const formatItem = formats.find((f) => f.id === formatId);
+            const Icon = formatItem?.icon || Zap;
+
+            return (
               <Card
                 key={proposal.id}
-                className="cursor-pointer hover:shadow-md transition-all group"
+                className="group cursor-pointer hover:shadow-md transition-all border-slate-200 overflow-hidden"
                 onClick={() => handleOpenDetail(proposal)}
               >
-                <CardHeader>
-                  <div className="flex justify-between items-start mb-2">
+                <CardHeader className="p-0">
+                  <div
+                    className={cn(
+                      'h-16 bg-gradient-to-br relative overflow-hidden',
+                      formatItem?.color === 'green'
+                        ? 'from-green-50 to-green-100'
+                        : formatItem?.color === 'purple'
+                          ? 'from-purple-50 to-purple-100'
+                          : formatItem?.color === 'blue'
+                            ? 'from-blue-50 to-blue-100'
+                            : formatItem?.color === 'red'
+                              ? 'from-red-50 to-red-100'
+                              : formatItem?.color === 'amber'
+                                ? 'from-amber-50 to-amber-100'
+                                : formatItem?.color === 'pink'
+                                  ? 'from-pink-50 to-pink-100'
+                                  : 'from-slate-50 to-slate-100',
+                    )}
+                  >
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Icon
+                        className={cn(
+                          'w-6 h-6 opacity-20',
+                          formatItem?.color === 'green'
+                            ? 'text-green-600'
+                            : formatItem?.color === 'purple'
+                              ? 'text-purple-600'
+                              : formatItem?.color === 'blue'
+                                ? 'text-blue-600'
+                                : formatItem?.color === 'red'
+                                  ? 'text-red-600'
+                                  : formatItem?.color === 'amber'
+                                    ? 'text-amber-600'
+                                    : formatItem?.color === 'pink'
+                                      ? 'text-pink-600'
+                                      : 'text-slate-600',
+                        )}
+                      />
+                    </div>
+                    <Badge className="absolute top-2 left-2 bg-white/90 shadow-sm backdrop-blur-sm text-slate-700 hover:bg-white/90 border-0 text-[10px] h-5 px-1.5">
+                      {formatItem?.title ||
+                        proposal.targetFormat ||
+                        proposal.format ||
+                        'Unknown'}
+                    </Badge>
                     <Badge
-                      variant={
-                        proposal.status === 'APPROVED' ||
-                        proposal.status === 'COMPLETED'
-                          ? 'default'
-                          : proposal.status === 'REVIEWING'
-                            ? 'secondary'
-                            : proposal.status === 'PENDING'
-                              ? 'outline'
-                              : proposal.status === 'REJECTED'
-                                ? 'destructive'
-                                : 'secondary'
-                      }
                       className={cn(
-                        proposal.status === 'APPROVED' &&
-                          'bg-green-600 hover:bg-green-700',
-                        proposal.status === 'COMPLETED' &&
-                          'bg-blue-600 hover:bg-blue-700',
-                        proposal.status === 'REVIEWING' &&
-                          'bg-blue-100 text-blue-700 hover:bg-blue-200',
-                        proposal.status === 'PENDING' &&
-                          'border-amber-500 text-amber-600',
+                        'absolute top-2 right-2 shadow-sm border-0 text-[10px] h-5 px-1.5',
+                        proposal.status === 'APPROVED'
+                          ? 'bg-emerald-500 hover:bg-emerald-600'
+                          : proposal.status === 'PENDING_APPROVAL'
+                            ? 'bg-blue-500 hover:bg-blue-600'
+                            : proposal.status === 'REJECTED'
+                              ? 'bg-rose-500 hover:bg-rose-600'
+                              : 'bg-slate-500 hover:bg-slate-600',
                       )}
                     >
-                      {proposal.status === 'APPROVED'
-                        ? '승인'
-                        : proposal.status === 'COMPLETED'
-                          ? '완료'
-                          : proposal.status === 'REVIEWING'
-                            ? '검토'
-                            : proposal.status === 'PENDING'
-                              ? '승인 대기'
+                      {proposal.statusDescription ||
+                        (proposal.status === 'NEW'
+                          ? '신규'
+                          : proposal.status === 'PENDING_APPROVAL'
+                            ? '승인 대기'
+                            : proposal.status === 'APPROVED'
+                              ? '승인됨'
                               : proposal.status === 'REJECTED'
-                                ? '반려'
-                                : proposal.statusDescription || proposal.status}
+                                ? '반려됨'
+                                : proposal.status)}
                     </Badge>
-                    <span className="text-xs text-slate-400">
-                      {new Date(
-                        proposal.createdAt || proposal.receivedAt || Date.now(),
-                      ).toLocaleDateString()}
-                    </span>
                   </div>
-                  <CardTitle className="text-lg group-hover:text-primary transition-colors line-clamp-2">
-                    {proposal.title}
-                  </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-slate-500 line-clamp-3">
-                    {proposal.content || '프로젝트 상세 내용이 없습니다.'}
-                  </p>
+                <CardContent className="p-3 pb-0">
+                  <h3 className="font-bold text-slate-800 line-clamp-1 group-hover:text-indigo-600 transition-colors text-xs">
+                    {proposal.title}
+                  </h3>
                 </CardContent>
-                <CardFooter className="text-sm text-slate-400 border-t pt-4">
-                  <div className="flex items-center gap-2">
-                    <Users className="w-4 h-4" />
-                    <span>{proposal.authorName || '작가 미정'}</span>
+                <div className="p-3 flex items-center justify-between text-[10px] text-slate-400">
+                  <div className="flex items-center gap-1">
+                    <Calendar className="w-3 h-3" />
+                    {proposal.createdAt || proposal.receivedAt
+                      ? new Date(
+                          proposal.createdAt || proposal.receivedAt || '',
+                        ).toLocaleDateString()
+                      : '-'}
                   </div>
-                </CardFooter>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        className="h-6 w-6 p-0 hover:bg-slate-100 rounded-full"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <span className="sr-only">메뉴 열기</span>
+                        <MoreHorizontal className="h-3 w-3 text-slate-400" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-[140px]">
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenDetail(proposal);
+                        }}
+                      >
+                        <Maximize2 className="mr-2 h-3.5 w-3.5" />
+                        상세 보기
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditProject(proposal);
+                        }}
+                      >
+                        <Edit className="mr-2 h-3.5 w-3.5" />
+                        수정
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        className="text-red-600 focus:text-red-600 focus:bg-red-50"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(proposal.id);
+                        }}
+                      >
+                        <Trash2 className="mr-2 h-3.5 w-3.5" />
+                        삭제
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </Card>
-            ))
-          ) : (
-            <div className="col-span-full py-20 flex flex-col items-center justify-center text-slate-500 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50">
-              <Sparkles className="w-10 h-10 text-slate-300 mb-3" />
+            );
+          })
+        ) : (
+          <div className="col-span-full h-60 flex flex-col items-center justify-center gap-3 text-slate-500 border-2 border-dashed border-slate-200 rounded-lg">
+            <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center">
+              <Sparkles className="w-6 h-6 text-slate-300" />
+            </div>
+            <div className="text-center">
               <p className="font-medium text-slate-900">
                 진행 중인 프로젝트가 없습니다
               </p>
-              <p className="text-sm mt-1">
+              <p className="text-sm mt-1 text-slate-400">
                 새로운 IP 확장 프로젝트를 시작해보세요.
               </p>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Pagination Controls */}
@@ -678,6 +944,10 @@ export function ManagerIPExpansion() {
         isOpen={isCreateDialogOpen}
         onClose={() => {
           setIsCreateDialogOpen(false);
+          // If we were editing, return to detail view on close (cancellation)
+          if (editingProject) {
+            setSelectedProject(editingProject);
+          }
           setEditingProject(null);
         }}
         onCreated={handleCreateProject}
@@ -714,10 +984,88 @@ function ProjectDetailModal({
   onDelete: (id: number) => void;
 }) {
   const [showPdfFullScreen, setShowPdfFullScreen] = useState(false);
-  const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [selectedLorebookDetail, setSelectedLorebookDetail] =
     useState<any>(null);
+  const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewComments, setReviewComments] = useState<IPProposalCommentDto[]>(
+    [],
+  );
+
+  // Fetch PDF Blob and create Object URL
+  useEffect(() => {
+    let active = true;
+    const fetchPdf = async () => {
+      if (!project.id) return;
+      try {
+        // Use the API that returns a blob
+        const blob = await managerService.getIPProposalPreview(project.id);
+
+        // Robust check: Real PDFs start with %PDF
+        // If it starts with { or [, it's likely JSON (DTO or Error)
+        const header = await blob.slice(0, 10).text();
+        if (
+          header.trim().startsWith('{') ||
+          header.trim().startsWith('[') ||
+          blob.type === 'application/json'
+        ) {
+          console.warn('PDF Preview returned JSON, likely DTO or error');
+          // Optionally log the content
+          // const text = await blob.text();
+          // console.log('Response content:', text);
+          return;
+        }
+
+        if (blob && blob.size > 0) {
+          const url = URL.createObjectURL(blob);
+          if (active) setPdfBlobUrl(url);
+        }
+      } catch (e) {
+        console.error('Failed to load PDF preview', e);
+      }
+    };
+
+    fetchPdf();
+
+    return () => {
+      active = false;
+      if (pdfBlobUrl) {
+        URL.revokeObjectURL(pdfBlobUrl);
+      }
+    };
+  }, [project.id]);
+
+  const handleDownloadPdf = async () => {
+    if (!project.id) {
+      toast.error('PDF 정보를 찾을 수 없습니다.');
+      return;
+    }
+
+    try {
+      const blob = await managerService.getIPProposalDownload(project.id);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${project.title}_기획제안서.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (e) {
+      toast.error('PDF 다운로드에 실패했습니다.');
+    }
+  };
+
+  const handleOpenReviewModal = async () => {
+    try {
+      const comments = await managerService.getIPProposalComments(project.id);
+      setReviewComments(comments);
+      setShowReviewModal(true);
+    } catch (e) {
+      toast.error('검토 내역을 불러오는데 실패했습니다.');
+    }
+  };
 
   const handleDeleteClick = () => {
     setShowDeleteConfirm(true);
@@ -726,24 +1074,6 @@ function ProjectDetailModal({
   const confirmDelete = () => {
     onDelete(project.id);
     setShowDeleteConfirm(false);
-  };
-
-  // Mock Content Strategy - Updated for 6 Core Elements
-  const contentStrategy = project.contentStrategy || {
-    differentiation:
-      project.differentiation ||
-      '기존 장르의 문법을 비트는 반전 요소와 입체적인 캐릭터 관계성을 통해 차별화된 재미를 선사합니다.',
-    keyReason:
-      '현재 트렌드인 "회귀/빙의/환생" 키워드를 독창적으로 해석하여, 2030 타겟층의 강력한 공감을 이끌어낼 수 있는 서사입니다.',
-    successGrounds:
-      '원작의 탄탄한 팬덤 데이터와 유사 성공 사례(예: 재벌집 막내아들)의 흥행 공식을 분석했을 때, 높은 시장 점유율이 예측됩니다.',
-    coreNarrative:
-      project.content ||
-      '주인공의 내면적 갈등과 외부의 위협이 교차하며 전개되는 긴장감 넘치는 서사 구조를 가집니다.',
-    worldBuilding:
-      '기존 세계관의 규칙을 비틀어 새로운 마법 체계와 기술이 공존하는 독창적인 디스토피아를 구축합니다.',
-    visualStyle:
-      '누아르 풍의 어두운 색채와 네온 사인이 대비되는 강렬한 비주얼로 몰입감을 극대화합니다.',
   };
 
   return (
@@ -771,62 +1101,56 @@ function ProjectDetailModal({
       </AlertDialog>
 
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-[90vw] lg:max-w-7xl max-h-[95vh] p-0 gap-0 rounded-2xl overflow-y-auto flex flex-col bg-white shadow-2xl border-0">
+        <DialogContent className="max-w-[85vw] lg:max-w-4xl max-h-[90vh] p-0 gap-0 rounded-xl overflow-y-auto flex flex-col bg-white shadow-2xl border-0">
           <ScrollArea className="flex-1">
             {/* Hero Header */}
             <div
               className={cn(
-                'relative h-48 flex items-end p-8 overflow-hidden shrink-0',
+                'relative h-40 flex items-end p-6 overflow-hidden shrink-0',
                 'bg-slate-50 border-b border-slate-100',
               )}
             >
               <div className="relative z-10 w-full flex justify-between items-end">
                 <div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <Badge className="bg-white border-slate-200 text-slate-500 hover:bg-slate-50 uppercase tracking-wider shadow-sm">
-                      {project.format || 'FORMAT'}
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge className="bg-white border-slate-200 text-slate-500 hover:bg-slate-50 uppercase tracking-wider shadow-sm text-[10px]">
+                      {project.targetFormat || project.format || 'FORMAT'}
                     </Badge>
                     <Badge
                       variant={
                         project.status === 'APPROVED'
                           ? 'default'
-                          : project.status === 'REVIEWING'
-                            ? 'secondary'
-                            : project.status === 'PENDING'
-                              ? 'outline'
-                              : 'destructive'
+                          : project.status === 'PENDING_APPROVAL'
+                            ? 'outline'
+                            : 'destructive'
                       }
                       className={cn(
-                        'border-0',
+                        'border-0 text-[10px]',
                         project.status === 'APPROVED'
                           ? 'bg-emerald-500 text-white hover:bg-emerald-600'
-                          : project.status === 'REVIEWING'
-                            ? 'bg-amber-500 text-white hover:bg-amber-600'
-                            : project.status === 'PENDING'
-                              ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-                              : 'bg-rose-500 text-white hover:bg-rose-600',
+                          : project.status === 'PENDING_APPROVAL'
+                            ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+                            : 'bg-rose-500 text-white hover:bg-rose-600',
                       )}
                     >
                       {project.status === 'APPROVED'
                         ? '승인'
-                        : project.status === 'REVIEWING'
-                          ? '검토'
-                          : project.status === 'PENDING'
-                            ? '승인 대기'
-                            : '반려'}
+                        : project.status === 'PENDING_APPROVAL'
+                          ? '승인 대기'
+                          : '반려'}
                     </Badge>
                   </div>
-                  <h2 className="text-4xl font-bold text-slate-900 tracking-tight">
+                  <DialogTitle className="text-2xl font-bold text-slate-900 tracking-tight">
                     {project.title}
-                  </h2>
-                  <div className="text-slate-500 text-sm mt-3 flex items-center gap-4">
+                  </DialogTitle>
+                  <div className="text-slate-500 text-xs mt-2 flex items-center gap-4">
                     <span className="flex items-center gap-1.5">
-                      <Calendar className="w-4 h-4 text-slate-400" />{' '}
+                      <Calendar className="w-3.5 h-3.5 text-slate-400" />{' '}
                       {new Date(project.createdAt).toLocaleDateString()}
                     </span>
-                    <span className="w-1 h-1 rounded-full bg-slate-300" />
+                    <span className="w-0.5 h-3 bg-slate-300" />
                     <span className="flex items-center gap-1.5">
-                      <Users className="w-4 h-4 text-slate-400" />{' '}
+                      <Users className="w-3.5 h-3.5 text-slate-400" />{' '}
                       {project.authorName || '작가 미정'}
                     </span>
                   </div>
@@ -834,217 +1158,86 @@ function ProjectDetailModal({
               </div>
             </div>
 
-            <div className="p-8 space-y-12">
-              {/* Feedback Section (Only for PENDING status) */}
-              {project.status === 'PENDING' && (
-                <div
-                  id="feedback-section"
-                  className="bg-indigo-50 border border-indigo-100 rounded-xl p-6"
-                >
-                  <h3 className="text-lg font-bold flex items-center gap-2 text-indigo-900 mb-4">
-                    <MessageSquare className="w-5 h-5 text-indigo-600" />
-                    작가 피드백 및 평가
-                  </h3>
-                  <div className="flex gap-4">
-                    <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center shrink-0">
-                      <User className="w-6 h-6 text-indigo-600" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between mb-2">
-                        <div>
-                          <span className="font-bold text-slate-900 mr-2">
-                            {project.authorName}
-                          </span>
-                          <span className="text-xs text-slate-500">
-                            {new Date().toLocaleDateString()}
-                          </span>
-                        </div>
-                        <Badge className="bg-indigo-200 text-indigo-800 hover:bg-indigo-300 border-0">
-                          검토 중
-                        </Badge>
-                      </div>
-                      <div className="bg-white p-4 rounded-lg border border-indigo-100 text-slate-700 text-sm leading-relaxed shadow-sm">
-                        "제안해주신 기획안 잘 확인했습니다. 전반적으로 흥미로운
-                        방향성이네요. 다만 타겟 연령대를 조금 더 낮춰서 10대
-                        후반도 포함할 수 있을지 검토 부탁드립니다. 비주얼 컨셉은
-                        아주 마음에 듭니다."
-                      </div>
-                      <div className="mt-3 flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="bg-white border-indigo-200 text-indigo-700 hover:bg-indigo-50"
-                        >
-                          <MessageSquare className="w-3.5 h-3.5 mr-1.5" />{' '}
-                          답장하기
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* 1. PDF Preview & Overview */}
-              <div className="flex flex-col lg:flex-row gap-8 items-stretch">
-                {/* Left: PDF & Visual Preview */}
-                <div className="w-full lg:w-1/2 shrink-0 flex flex-col gap-4">
-                  <div className="h-[300px]">
-                    <VisualPreview
-                      project={project}
-                      isFullScreen={false}
-                      className="h-full object-contain"
-                      onFullScreen={() => setShowPreviewModal(true)}
-                    />
-                  </div>
-                  <div className="h-[200px]">
-                    <PdfPreview
-                      isFullScreen={false}
-                      className="h-full"
-                      onFullScreen={() => setShowPdfFullScreen(true)}
-                    />
-                  </div>
-                </div>
-
-                {/* Right: Project Overview */}
-                <div className="w-full lg:w-1/2 flex flex-col space-y-4 shrink-0">
-                  <h3 className="text-lg font-bold flex items-center gap-2 text-slate-800">
-                    <Target className="w-5 h-5 text-slate-500" />
-                    프로젝트 개요
-                  </h3>
-                  <Card className="h-full border-slate-100 shadow-sm bg-white">
-                    <CardContent className="p-6 space-y-6">
-                      <div>
-                        <div className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1.5">
-                          Source Work
-                        </div>
-                        <div className="font-bold text-slate-900 text-lg">
-                          {project.workTitle || '-'}
-                        </div>
-                      </div>
-                      <div className="h-px bg-slate-50" />
-                      <div>
-                        <div className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1.5">
-                          Target Audience
-                        </div>
-                        <div className="font-medium text-slate-700">
-                          {project.business?.targetAge?.join(', ') || '미정'} /{' '}
-                          <span className="capitalize">
-                            {project.business?.targetGender === 'male'
-                              ? '남성'
-                              : project.business?.targetGender === 'female'
-                                ? '여성'
-                                : '전체'}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="h-px bg-slate-50" />
-                      <div>
-                        <div className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1.5">
-                          Budget Scale
-                        </div>
-                        <div className="font-medium text-slate-700 capitalize flex items-center gap-2">
-                          {project.business?.budgetRange === 'low'
-                            ? '저예산 (Low)'
-                            : project.business?.budgetRange === 'high'
-                              ? '블록버스터 (High)'
-                              : '중형 예산 (Medium)'}
-                        </div>
-                      </div>
-                      <div className="h-px bg-slate-50" />
-                      <div>
-                        <div className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-2">
-                          Strategy
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          <Badge
-                            variant="secondary"
-                            className="bg-slate-50 text-slate-600 hover:bg-slate-100 border-slate-200"
-                          >
-                            {project.strategy?.genre === 'varied'
-                              ? '장르 변주'
-                              : '원작 유지'}
-                          </Badge>
-                          <Badge
-                            variant="secondary"
-                            className="bg-slate-50 text-slate-600 hover:bg-slate-100 border-slate-200"
-                          >
-                            {project.strategy?.universe === 'parallel'
-                              ? '평행 세계'
-                              : '공유 세계관'}
-                          </Badge>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
+            <div className="p-6 space-y-8">
+              {/* 1. PDF Preview */}
+              <div className="w-full h-[500px] bg-slate-100 rounded-xl overflow-hidden border border-slate-200 shadow-sm">
+                <PdfPreview
+                  isFullScreen={false}
+                  className="h-full w-full"
+                  onFullScreen={() => setShowPdfFullScreen(true)}
+                  pdfUrl={pdfBlobUrl || undefined}
+                  onDownload={handleDownloadPdf}
+                />
               </div>
 
               {/* 2. Core Content Strategy (6 Grid) */}
               <section>
-                <h3 className="text-xl font-bold mb-6 flex items-center gap-2 text-slate-900">
-                  <Sparkles className="w-6 h-6 text-purple-500" />
-                  IP 확장 기획 제안서 핵심 내용
+                <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-slate-900">
+                  <Sparkles className="w-5 h-5 text-purple-500" />
+                  핵심 내용 요약
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {[
                     {
-                      title: '차별점 (Differentiation)',
-                      icon: Zap,
-                      content: contentStrategy.differentiation,
-                      color: 'text-indigo-600',
-                      bg: 'bg-indigo-50',
-                    },
-                    {
-                      title: '기획 필요성 (Key Reason)',
+                      title: '시장 전략 (Market Strategy)',
                       icon: Target,
-                      content: contentStrategy.keyReason,
+                      content: project.expMarket,
                       color: 'text-rose-600',
                       bg: 'bg-rose-50',
                     },
                     {
-                      title: '성공 근거 (Success Grounds)',
-                      icon: BarChart,
-                      content: contentStrategy.successGrounds,
-                      color: 'text-emerald-600',
-                      bg: 'bg-emerald-50',
+                      title: '서사 기획 (Creative Narrative)',
+                      icon: Zap,
+                      content: project.expCreative,
+                      color: 'text-indigo-600',
+                      bg: 'bg-indigo-50',
                     },
                     {
-                      title: '핵심 서사 (Core Narrative)',
-                      icon: BookOpen,
-                      content: contentStrategy.coreNarrative,
-                      color: 'text-blue-600',
-                      bg: 'bg-blue-50',
+                      title: '아트 컨셉 (Visual Concept)',
+                      icon: ImageIcon,
+                      content: project.expVisual,
+                      color: 'text-pink-600',
+                      bg: 'bg-pink-50',
                     },
                     {
-                      title: '세계관 확장 (World Building)',
+                      title: '세계관 확장 (World Expansion)',
                       icon: Monitor,
-                      content: contentStrategy.worldBuilding,
+                      content: project.expWorld,
                       color: 'text-purple-600',
                       bg: 'bg-purple-50',
                     },
                     {
-                      title: '비주얼 스타일 (Visual Style)',
-                      icon: ImageIcon,
-                      content: contentStrategy.visualStyle,
-                      color: 'text-pink-600',
-                      bg: 'bg-pink-50',
+                      title: '사업 모델 (Business Model)',
+                      icon: BarChart,
+                      content: project.expBusiness,
+                      color: 'text-emerald-600',
+                      bg: 'bg-emerald-50',
                     },
-                  ].map((item, i) => (
+                    {
+                      title: '기술 환경 (Technical Environment)',
+                      icon: BookOpen,
+                      content: project.expProduction,
+                      color: 'text-blue-600',
+                      bg: 'bg-blue-50',
+                    },
+                  ].map((item: any, i) => (
                     <Card
                       key={i}
                       className="border-slate-100 shadow-sm hover:shadow-md transition-all hover:-translate-y-1 duration-300"
                     >
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-base flex items-center gap-2 text-slate-800">
-                          <div className={`p-2 rounded-lg ${item.bg}`}>
-                            <item.icon className={`w-4 h-4 ${item.color}`} />
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm flex items-center gap-2 text-slate-800">
+                          <div className={`p-1.5 rounded-md ${item.bg}`}>
+                            <item.icon
+                              className={`w-3.5 h-3.5 ${item.color}`}
+                            />
                           </div>
                           {item.title}
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <p className="text-sm text-slate-600 leading-relaxed">
-                          {item.content}
+                        <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-wrap">
+                          {item.content || '내용이 없습니다.'}
                         </p>
                       </CardContent>
                     </Card>
@@ -1063,43 +1256,36 @@ function ProjectDetailModal({
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                   {[
                     {
-                      label: 'Source Work',
-                      value: project.workTitle,
+                      label: '원천 설정집 (Source Settings)',
+                      value: `${project.lorebookIds?.length || 0}개`,
                       icon: BookOpen,
-                      color: 'text-slate-600',
-                      bg: 'bg-slate-50',
+                      color: 'text-indigo-600',
+                      bg: 'bg-indigo-50',
                     },
                     {
-                      label: 'Author',
-                      value: project.authorName,
-                      icon: Users,
-                      color: 'text-slate-600',
-                      bg: 'bg-slate-50',
-                    },
-                    {
-                      label: 'Format',
-                      value: project.format,
+                      label: '포맷 (Format)',
+                      value: project.targetFormat || project.format,
                       icon: Film,
                       color: 'text-slate-600',
                       bg: 'bg-slate-50',
                     },
                     {
-                      label: '장르 설정',
-                      value: project.strategy?.genres
-                        ? project.strategy.genres.join(', ')
-                        : project.strategy?.genre || '미지정',
+                      label: '장르 (Genre)',
+                      value: project.targetGenre || '미지정',
                       icon: Sparkles,
                       color: 'text-amber-600',
                       bg: 'bg-amber-50',
                     },
                     {
-                      label: '타겟 연령/성별',
+                      label: '타겟 (Target)',
                       value: `${
-                        project.business?.targetAge?.join(', ') || '전연령'
+                        Array.isArray(project.targetAges)
+                          ? project.targetAges.join(', ')
+                          : project.targetAges || '전연령'
                       } / ${
-                        project.business?.targetGender === 'male'
+                        project.targetGender === 'male'
                           ? '남성'
-                          : project.business?.targetGender === 'female'
+                          : project.targetGender === 'female'
                             ? '여성'
                             : '통합'
                       }`,
@@ -1108,38 +1294,50 @@ function ProjectDetailModal({
                       bg: 'bg-blue-50',
                     },
                     {
-                      label: '예산 규모',
-                      value: project.business?.budgetRange || '미정',
+                      label: '예산 (Budget)',
+                      value:
+                        project.budgetScale === 'SMALL'
+                          ? '저예산'
+                          : project.budgetScale === 'LARGE'
+                            ? '블록버스터'
+                            : project.budgetScale === 'MEDIUM'
+                              ? '중형 예산'
+                              : project.budgetScale || '미정',
                       icon: DollarSign,
                       color: 'text-green-600',
                       bg: 'bg-green-50',
                     },
+                    {
+                      label: '세계관 설정 (World)',
+                      value:
+                        project.worldSetting === 'SHARED'
+                          ? '공유 세계관'
+                          : project.worldSetting === 'ORIGINAL'
+                            ? '독자 세계관'
+                            : project.worldSetting === 'PARALLEL'
+                              ? '평행 우주'
+                              : project.worldSetting || '미지정',
+                      icon: Globe,
+                      color: 'text-indigo-600',
+                      bg: 'bg-indigo-50',
+                    },
+                    {
+                      label: '톤앤매너 (Tone)',
+                      value: project.toneAndManner || '미지정',
+                      icon: Palette,
+                      color: 'text-purple-600',
+                      bg: 'bg-purple-50',
+                    },
                     // Format Specific Details
-                    ...(project.format === 'webtoon'
+                    ...((project.targetFormat === 'WEBTOON' ||
+                      project.format === 'webtoon') &&
+                    (project.mediaDetail || project.mediaDetails)
                       ? [
                           {
                             label: '작화 스타일',
                             value:
-                              [
-                                {
-                                  id: 'realistic',
-                                  label: '실사체',
-                                },
-                                {
-                                  id: 'casual',
-                                  label: '캐주얼/SD',
-                                },
-                                {
-                                  id: 'martial_arts',
-                                  label: '무협/극화체',
-                                },
-                                {
-                                  id: 'us_comics',
-                                  label: '미국 코믹스',
-                                },
-                              ].find(
-                                (i) => i.id === project.mediaDetails?.style,
-                              )?.label || '미지정',
+                              (project.mediaDetail || project.mediaDetails)
+                                ?.style || '미지정',
                             icon: ImageIcon,
                             color: 'text-pink-600',
                             bg: 'bg-pink-50',
@@ -1147,22 +1345,8 @@ function ProjectDetailModal({
                           {
                             label: '연출 호흡',
                             value:
-                              [
-                                {
-                                  id: 'fast',
-                                  label: '빠른 전개',
-                                },
-                                {
-                                  id: 'emotional',
-                                  label: '감정선 중심',
-                                },
-                                {
-                                  id: 'suspense',
-                                  label: '긴장감 조성',
-                                },
-                              ].find(
-                                (i) => i.id === project.mediaDetails?.pacing,
-                              )?.label || '미지정',
+                              (project.mediaDetail || project.mediaDetails)
+                                ?.pacing || '미지정',
                             icon: Clock,
                             color: 'text-indigo-600',
                             bg: 'bg-indigo-50',
@@ -1170,331 +1354,109 @@ function ProjectDetailModal({
                           {
                             label: '엔딩 포인트',
                             value:
-                              [
-                                {
-                                  id: 'cliffhanger',
-                                  label: '절단신공',
-                                },
-                                {
-                                  id: 'resolution',
-                                  label: '에피소드 완결',
-                                },
-                                {
-                                  id: 'preview',
-                                  label: '다음 화 예고',
-                                },
-                              ].find(
-                                (i) =>
-                                  i.id === project.mediaDetails?.endingPoint,
-                              )?.label || '미지정',
+                              (project.mediaDetail || project.mediaDetails)
+                                ?.endingPoint || '미지정',
                             icon: Target,
                             color: 'text-rose-600',
                             bg: 'bg-rose-50',
                           },
-                          {
-                            label: '채색 톤',
-                            value: project.mediaDetails?.colorTone || '미지정',
-                            icon: Palette,
-                            color: 'text-purple-600',
-                            bg: 'bg-purple-50',
-                          },
                         ]
                       : []),
-                    ...(project.format === 'drama'
+                    ...((project.targetFormat === 'DRAMA' ||
+                      project.format === 'drama') &&
+                    (project.mediaDetail || project.mediaDetails)
                       ? [
                           {
-                            label: '편성 전략',
+                            label: '시즌 구성',
                             value:
-                              project.mediaDetails?.seasonType === 'limited'
-                                ? '미니시리즈 (16부작)'
-                                : project.mediaDetails?.seasonType ===
-                                    'seasonal'
-                                  ? '시즌제 드라마'
-                                  : '일일/주말 드라마',
+                              (project.mediaDetail || project.mediaDetails)
+                                ?.seasonType || '미지정',
                             icon: Calendar,
                             color: 'text-pink-600',
                             bg: 'bg-pink-50',
                           },
                           {
                             label: '회차당 분량',
-                            value: `${project.mediaDetails?.episodeDuration || 60}분`,
+                            value: `${(project.mediaDetail || project.mediaDetails)?.episodeDuration || 60}분`,
                             icon: Clock,
                             color: 'text-indigo-600',
                             bg: 'bg-indigo-50',
                           },
                           {
-                            label: '서브 요소',
-                            value: project.mediaDetails?.subFocus || '미지정',
+                            label: '서브 포커스',
+                            value:
+                              (project.mediaDetail || project.mediaDetails)
+                                ?.subFocus || '미지정',
                             icon: Zap,
                             color: 'text-yellow-600',
                             bg: 'bg-yellow-50',
                           },
                         ]
                       : []),
-                    ...(project.format === 'movie'
+                    ...((project.targetFormat === 'MOVIE' ||
+                      project.format === 'movie') &&
+                    (project.mediaDetail || project.mediaDetails)
                       ? [
                           {
                             label: '러닝타임',
-                            value: `${project.mediaDetails?.runningTime || 120}분`,
+                            value: `${(project.mediaDetail || project.mediaDetails)?.runningTime || 120}분`,
                             icon: Clock,
                             color: 'text-indigo-600',
                             bg: 'bg-indigo-50',
                           },
                           {
                             label: '컬러 테마',
-                            value: project.mediaDetails?.colorTheme || '미지정',
+                            value:
+                              (project.mediaDetail || project.mediaDetails)
+                                ?.colorTheme || '미지정',
                             icon: Palette,
                             color: 'text-purple-600',
                             bg: 'bg-purple-50',
                           },
                           {
-                            label: '3막 구조',
-                            value: project.mediaDetails?.focusAct || '미지정',
+                            label: '중점 막(Act)',
+                            value:
+                              (project.mediaDetail || project.mediaDetails)
+                                ?.focusAct || '미지정',
                             icon: Layout,
                             color: 'text-emerald-600',
                             bg: 'bg-emerald-50',
                           },
                         ]
                       : []),
-                    ...(project.format === 'game'
-                      ? [
-                          {
-                            label: '게임 장르',
-                            value:
-                              [
-                                { id: 'rpg', label: 'RPG' },
-                                {
-                                  id: 'simulation',
-                                  label: '시뮬레이션',
-                                },
-                                { id: 'action', label: '액션/어드벤처' },
-                                {
-                                  id: 'puzzle',
-                                  label: '퍼즐/캐주얼',
-                                },
-                                { id: 'strategy', label: '전략/TCG' },
-                                { id: 'sports', label: '스포츠/레이싱' },
-                                { id: 'fps', label: '슈팅 (FPS/TPS)' },
-                                {
-                                  id: 'combat',
-                                  label: '전투/경쟁',
-                                },
-                                {
-                                  id: 'collection',
-                                  label: '수집형',
-                                },
-                                { id: 'story', label: '비주얼 노벨' },
-                              ].find(
-                                (i) => i.id === project.mediaDetails?.gameGenre,
-                              )?.label || '미지정',
-                            icon: Gamepad2,
-                            color: 'text-pink-600',
-                            bg: 'bg-pink-50',
-                          },
-                          {
-                            label: '플랫폼',
-                            value:
-                              [
-                                { id: 'mobile', label: '모바일' },
-                                { id: 'pc', label: 'PC' },
-                                { id: 'console', label: '콘솔' },
-                                {
-                                  id: 'multi',
-                                  label: '멀티플랫폼',
-                                },
-                              ].find(
-                                (i) => i.id === project.mediaDetails?.platform,
-                              )?.label || '미지정',
-                            icon: Monitor,
-                            color: 'text-indigo-600',
-                            bg: 'bg-indigo-50',
-                          },
-                          {
-                            label: '핵심 재미요소',
-                            value: project.mediaDetails?.coreLoop || '미지정',
-                            icon: Zap,
-                            color: 'text-yellow-600',
-                            bg: 'bg-yellow-50',
-                          },
-                        ]
-                      : []),
-                    ...(project.format === 'spinoff'
-                      ? [
-                          {
-                            label: '스핀오프 유형',
-                            value:
-                              [
-                                { id: 'prequel', label: '프리퀄' },
-                                { id: 'sequel', label: '시퀄' },
-                                { id: 'side', label: '외전' },
-                                { id: 'if', label: 'IF 스토리' },
-                              ].find(
-                                (i) =>
-                                  i.id === project.mediaDetails?.spinoffType,
-                              )?.label || '미지정',
-                            icon: GitBranch,
-                            color: 'text-pink-600',
-                            bg: 'bg-pink-50',
-                          },
-                          {
-                            label: '주인공 캐릭터',
-                            value:
-                              project.mediaDetails?.targetCharacter || '미지정',
-                            icon: User,
-                            color: 'text-indigo-600',
-                            bg: 'bg-indigo-50',
-                          },
-                          {
-                            label: '연재 호흡',
-                            value:
-                              project.mediaDetails?.publishPace || '미지정',
-                            icon: Clock,
-                            color: 'text-emerald-600',
-                            bg: 'bg-emerald-50',
-                          },
-                        ]
-                      : []),
-                    ...(project.format === 'commercial'
-                      ? [
-                          {
-                            label: '비주얼 포맷',
-                            value:
-                              [
-                                { id: '2d', label: '2D 애니메이션' },
-                                { id: '3d', label: '3D 그래픽' },
-                                { id: 'live', label: '실사 촬영' },
-                                {
-                                  id: 'motion',
-                                  label: '모션 그래픽',
-                                },
-                              ].find(
-                                (i) =>
-                                  i.id === project.mediaDetails?.visualFormat,
-                              )?.label || '미지정',
-                            icon: ImageIcon,
-                            color: 'text-pink-600',
-                            bg: 'bg-pink-50',
-                          },
-                          {
-                            label: '활용 목적',
-                            value:
-                              project.mediaDetails?.usagePurpose || '미지정',
-                            icon: Target,
-                            color: 'text-indigo-600',
-                            bg: 'bg-indigo-50',
-                          },
-                          {
-                            label: '타겟 상품군',
-                            value:
-                              project.mediaDetails?.targetProduct || '미지정',
-                            icon: Package,
-                            color: 'text-emerald-600',
-                            bg: 'bg-emerald-50',
-                          },
-                        ]
-                      : []),
-                    {
-                      label: '제작 톤앤매너',
-                      value:
-                        project.business?.toneManner ||
-                        project.toneAndManner ||
-                        project.mediaDetails?.tone ||
-                        '미지정',
-                      icon: Palette,
-                      color: 'text-purple-600',
-                      bg: 'bg-purple-50',
-                    },
-                    {
-                      label: '세계관 설정',
-                      value:
-                        project.strategy?.universe === 'parallel'
-                          ? '평행 세계관'
-                          : '공유 세계관',
-                      icon: Globe,
-                      color: 'text-emerald-600',
-                      bg: 'bg-emerald-50',
-                    },
-                    {
-                      label: '추가 프롬프트',
-                      value: project.mediaPrompt || '없음',
-                      icon: MessageSquare,
-                      color: 'text-slate-600',
-                      bg: 'bg-slate-50',
-                    },
-                  ].map((item, i) => (
+                  ].map((item: any, i) => (
                     <div
                       key={i}
-                      className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm flex items-start gap-3"
+                      className={`flex items-start gap-3 p-3 rounded-lg border border-slate-100 ${item.bg}`}
                     >
-                      <div
-                        className={cn(
-                          'w-8 h-8 rounded-lg flex items-center justify-center shrink-0',
-                          item.bg,
-                          item.color,
-                        )}
-                      >
-                        <item.icon className="w-4 h-4" />
+                      <div className={`p-1.5 rounded-md bg-white/60 shrink-0`}>
+                        <item.icon className={`w-4 h-4 ${item.color}`} />
                       </div>
-                      <div className="overflow-hidden">
-                        <p className="text-xs font-bold text-slate-500 mb-1">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-0.5">
                           {item.label}
                         </p>
-                        <p className="text-sm font-bold text-slate-800 truncate">
-                          {item.value}
+                        <p className="text-sm font-semibold text-slate-900 truncate">
+                          {item.value || '-'}
                         </p>
                       </div>
                     </div>
                   ))}
-                </div>
 
-                {/* Lorebooks with Expand Icon */}
-                <div className="space-y-3">
-                  <div className="text-sm font-medium text-slate-600">
-                    선택된 설정집
-                  </div>
-                  {project.lorebooks && project.lorebooks.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                      {project.lorebooks.map((lorebook: any, i: number) => (
-                        <div
-                          key={i}
-                          className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-2 relative group"
-                        >
-                          <div className="flex justify-between items-start">
-                            <div
-                              className="font-bold text-slate-800 truncate pr-6"
-                              title={lorebook.keyword}
-                            >
-                              {lorebook.keyword}
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6 absolute top-3 right-3 text-slate-400 hover:text-slate-600"
-                              onClick={() =>
-                                setSelectedLorebookDetail(lorebook)
-                              }
-                            >
-                              <Maximize2 className="w-3 h-3" />
-                            </Button>
-                          </div>
-                          <div className="h-px bg-slate-50" />
-                          <div className="text-xs text-slate-500 space-y-1.5">
-                            <div className="flex justify-between items-center">
-                              <span className="text-slate-400">카테고리</span>
-                              <Badge
-                                variant="secondary"
-                                className="text-[10px] h-5"
-                              >
-                                {lorebook.category}
-                              </Badge>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="p-4 text-center text-slate-500 bg-slate-50 rounded-lg border border-dashed">
-                      선택된 설정집이 없습니다.
+                  {/* Add Prompt */}
+                  {project.addPrompt && (
+                    <div className="flex items-start gap-3 p-3 rounded-lg border border-slate-100 bg-slate-50">
+                      <div className="p-1.5 rounded-md bg-white/60 shrink-0">
+                        <MessageSquare className="w-4 h-4 text-slate-600" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-0.5">
+                          추가 요청사항 (Prompt)
+                        </p>
+                        <p className="text-sm font-medium text-slate-900 whitespace-pre-wrap leading-relaxed">
+                          {project.addPrompt}
+                        </p>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1521,6 +1483,9 @@ function ProjectDetailModal({
               <Button variant="outline" onClick={() => onEdit(project)}>
                 <Edit className="w-4 h-4 mr-2" /> 수정
               </Button>
+              <Button variant="outline" onClick={handleOpenReviewModal}>
+                <ClipboardList className="w-4 h-4 mr-2" /> 검토
+              </Button>
               {project.status === 'PENDING' && (
                 <Button
                   onClick={() => {
@@ -1534,41 +1499,86 @@ function ProjectDetailModal({
                   <MessageSquare className="w-4 h-4" /> 피드백 보기
                 </Button>
               )}
-              {project.status !== 'APPROVED' &&
-                project.status !== 'PENDING' &&
-                project.status !== 'PROPOSED' && (
-                  <Button
-                    onClick={() => onPropose(project.id)}
-                    className="gap-2 bg-indigo-600 hover:bg-indigo-700 text-white"
-                  >
-                    <Send className="w-4 h-4" /> 작가에게 제안하기
-                  </Button>
-                )}
+              {/* 작가 제안하기 버튼 제거됨 */}
             </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       <Dialog open={showPdfFullScreen} onOpenChange={setShowPdfFullScreen}>
-        <DialogContent className="!w-screen !h-screen !max-w-none rounded-none border-0 p-0 overflow-hidden bg-slate-50">
-          <div className="relative w-full h-full flex items-center justify-center p-8">
+        <DialogContent className="!w-screen !h-screen !max-w-none rounded-none border-0 p-0 overflow-y-auto bg-slate-50">
+          <div className="relative w-full min-h-full flex items-center justify-center p-8">
             <PdfPreview
               className="w-full h-full shadow-none border-0"
               isFullScreen={true}
+              pdfUrl={pdfBlobUrl || undefined}
+              onDownload={handleDownloadPdf}
             />
           </div>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showPreviewModal} onOpenChange={setShowPreviewModal}>
-        <DialogContent className="!w-screen !h-screen !max-w-none rounded-none border-0 p-0 overflow-hidden bg-black/95">
-          <div className="relative w-full h-full flex items-center justify-center p-8">
-            <VisualPreview
-              className="w-full h-full object-contain"
-              isFullScreen={true}
-              project={project}
-            />
+      <Dialog open={showReviewModal} onOpenChange={setShowReviewModal}>
+        <DialogContent className="max-w-md bg-white">
+          <DialogHeader>
+            <DialogTitle>검토 내역</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+            {reviewComments.length > 0 ? (
+              reviewComments.map((comment) => (
+                <div
+                  key={comment.id}
+                  className="bg-slate-50 p-4 rounded-lg space-y-2 border border-slate-100"
+                >
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-slate-900 text-sm">
+                      {comment.writerName}
+                    </span>
+                    <Badge
+                      variant={
+                        comment.status === 'APPROVED'
+                          ? 'default'
+                          : comment.status === 'REJECTED'
+                            ? 'destructive'
+                            : 'secondary'
+                      }
+                      className={cn(
+                        'text-[10px] px-2 py-0.5',
+                        comment.status === 'APPROVED' &&
+                          'bg-green-600 hover:bg-green-700',
+                      )}
+                    >
+                      {comment.status === 'APPROVED'
+                        ? '승인'
+                        : comment.status === 'REJECTED'
+                          ? '반려'
+                          : '대기'}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-slate-600 whitespace-pre-wrap">
+                    {comment.comment}
+                  </p>
+                  <p className="text-xs text-slate-400 text-right">
+                    {new Date(comment.createdAt).toLocaleString()}
+                  </p>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-8 text-slate-500">
+                <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                <p>검토 내역이 없습니다.</p>
+              </div>
+            )}
           </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowReviewModal(false)}
+              className="w-full"
+            >
+              닫기
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -1605,7 +1615,77 @@ function ProjectDetailModal({
               <div>
                 <h4 className="font-bold mb-2 text-sm text-slate-500">내용</h4>
                 <div className="p-4 bg-white border rounded-lg min-h-[100px] text-sm leading-relaxed">
-                  {selectedLorebookDetail.description || '내용이 없습니다.'}
+                  {(() => {
+                    if (!selectedLorebookDetail.description)
+                      return '내용이 없습니다.';
+
+                    let descData = selectedLorebookDetail.description;
+
+                    // Try to parse if string
+                    if (typeof descData === 'string') {
+                      try {
+                        // Check if it looks like JSON
+                        if (descData.trim().startsWith('{')) {
+                          descData = JSON.parse(descData);
+                        }
+                      } catch (e) {
+                        // Keep as string if parsing fails
+                      }
+                    }
+
+                    // If it is an object (and was parsed successfully or was already an object)
+                    if (typeof descData === 'object' && descData !== null) {
+                      // The user requested to exclude the first key (which is the Lorebook Name)
+                      // So we take the first value from the object
+                      const values = Object.values(descData);
+                      if (values.length > 0) {
+                        const innerData = values[0];
+
+                        // If the inner data is an object (e.g. { "Char1": "...", "Char2": "..." })
+                        if (
+                          typeof innerData === 'object' &&
+                          innerData !== null
+                        ) {
+                          return (
+                            <div className="space-y-4">
+                              {Object.entries(innerData).map(([key, value]) => (
+                                <div key={key} className="flex flex-col gap-1">
+                                  <span className="font-bold text-slate-800 bg-slate-100 px-2 py-1 rounded inline-block w-fit text-xs">
+                                    {key}
+                                  </span>
+                                  <div className="text-slate-600 whitespace-pre-wrap pl-1">
+                                    {Array.isArray(value) ? (
+                                      <ul className="list-disc list-inside">
+                                        {value.map((v: any, i: number) => (
+                                          <li key={i}>{String(v)}</li>
+                                        ))}
+                                      </ul>
+                                    ) : (
+                                      String(value)
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        }
+
+                        // If the inner data is just a string or other primitive
+                        return (
+                          <span className="whitespace-pre-wrap">
+                            {String(innerData)}
+                          </span>
+                        );
+                      }
+                    }
+
+                    // Fallback: Render string
+                    return (
+                      <span className="whitespace-pre-wrap">
+                        {String(descData)}
+                      </span>
+                    );
+                  })()}
                 </div>
               </div>
             </div>
@@ -2082,34 +2162,149 @@ function CreateIPExpansionDialog({
     if (isOpen) {
       if (initialData) {
         // Edit Mode: Pre-fill data
-        // For editing, we might need to populate selectedLorebooks first.
-        setSelectedLorebooks(initialData.lorebooks || []);
+        // Set Author & Work info
+        if (initialData.authorId) {
+          setSelectedAuthor({
+            id: initialData.authorId,
+            name: initialData.authorName || 'Unknown Author',
+            // Add other fields if necessary for consistency, though id/name are most used
+          });
+        }
+        if (initialData.workId) {
+          setSelectedWork({
+            workId: initialData.workId,
+            title: initialData.workTitle || 'Unknown Work',
+            // Add other fields if necessary
+          });
+        }
+
+        // Try to use processed_lorebooks if available, otherwise use lorebooks (legacy) or empty
+        const lorebooksToSet =
+          initialData.processed_lorebooks || initialData.lorebooks || [];
+        setSelectedLorebooks(lorebooksToSet);
+
         // Set Crown Setting
         if (initialData.crownSettingId) {
           setSelectedCrownSetting(initialData.crownSettingId);
-        } else if (initialData.lorebooks && initialData.lorebooks.length > 0) {
-          setSelectedCrownSetting(initialData.lorebooks[0].lorebookId);
+        } else if (lorebooksToSet.length > 0) {
+          // Default to first lorebook if not specified
+          setSelectedCrownSetting(
+            lorebooksToSet[0].lorebookId || lorebooksToSet[0].id,
+          );
         }
+
         setConflictConfirmed(true);
         setStep3Confirmed(true);
         setStep4Confirmed(true);
         setStep5Confirmed(true);
         setStep6Confirmed(true);
 
-        setSelectedFormat(initialData.format);
+        // Map targetFormat/format
+        const rawFormat = initialData.targetFormat || initialData.format;
+        setSelectedFormat(rawFormat ? rawFormat.toLowerCase() : null);
+
+        // Map Genre & Universe
+        // Support both old structure (strategy object) and new flat DTO structure
         if (initialData.strategy) {
+          // Legacy/Mock structure support
           setSelectedGenres(
             initialData.strategy.genres ||
               (initialData.strategy.genre ? [initialData.strategy.genre] : []),
           );
           setTargetGenre(initialData.strategy.targetGenre || '');
           setUniverseSetting(initialData.strategy.universe);
+        } else {
+          // New DTO structure
+          const genres = [];
+          if (initialData.targetGenre) genres.push(initialData.targetGenre);
+          setSelectedGenres(genres);
+          setTargetGenre(initialData.targetGenre || '');
+
+          // Map worldSetting enum to universeSetting
+          if (
+            initialData.worldSetting === 'PARALLEL_WORLD' ||
+            initialData.worldSetting === 'parallel'
+          ) {
+            setUniverseSetting('parallel');
+          } else {
+            setUniverseSetting('shared');
+          }
         }
+
+        // Map Business
         if (initialData.business) {
           setBusiness(initialData.business);
+        } else {
+          // Map budget scale
+          let budget = (initialData.budgetScale || 'medium').toLowerCase();
+          if (budget === 'small') budget = 'low';
+          if (budget === 'large') budget = 'high';
+          if (budget === 'blockbuster') budget = 'very_high';
+
+          // Map from flat DTO fields
+          setBusiness({
+            targetAge: initialData.targetAges || [],
+            targetGender: (initialData.targetGender || 'all').toLowerCase(),
+            budgetRange: budget,
+            toneManner: initialData.toneAndManner || '',
+            osmuStrategy: [], // Not present in DTO
+            marketingPoints: [], // Not present in DTO
+          });
         }
-        setMediaDetails(initialData.mediaDetails || {});
-        setMediaPrompt(initialData.mediaPrompt || '');
+
+        // Pre-fill Project Title
+        if (initialData.title) {
+          setProjectTitle(initialData.title);
+        }
+
+        // Map Media Details (Backend DTO -> Frontend State)
+        const rawMedia =
+          initialData.mediaDetail || initialData.mediaDetails || {};
+
+        // Reverse map platform for Game
+        let gamePlatform = rawMedia.platform || rawMedia.platformBM;
+        if (gamePlatform === 'MOBILE_F2P') gamePlatform = 'mobile';
+        if (
+          gamePlatform === 'PC_CONSOLE_PACKAGE' ||
+          gamePlatform === 'PC_PACKAGE'
+        )
+          gamePlatform = 'pc_console';
+
+        setMediaDetails({
+          ...rawMedia,
+          // Webtoon
+          style: rawMedia.artStyle || rawMedia.style,
+          pacing: rawMedia.directionPace || rawMedia.pacing,
+          endingPoint: rawMedia.endingPoint || rawMedia.endingPoint,
+          colorTone: rawMedia.colorTone || rawMedia.colorTone,
+
+          // Drama
+          seasonType: rawMedia.broadcastStrategy || rawMedia.seasonType,
+          episodeDuration: rawMedia.episodeRuntime || rawMedia.episodeDuration,
+          subFocus: rawMedia.subElement || rawMedia.subFocus,
+
+          // Movie
+          runningTime: rawMedia.runtime || rawMedia.runningTime,
+          colorTheme: rawMedia.colorTheme || rawMedia.colorTheme,
+          focusAct: rawMedia.threeActFocus || rawMedia.focusAct,
+
+          // Game
+          gameGenre: rawMedia.gameGenre || rawMedia.gameGenre,
+          coreLoop: rawMedia.coreFun || rawMedia.coreLoop,
+          platform: gamePlatform,
+
+          // Spinoff
+          spinoffType: rawMedia.direction || rawMedia.spinoffType,
+          targetCharacter: rawMedia.mainCharacter || rawMedia.targetCharacter,
+          publishPace: rawMedia.serializationPace || rawMedia.publishPace,
+
+          // Commercial
+          visualFormat: rawMedia.visualFormat || rawMedia.visualFormat,
+          purpose: rawMedia.purpose || rawMedia.purpose,
+          targetProduct: rawMedia.targetProduct || rawMedia.targetProduct,
+        });
+
+        setMediaPrompt(initialData.addPrompt || initialData.mediaPrompt || '');
 
         // Start from step 3 for editing
         setCurrentStep(3);
@@ -2427,51 +2622,7 @@ function CreateIPExpansionDialog({
     setShowCreateConfirm(false);
   };
 
-  // Formats
-  const formats = [
-    {
-      id: 'webtoon',
-      title: '웹툰',
-      icon: BookOpen,
-      desc: '원작의 시각화 및 웹툰 플랫폼 연재',
-      color: 'green',
-    },
-    {
-      id: 'drama',
-      title: '드라마',
-      icon: Tv,
-      desc: 'OTT 및 방송사 드라마 제작',
-      color: 'purple',
-    },
-    {
-      id: 'game',
-      title: '게임',
-      icon: Smartphone,
-      desc: '모바일 및 PC 게임 개발',
-      color: 'blue',
-    },
-    {
-      id: 'movie',
-      title: '영화',
-      icon: Clapperboard,
-      desc: '극장 상영용 장편 영화 제작',
-      color: 'red',
-    },
-    {
-      id: 'spinoff',
-      title: '스핀오프',
-      icon: Zap,
-      desc: '조연 캐릭터 중심의 새로운 스토리',
-      color: 'amber',
-    },
-    {
-      id: 'commercial',
-      title: '상업 이미지',
-      icon: ImageIcon,
-      desc: '광고 및 브랜드 콜라보레이션 이미지',
-      color: 'pink',
-    },
-  ];
+  // Formats used to be here, now at module scope
 
   return (
     <>
@@ -4907,6 +5058,13 @@ function CreateIPExpansionDialog({
                                     color: 'text-rose-600',
                                     bg: 'bg-rose-50',
                                   },
+                                  {
+                                    label: '채색 톤',
+                                    value: mediaDetails.colorTone || '미지정',
+                                    icon: Palette,
+                                    color: 'text-purple-600',
+                                    bg: 'bg-purple-50',
+                                  },
                                 ]
                               : []),
                             ...(selectedFormat === 'drama'
@@ -4929,6 +5087,38 @@ function CreateIPExpansionDialog({
                                     icon: Clock,
                                     color: 'text-indigo-600',
                                     bg: 'bg-indigo-50',
+                                  },
+                                  {
+                                    label: '서브 요소',
+                                    value: mediaDetails.subFocus || '미지정',
+                                    icon: Zap,
+                                    color: 'text-yellow-600',
+                                    bg: 'bg-yellow-50',
+                                  },
+                                ]
+                              : []),
+                            ...(selectedFormat === 'movie'
+                              ? [
+                                  {
+                                    label: '러닝타임',
+                                    value: `${mediaDetails.runningTime || 120}분`,
+                                    icon: Clock,
+                                    color: 'text-indigo-600',
+                                    bg: 'bg-indigo-50',
+                                  },
+                                  {
+                                    label: '컬러 테마',
+                                    value: mediaDetails.colorTheme || '미지정',
+                                    icon: Palette,
+                                    color: 'text-purple-600',
+                                    bg: 'bg-purple-50',
+                                  },
+                                  {
+                                    label: '3막 구조',
+                                    value: mediaDetails.focusAct || '미지정',
+                                    icon: Layout,
+                                    color: 'text-emerald-600',
+                                    bg: 'bg-emerald-50',
                                   },
                                 ]
                               : []),
@@ -4991,6 +5181,13 @@ function CreateIPExpansionDialog({
                                     color: 'text-indigo-600',
                                     bg: 'bg-indigo-50',
                                   },
+                                  {
+                                    label: '핵심 재미요소',
+                                    value: mediaDetails.coreLoop || '미지정',
+                                    icon: Zap,
+                                    color: 'text-yellow-600',
+                                    bg: 'bg-yellow-50',
+                                  },
                                 ]
                               : []),
                             ...(selectedFormat === 'spinoff'
@@ -5019,6 +5216,13 @@ function CreateIPExpansionDialog({
                                     color: 'text-indigo-600',
                                     bg: 'bg-indigo-50',
                                   },
+                                  {
+                                    label: '연재 호흡',
+                                    value: mediaDetails.publishPace || '미지정',
+                                    icon: Clock,
+                                    color: 'text-emerald-600',
+                                    bg: 'bg-emerald-50',
+                                  },
                                 ]
                               : []),
                             ...(selectedFormat === 'commercial'
@@ -5041,6 +5245,22 @@ function CreateIPExpansionDialog({
                                     icon: ImageIcon,
                                     color: 'text-pink-600',
                                     bg: 'bg-pink-50',
+                                  },
+                                  {
+                                    label: '활용 목적',
+                                    value:
+                                      mediaDetails.usagePurpose || '미지정',
+                                    icon: Target,
+                                    color: 'text-indigo-600',
+                                    bg: 'bg-indigo-50',
+                                  },
+                                  {
+                                    label: '타겟 상품군',
+                                    value:
+                                      mediaDetails.targetProduct || '미지정',
+                                    icon: Package,
+                                    color: 'text-emerald-600',
+                                    bg: 'bg-emerald-50',
                                   },
                                 ]
                               : []),
@@ -5187,7 +5407,7 @@ function CreateIPExpansionDialog({
                   size="sm"
                 >
                   <Wand2 className="w-3.5 h-3.5" />
-                  프로젝트 생성
+                  {initialData ? '프로젝트 수정' : '프로젝트 생성'}
                 </Button>
               )}
             </div>
