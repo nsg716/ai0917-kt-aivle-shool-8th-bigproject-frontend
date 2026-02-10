@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense, lazy } from 'react';
 import {
   Routes,
   Route,
@@ -6,22 +6,56 @@ import {
   Navigate,
   useLocation,
 } from 'react-router-dom';
-import { LandingPage } from './pages/landing/LandingPage';
-import { LoginPage } from './pages/auth/LoginPage';
-import { SignupPage } from './pages/auth/SignupPage';
-import { ManagerDashboard } from './pages/dashboard/ManagerDashboard';
-import { AuthorDashboard } from './pages/dashboard/AuthorDashboard';
-import { AdminDashboard } from './pages/dashboard/AdminDashboard';
-import PrivacyPolicy from './pages/legal/PrivacyPolicy';
-import TermsPage from './pages/legal/TermsPage';
 import { authService } from './services/authService';
-import AILabPage from './pages/lab/AILabPage';
 import { Toaster } from './components/ui/sonner';
 import { toast } from 'sonner';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { ensureCsrfToken } from './utils/csrf';
 
+// Code Splitting for performance optimization
+const LandingPage = lazy(() =>
+  import('./pages/landing/LandingPage').then((module) => ({
+    default: module.LandingPage,
+  })),
+);
+const LoginPage = lazy(() =>
+  import('./pages/auth/LoginPage').then((module) => ({
+    default: module.LoginPage,
+  })),
+);
+const SignupPage = lazy(() =>
+  import('./pages/auth/SignupPage').then((module) => ({
+    default: module.SignupPage,
+  })),
+);
+const ManagerDashboard = lazy(() =>
+  import('./pages/dashboard/ManagerDashboard').then((module) => ({
+    default: module.ManagerDashboard,
+  })),
+);
+const AuthorDashboard = lazy(() =>
+  import('./pages/dashboard/AuthorDashboard').then((module) => ({
+    default: module.AuthorDashboard,
+  })),
+);
+const AdminDashboard = lazy(() =>
+  import('./pages/dashboard/AdminDashboard').then((module) => ({
+    default: module.AdminDashboard,
+  })),
+);
+const PrivacyPolicy = lazy(() => import('./pages/legal/PrivacyPolicy'));
+const TermsPage = lazy(() => import('./pages/legal/TermsPage'));
+const AILabPage = lazy(() => import('./pages/lab/AILabPage'));
+
 type UserType = 'Manager' | 'Author' | 'Admin' | 'Deactivated' | null;
+
+function LoadingFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+    </div>
+  );
+}
 
 export default function App() {
   const [userType, setUserType] = useState<UserType>(() => {
@@ -32,7 +66,11 @@ export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(() => {
+    // 저장된 역할이 있으면 검증이 끝날 때까지 로딩 상태 유지 (화면 깜빡임 방지)
+    // 저장된 역할이 없으면 바로 랜딩 페이지를 보여줌 (초기 로딩 속도 향상)
+    return !!localStorage.getItem('userRole');
+  });
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => {
@@ -60,9 +98,9 @@ export default function App() {
       }
     };
 
-    // Verify session on mount and on route changes that might imply auth state change
+    // Verify session on mount
     verifySession();
-  }, [location.pathname]); // Re-check on path change might be too frequent, but safe for ensuring auth
+  }, []);
 
   const handleLogin = (type: UserType) => {
     localStorage.setItem('userRole', type!);
@@ -104,62 +142,64 @@ export default function App() {
     <ErrorBoundary>
       <div className="min-h-screen bg-background">
         <Toaster />
-        <Routes>
-          {/* 권한별 대시보드 */}
-          <Route
-            path="/"
-            element={
-              userType === 'Manager' ? (
-                <ManagerDashboard
-                  onLogout={handleLogout}
-                  onHome={() => navigate('/')}
-                />
-              ) : userType === 'Author' ? (
-                <AuthorDashboard
-                  onLogout={handleLogout}
-                  onHome={() => navigate('/')}
-                />
-              ) : userType === 'Admin' ? (
-                <AdminDashboard
-                  onLogout={handleLogout}
-                  onHome={() => navigate('/')}
-                />
-              ) : (
-                <LandingPage onSignInClick={() => navigate('/login')} />
-              )
-            }
-          />
+        <Suspense fallback={<LoadingFallback />}>
+          <Routes>
+            {/* 권한별 대시보드 */}
+            <Route
+              path="/"
+              element={
+                userType === 'Manager' ? (
+                  <ManagerDashboard
+                    onLogout={handleLogout}
+                    onHome={() => navigate('/')}
+                  />
+                ) : userType === 'Author' ? (
+                  <AuthorDashboard
+                    onLogout={handleLogout}
+                    onHome={() => navigate('/')}
+                  />
+                ) : userType === 'Admin' ? (
+                  <AdminDashboard
+                    onLogout={handleLogout}
+                    onHome={() => navigate('/')}
+                  />
+                ) : (
+                  <LandingPage onSignInClick={() => navigate('/login')} />
+                )
+              }
+            />
 
-          {/* 인증 라우트 */}
-          <Route
-            path="/login"
-            element={
-              userType ? (
-                <Navigate to="/" />
-              ) : (
-                <LoginPage
-                  onLogin={(t) => handleLogin(t)}
-                  onBack={() => navigate('/')}
+            {/* 인증 라우트 */}
+            <Route
+              path="/login"
+              element={
+                userType ? (
+                  <Navigate to="/" />
+                ) : (
+                  <LoginPage
+                    onLogin={(t) => handleLogin(t)}
+                    onBack={() => navigate('/')}
+                  />
+                )
+              }
+            />
+            <Route
+              path="/signup"
+              element={
+                <SignupPage
+                  onSignupComplete={() => navigate('/login')}
+                  onBack={() => navigate('/login')}
                 />
-              )
-            }
-          />
-          <Route
-            path="/signup"
-            element={
-              <SignupPage
-                onSignupComplete={() => navigate('/login')}
-                onBack={() => navigate('/login')}
-              />
-            }
-          />
+              }
+            />
 
-          {/* 법적 약관 및 404 */}
-          <Route path="/lab" element={<AILabPage />} />
-          <Route path="/terms" element={<TermsPage />} />
-          <Route path="/privacy" element={<PrivacyPolicy />} />
-          <Route path="*" element={<Navigate to="/" />} />
-        </Routes>
+            {/* 법적 약관 및 404 */}
+            <Route path="/lab" element={<AILabPage />} />
+            <Route path="/terms" element={<TermsPage />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
+            <Route path="*" element={<Navigate to="/" />} />
+          </Routes>
+        </Suspense>
       </div>
     </ErrorBoundary>
   );
