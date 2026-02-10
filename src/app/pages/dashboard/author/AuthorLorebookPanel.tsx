@@ -13,7 +13,10 @@ import {
   Edit,
   Trash2,
   Loader2,
+  Network,
+  BarChart3,
 } from 'lucide-react';
+import { WorkAnalysisModal } from './WorkAnalysisModal';
 import { DynamicSettingEditor } from '../../../components/dashboard/author/DynamicSettingEditor';
 import { Button } from '../../../components/ui/button';
 import {
@@ -47,7 +50,7 @@ import { cn } from '../../../components/ui/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { authorService } from '../../../services/authorService';
 import { toast } from 'sonner';
-
+import { AnalysisResultModal } from './AnalysisResultModal';
 import { Checkbox } from '../../../components/ui/checkbox';
 
 interface AuthorLorebookPanelProps {
@@ -94,6 +97,13 @@ export function AuthorLorebookPanel({
   );
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [searchTimer, setSearchTimer] = useState(0);
+
+  // Analysis State
+  const [isAnalysisResultModalOpen, setIsAnalysisResultModalOpen] =
+    useState(false);
+  const [isWorkAnalysisModalOpen, setIsWorkAnalysisModalOpen] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<string>('');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -230,7 +240,7 @@ export function AuthorLorebookPanel({
   // Mutations
   const createMutation = useMutation({
     mutationFn: (data: any) => {
-      const { name, title, description, subtitle, ...rest } = data;
+      const { name, title, description, subtitle, episode, ...rest } = data;
       const lorebookTitle = name || title;
 
       // Wrap dynamic fields into a 'settings' JSON string as expected by Backend DTO
@@ -246,6 +256,7 @@ export function AuthorLorebookPanel({
         subtitle: subtitle || '',
         category: toBackendCategory(activeCategory),
         settings: JSON.stringify(settingObj),
+        episode: episode,
       };
 
       return authorService.createLorebookSpecific(
@@ -275,7 +286,8 @@ export function AuthorLorebookPanel({
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: any }) => {
-      const { name, title, description, subtitle, ...rest } = data;
+      const { name, title, description, subtitle, category, episode, ...rest } =
+        data;
       const lorebookTitle = name || title;
 
       // Wrap dynamic fields into a 'settings' JSON string as expected by Backend DTO
@@ -287,9 +299,11 @@ export function AuthorLorebookPanel({
       };
 
       const payload = {
+        category: category,
         keyword: lorebookTitle,
         subtitle: subtitle || '',
         settings: JSON.stringify(settingObj),
+        episode: episode,
       };
 
       // Use item's category if activeCategory is 'all', otherwise use activeCategory
@@ -303,6 +317,7 @@ export function AuthorLorebookPanel({
         work!.title,
         toBackendCategory(categoryToUse),
         id.toString(),
+        work!.id,
         payload,
       );
     },
@@ -335,6 +350,26 @@ export function AuthorLorebookPanel({
   const handleDeleteClick = (id: number) => {
     if (confirm('정말 삭제하시겠습니까?')) {
       deleteMutation.mutate(id);
+    }
+  };
+
+  const handleCharacterAnalysis = async (characterName: string) => {
+    setIsAnalyzing(true);
+    setIsAnalysisResultModalOpen(true);
+    setAnalysisResult('');
+
+    try {
+      const data = await authorService.getCharacterAnalysis(
+        workId,
+        characterName,
+      );
+      setAnalysisResult(data.relationship);
+    } catch (error) {
+      console.error(error);
+      toast.error('인물 관계도 분석에 실패했습니다.');
+      setIsAnalysisResultModalOpen(false);
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
@@ -752,6 +787,11 @@ export function AuthorLorebookPanel({
           category={item.category}
           tags={getTagsForItem(item, activeCategory)}
           {...commonProps}
+          onAnalyze={
+            item.category === '인물'
+              ? () => handleCharacterAnalysis(item.name)
+              : undefined
+          }
         />
       );
     });
@@ -1243,6 +1283,15 @@ export function AuthorLorebookPanel({
             variant="ghost"
             size="icon"
             className="h-6 w-6 mr-1"
+            title="작품 분석"
+            onClick={() => setIsWorkAnalysisModalOpen(true)}
+          >
+            <BarChart3 className="w-4 h-4 text-indigo-600" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 mr-1"
             title="설정집 검색"
             onClick={() => setIsSearchOpen(true)}
           >
@@ -1506,6 +1555,21 @@ export function AuthorLorebookPanel({
           </form>
         </DialogContent>
       </Dialog>
+
+      <AnalysisResultModal
+        isOpen={isAnalysisResultModalOpen}
+        onClose={() => setIsAnalysisResultModalOpen(false)}
+        mermaidCode={analysisResult}
+        title="인물 관계도 분석 결과"
+        isLoading={isAnalyzing}
+      />
+
+      <WorkAnalysisModal
+        isOpen={isWorkAnalysisModalOpen}
+        onClose={() => setIsWorkAnalysisModalOpen(false)}
+        workId={workId}
+        userId={userId}
+      />
     </div>
   );
 }
@@ -1518,6 +1582,7 @@ export function LorebookCard({
   category,
   onEdit,
   onDelete,
+  onAnalyze,
 }: {
   item: any;
   title: string;
@@ -1526,6 +1591,7 @@ export function LorebookCard({
   category?: string;
   onEdit: (item: any) => void;
   onDelete: (id: number) => void;
+  onAnalyze?: () => void;
 }) {
   const isCharacter = category === '인물';
   const isWorld = category === '세계';
@@ -1563,6 +1629,17 @@ export function LorebookCard({
               )}
           </div>
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+            {isCharacter && onAnalyze && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 text-indigo-600"
+                onClick={onAnalyze}
+                title="인물 관계도 분석"
+              >
+                <Network className="w-3 h-3" />
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="icon"
