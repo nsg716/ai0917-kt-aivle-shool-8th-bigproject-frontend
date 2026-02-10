@@ -9,8 +9,14 @@ import {
   ManagerAuthorDetailDto,
   ManagerDashboardSummaryDto,
   ManagerDashboardPageResponseDto,
+  ManagerNotice,
 } from '../types/manager';
-import { LorebookDto, IPProposalDto, IPMatchingDto } from '../types/author';
+import {
+  LorebookDto,
+  IPProposalDto,
+  IPMatchingDto,
+  MatchedLorebookDto,
+} from '../types/author';
 
 export const managerService = {
   // Manager Dashboard
@@ -125,14 +131,9 @@ export const managerService = {
     return response.data;
   },
 
-  getLorebooksByAuthorAndTitle: async (
-    userId: string | number,
-    title: string,
-    workId: number,
-  ) => {
-    const response = await apiClient.get<LorebookDto[]>(
-      `/api/v1/author/${userId}/${title}/lorebook`,
-      { params: { workId } },
+  getLorebooksByAuthorAndTitle: async (workId: number) => {
+    const response = await apiClient.get<MatchedLorebookDto[]>(
+      `/api/v1/manager/ipext/${workId}/authorworklorebook`,
     );
     return response.data;
   },
@@ -150,10 +151,14 @@ export const managerService = {
     return response.data;
   },
 
-  getIPProposalDetail: async (
-    id: number,
-    managerId: string | number = 'me',
-  ) => {
+  getIPProposalDetail: async (id: number) => {
+    const response = await apiClient.get<IPProposalDto>(
+      `/api/v1/manager/ipext/${id}`,
+    );
+    return response.data;
+  },
+
+  getIPExpansionDetail: async (managerId: number | string, id: number) => {
     const response = await apiClient.get<IPProposalDto>(
       `/api/v1/manager/ipext/${managerId}/${id}`,
     );
@@ -217,11 +222,15 @@ export const managerService = {
   },
 
   getIPProposalPreview: async (id: number) => {
-    const response = await apiClient.get(`/api/v1/manager/ipext/preview/${id}`);
+    // The preview endpoint currently returns JSON metadata (DTO) instead of a file stream.
+    // We use the download endpoint which correctly returns the file blob.
+    const response = await apiClient.get(
+      `/api/v1/manager/ipext/download/${id}`,
+      { responseType: 'blob' },
+    );
     return response.data;
   },
-
-  downloadIPProposal: async (id: number) => {
+  getIPProposalDownload: async (id: number) => {
     const response = await apiClient.get(
       `/api/v1/manager/ipext/download/${id}`,
       { responseType: 'blob' },
@@ -229,11 +238,35 @@ export const managerService = {
     return response.data;
   },
 
-  // IP Matching
-  getIPMatching: async () => {
-    const response = await apiClient.get<IPMatchingDto[]>(
-      '/api/v1/manager/ipext/matching',
+  getIPProposalComments: async (id: number) => {
+    const response = await apiClient.get<any[]>(
+      `/api/v1/manager/ipext/comment/${id}`,
     );
     return response.data;
+  },
+
+  // System Notices
+  getNotices: async (integrationId: string, all: boolean = false) => {
+    const response = await apiClient.get<{
+      notices: ManagerNotice[];
+      count: number;
+    }>('/api/v1/manager/sysnotice', { params: { integrationId, all } });
+    return response.data;
+  },
+
+  markNoticeAsRead: async (integrationId: string, id: number) => {
+    await apiClient.patch(`/api/v1/manager/sysnotice/${id}/read`, null, {
+      params: { integrationId },
+    });
+  },
+
+  markAllNoticesAsRead: async (integrationId: string) => {
+    await apiClient.patch('/api/v1/manager/sysnotice/read-all', null, {
+      params: { integrationId },
+    });
+  },
+
+  getSystemNoticeSubscribeUrl: (integrationId: string) => {
+    return `${apiClient.defaults.baseURL}/api/v1/manager/sysnotice/subscribe?integrationId=${integrationId}`;
   },
 };
