@@ -359,11 +359,17 @@ export function AuthorLorebookPanel({
     setAnalysisResult('');
 
     try {
-      const data = await authorService.getCharacterAnalysis(
+      const data = await authorService.analyzeRelationship(
         workId,
+        userId,
         characterName,
       );
-      setAnalysisResult(data.relationship);
+      // Sanitize Mermaid code to handle special characters in labels
+      const sanitizedData =
+        typeof data === 'string'
+          ? data.replace(/((?:--|==|-.|~~)[>])\|([^"|\n]+)\|/g, '$1|"$2"|')
+          : data;
+      setAnalysisResult(sanitizedData);
     } catch (error) {
       console.error(error);
       toast.error('인물 관계도 분석에 실패했습니다.');

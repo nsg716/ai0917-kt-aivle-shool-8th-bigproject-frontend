@@ -75,12 +75,14 @@ export interface LorebookDto {
 
 // MatchedLorebook DTO
 export interface MatchedLorebookDto {
-  id: number;
+  lorebookId: number;
+  id?: number; // Optional fallback
   workId: number;
   workTitle: string;
   category: string;
   keyword: string;
   description: string;
+  authorName?: string; // Optional for frontend display
 }
 
 // Publish Process
@@ -268,7 +270,8 @@ export interface IPProposalCommentDto {
   ipProposalId: number;
   userId: string;
   writerName: string;
-  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  // 백엔드에서 Enum의 Description(한글)이 넘어오는 경우가 있어 string 허용
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'ARCHIVED' | string;
   comment: string;
   createdAt: string;
 }

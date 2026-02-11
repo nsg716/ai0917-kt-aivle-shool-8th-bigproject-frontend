@@ -5,12 +5,38 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../../../components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/tabs';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '../../../components/ui/tabs';
 import { Button } from '../../../components/ui/button';
 import { Checkbox } from '../../../components/ui/checkbox';
 import { ScrollArea } from '../../../components/ui/scroll-area';
 import { Label } from '../../../components/ui/label';
-import { Loader2, X, GitGraph, Clock, PlayCircle } from 'lucide-react';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '../../../components/ui/popover';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '../../../components/ui/command';
+import {
+  Loader2,
+  X,
+  GitGraph,
+  Clock,
+  PlayCircle,
+  Check,
+  ChevronsUpDown,
+} from 'lucide-react';
 // import mermaid from 'mermaid'; // Lazy load instead
 import { authorService } from '../../../services/authorService';
 import { useQuery, useMutation } from '@tanstack/react-query';
@@ -51,7 +77,12 @@ export function WorkAnalysisModal({
 
   // Fetch relationship analysis when modal opens
   useEffect(() => {
-    if (isOpen && workId && activeTab === 'relationship' && !relationshipChart) {
+    if (
+      isOpen &&
+      workId &&
+      activeTab === 'relationship' &&
+      !relationshipChart
+    ) {
       analyzeRelationshipMutation.mutate();
     }
   }, [isOpen, workId, activeTab]);
@@ -65,11 +96,20 @@ export function WorkAnalysisModal({
   const analyzeTimelineMutation = useMutation({
     mutationFn: async () => {
       if (!workId || selectedEpisodes.length === 0) return;
-      return await authorService.analyzeTimeline(workId, userId, selectedEpisodes);
+      return await authorService.analyzeTimeline(
+        workId,
+        userId,
+        selectedEpisodes,
+      );
     },
     onSuccess: (data) => {
       if (data) {
-        setTimelineChart(data);
+        // Remove title line if present
+        const cleanedData = data
+          .split('\n')
+          .filter((line) => !line.trim().startsWith('title'))
+          .join('\n');
+        setTimelineChart(cleanedData);
       }
     },
   });
@@ -78,7 +118,7 @@ export function WorkAnalysisModal({
     setSelectedEpisodes((prev) =>
       prev.includes(episodeId)
         ? prev.filter((id) => id !== episodeId)
-        : [...prev, episodeId]
+        : [...prev, episodeId],
     );
   };
 
@@ -87,15 +127,17 @@ export function WorkAnalysisModal({
     if (selectedEpisodes.length === episodes.length) {
       setSelectedEpisodes([]);
     } else {
-      setSelectedEpisodes(episodes.map((ep) => ep.id));
+      setSelectedEpisodes(episodes.map((ep) => ep.ep_num));
     }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl h-[85vh] flex flex-col p-0 gap-0 bg-white">
+      <DialogContent className="max-w-[95vw] h-[85vh] flex flex-col p-0 gap-0 bg-white">
         <DialogHeader className="p-6 border-b shrink-0 flex flex-row items-center justify-between">
-          <DialogTitle className="text-xl font-bold">작품 심층 분석</DialogTitle>
+          <DialogTitle className="text-xl font-bold">
+            작품 심층 분석
+          </DialogTitle>
         </DialogHeader>
 
         <Tabs
@@ -117,111 +159,137 @@ export function WorkAnalysisModal({
           </div>
 
           <div className="flex-1 overflow-hidden bg-slate-50">
-            <TabsContent value="relationship" className="h-full mt-0 p-6">
-              <div className="bg-white rounded-xl shadow-sm border p-6 h-full flex items-center justify-center overflow-auto relative">
-                {analyzeRelationshipMutation.isPending ? (
-                  <div className="flex flex-col items-center justify-center gap-4 text-slate-500">
-                    <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
-                    <p>전체 인물 관계도를 분석하고 있습니다...</p>
-                  </div>
-                ) : relationshipChart ? (
-                  <MermaidChart
-                    chart={relationshipChart}
-                    id="relationship-chart"
-                  />
-                ) : (
-                  <div className="text-center text-slate-500">
-                    <Button 
-                      onClick={() => analyzeRelationshipMutation.mutate()}
-                      variant="outline"
-                    >
-                      <GitGraph className="w-4 h-4 mr-2" />
-                      관계도 분석 시작
-                    </Button>
-                  </div>
-                )}
+            <TabsContent
+              value="relationship"
+              className="h-full mt-0 p-6 flex flex-col"
+            >
+              <div className="bg-white rounded-xl shadow-sm border h-full overflow-auto relative flex flex-col">
+                <div className="min-w-full min-h-full p-6 flex items-center justify-center">
+                  {analyzeRelationshipMutation.isPending ? (
+                    <div className="flex flex-col items-center justify-center gap-4 text-slate-500 h-full">
+                      <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+                      <p>전체 인물 관계도를 분석하고 있습니다...</p>
+                    </div>
+                  ) : relationshipChart ? (
+                    <MermaidChart
+                      chart={relationshipChart}
+                      id="relationship-chart"
+                      className="m-auto"
+                    />
+                  ) : (
+                    <div className="text-center text-slate-500 h-full flex items-center justify-center">
+                      <Button
+                        onClick={() => analyzeRelationshipMutation.mutate()}
+                        variant="outline"
+                      >
+                        <GitGraph className="w-4 h-4 mr-2" />
+                        관계도 분석 시작
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </div>
             </TabsContent>
-            <TabsContent value="timeline" className="h-full mt-0 flex flex-row">
-              {/* Episode Selection Sidebar */}
-              <div className="w-80 bg-white border-r flex flex-col">
-                <div className="p-4 border-b flex items-center justify-between bg-slate-50/50">
-                  <h3 className="font-medium text-sm text-slate-700">에피소드 선택</h3>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleSelectAll}
-                    className="h-8 text-xs"
-                  >
-                    {episodes && selectedEpisodes.length === episodes.length
-                      ? '전체 해제'
-                      : '전체 선택'}
-                  </Button>
-                </div>
-                
-                <ScrollArea className="flex-1 p-4">
-                  {isLoadingEpisodes ? (
-                    <div className="flex justify-center py-4">
-                      <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
-                    </div>
-                  ) : episodes && episodes.length > 0 ? (
-                    <div className="space-y-3">
-                      {episodes.map((ep) => (
-                        <div key={ep.id} className="flex items-start space-x-3 p-2 hover:bg-slate-50 rounded-lg transition-colors">
-                          <Checkbox
-                            id={`ep-${ep.id}`}
-                            checked={selectedEpisodes.includes(ep.id)}
-                            onCheckedChange={() => toggleEpisode(ep.id)}
-                            className="mt-1"
-                          />
-                          <div className="grid gap-1.5 leading-none">
-                            <label
-                              htmlFor={`ep-${ep.id}`}
-                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                            >
-                              {ep.ep_num}화. {ep.subtitle}
-                            </label>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-slate-500 text-center py-4">
-                      등록된 에피소드가 없습니다.
-                    </p>
-                  )}
-                </ScrollArea>
+            <TabsContent value="timeline" className="h-full mt-0 flex flex-col">
+              {/* Episode Selection Bar (Top) */}
+              <div className="bg-white border-b flex flex-wrap items-center gap-6 p-4 shrink-0">
+                <div className="flex items-center gap-4 flex-1 min-w-[300px] max-w-2xl">
+                  <h3 className="font-medium text-sm text-slate-700 shrink-0">
+                    에피소드 선택
+                  </h3>
 
-                <div className="p-4 border-t bg-slate-50/50">
-                  <Button 
-                    className="w-full gap-2" 
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className="flex-1 w-full justify-between text-left font-normal"
+                        disabled={isLoadingEpisodes || !episodes}
+                      >
+                        {selectedEpisodes.length > 0
+                          ? `${selectedEpisodes.length}개 에피소드 선택됨`
+                          : '분석할 에피소드를 선택하세요'}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[230px] p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="에피소드 검색..." />
+                        <CommandList>
+                          <CommandEmpty>에피소드가 없습니다.</CommandEmpty>
+                          <CommandGroup>
+                            <CommandItem
+                              value="select-all"
+                              onSelect={handleSelectAll}
+                              className="font-medium text-indigo-600 justify-center text-center bg-indigo-50/50 hover:bg-indigo-50 my-1 cursor-pointer"
+                            >
+                              {episodes &&
+                              selectedEpisodes.length === episodes.length
+                                ? '전체 해제'
+                                : '전체 선택'}
+                            </CommandItem>
+                            {episodes?.map((ep) => (
+                              <CommandItem
+                                key={ep.ep_num}
+                                value={`${ep.ep_num}화 ${ep.subtitle}`}
+                                onSelect={() => toggleEpisode(ep.ep_num)}
+                              >
+                                <Check
+                                  className={cn(
+                                    'mr-2 h-4 w-4',
+                                    selectedEpisodes.includes(ep.ep_num)
+                                      ? 'opacity-100'
+                                      : 'opacity-0',
+                                  )}
+                                />
+                                <span className="truncate">
+                                  {ep.ep_num}화. {ep.subtitle}
+                                </span>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0 ml-auto sm:ml-0">
+                  <Button
                     onClick={() => analyzeTimelineMutation.mutate()}
-                    disabled={selectedEpisodes.length === 0 || analyzeTimelineMutation.isPending}
+                    disabled={
+                      selectedEpisodes.length === 0 ||
+                      analyzeTimelineMutation.isPending
+                    }
+                    className="gap-2 px-6"
                   >
                     {analyzeTimelineMutation.isPending ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
                       <PlayCircle className="w-4 h-4" />
                     )}
-                    선택한 에피소드 분석
+                    분석 시작
                   </Button>
                 </div>
               </div>
 
-              {/* Chart Area */}
-              <div className="flex-1 p-6 overflow-hidden flex flex-col">
-                <div className="bg-white rounded-xl shadow-sm border p-6 flex-1 flex items-center justify-center overflow-auto relative">
-                  {timelineChart ? (
-                    <MermaidChart
-                      chart={timelineChart}
-                      id="timeline-chart"
-                    />
-                  ) : (
-                    <div className="text-center text-slate-500">
-                      <Clock className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                      <p>좌측에서 에피소드를 선택하여 분석을 시작하세요.</p>
-                    </div>
-                  )}
+              {/* Chart Area (Bottom) */}
+              <div className="flex-1 p-6 overflow-hidden flex flex-col bg-slate-50">
+                <div className="bg-white rounded-xl shadow-sm border flex-1 overflow-auto relative flex flex-col">
+                  <div className="min-w-full min-h-full p-6 flex items-center justify-center">
+                    {timelineChart ? (
+                      <MermaidChart
+                        chart={timelineChart}
+                        id="timeline-chart"
+                        className="m-auto"
+                      />
+                    ) : (
+                      <div className="text-center text-slate-500 h-full flex flex-col items-center justify-center">
+                        <Clock className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                        <p>상단에서 에피소드를 선택하여 분석을 시작하세요.</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </TabsContent>
@@ -238,7 +306,15 @@ export function WorkAnalysisModal({
   );
 }
 
-function MermaidChart({ chart, id }: { chart: string; id: string }) {
+function MermaidChart({
+  chart,
+  id,
+  className,
+}: {
+  chart: string;
+  id: string;
+  className?: string;
+}) {
   const [svg, setSvg] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
 
@@ -249,7 +325,7 @@ function MermaidChart({ chart, id }: { chart: string; id: string }) {
         setError(null);
         // Dynamically import mermaid
         const mermaid = (await import('mermaid')).default;
-        
+
         mermaid.initialize({
           startOnLoad: false,
           theme: 'default',
@@ -257,15 +333,21 @@ function MermaidChart({ chart, id }: { chart: string; id: string }) {
           fontFamily: 'Pretendard, sans-serif',
         });
 
+        // Inject font size configuration if not already present
+        const initString = `%%{init: {'themeVariables': { 'fontSize': '24px'}}}%%\n`;
+        const chartToRender = chart.startsWith('%%{init')
+          ? chart
+          : initString + chart;
+
         // Clear previous SVG to prevent ID conflicts or artifacts if needed
-        const { svg } = await mermaid.render(id, chart);
+        const { svg } = await mermaid.render(id, chartToRender);
         setSvg(svg);
       } catch (e) {
         console.error('Mermaid render error:', e);
         setError('차트를 렌더링하는 중 오류가 발생했습니다.');
       }
     };
-    
+
     // Slight delay to ensure DOM is ready and prevent race conditions
     const timer = setTimeout(() => {
       renderChart();
@@ -288,7 +370,7 @@ function MermaidChart({ chart, id }: { chart: string; id: string }) {
 
   return (
     <div
-      className="mermaid w-full h-full flex items-center justify-center"
+      className={cn('mermaid flex items-center justify-center', className)}
       dangerouslySetInnerHTML={{ __html: svg }}
     />
   );

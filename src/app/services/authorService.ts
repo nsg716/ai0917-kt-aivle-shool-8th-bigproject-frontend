@@ -22,6 +22,7 @@ import {
   LorebookSaveRequestDto,
   LorebookUpdateRequestDto,
   LorebookConflictSolveRequestDto,
+  MatchedLorebookDto,
 } from '../types/author';
 import { PageResponse } from '../types/common';
 import { AuthMeResponse } from '../types/auth';
@@ -64,11 +65,16 @@ export const authorService = {
     const notices = Array.isArray(response.data)
       ? response.data
       : response.data.notices || [];
-      
+
     // Normalize notices to ensure 'read' property exists (handle 'isRead' from backend if present)
     const normalizedNotices = notices.map((n: any) => ({
       ...n,
-      read: n.read !== undefined ? n.read : (n.isRead !== undefined ? n.isRead : false),
+      read:
+        n.read !== undefined
+          ? n.read
+          : n.isRead !== undefined
+            ? n.isRead
+            : false,
     }));
 
     return {
@@ -89,18 +95,10 @@ export const authorService = {
     return `${baseUrl}/api/v1/author/sysnotice/subscribe?integrationId=${integrationId}`;
   },
 
-  readSystemNotice: async (
-    id: number,
-    source: string,
-    integrationId: string,
-  ) => {
-    await apiClient.patch(
-      `/api/v1/author/sysnotice/${source}/${id}/read`,
-      null,
-      {
-        params: { integrationId },
-      },
-    );
+  readSystemNotice: async (id: number, integrationId: string) => {
+    await apiClient.patch(`/api/v1/author/sysnotice/${id}/read`, null, {
+      params: { integrationId },
+    });
   },
 
   readAllSystemNotices: async (integrationId: string) => {
@@ -190,20 +188,6 @@ export const authorService = {
     return response.data;
   },
 
-  getCharacterAnalysis: async (workId: number, characterName: string) => {
-    const response = await apiClient.get<{ relationship: string }>(
-      `/api/v1/ai/author/works/${workId}/character/${encodeURIComponent(characterName)}/relationship`,
-    );
-    return response.data;
-  },
-
-  getFullRelationshipAnalysis: async (workId: number) => {
-    const response = await apiClient.get<{ relationship: string }>(
-      `/api/v1/ai/author/works/${workId}/relationship`,
-    );
-    return response.data;
-  },
-
   publishConfirm: async (workId: string) => {
     const response = await apiClient.post(
       `/api/v1/author/works/${workId}/publish/confirm`,
@@ -226,18 +210,12 @@ export const authorService = {
     return response.data;
   },
 
-  approveIPProposal: async (id: number, comment?: string) => {
-    const response = await apiClient.post(
-      `/api/v1/author/ip-expansion/proposals/${id}/approve`,
-      { comment },
-    );
-    return response.data;
-  },
-
-  rejectIPProposal: async (id: number, reason: string) => {
-    const response = await apiClient.post(
-      `/api/v1/author/ip-expansion/proposals/${id}/reject`,
-      { reason },
+  getManagerIPExpansionLorebooks: async (
+    managerId: string,
+    ipextId: string | number,
+  ) => {
+    const response = await apiClient.get<MatchedLorebookDto[]>(
+      `/api/v1/manager/ipext/lorebooks/${managerId}/${ipextId}`,
     );
     return response.data;
   },
@@ -540,6 +518,54 @@ export const authorService = {
 
   changePassword: async (data: any) => {
     const response = await apiClient.post(`/api/v1/auth/password/reset`, data);
+    return response.data;
+  },
+
+  // IP Expansion Comments (Review)
+  getCommentProposals: async (
+    authorId: string,
+    page = 0,
+    size = 10,
+    sort = 'created_at,desc',
+  ) => {
+    const response = await apiClient.get<PageResponse<any>>(
+      '/api/v1/author/ipext/comment',
+      { params: { authorId, page, size, sort } },
+    );
+    return response.data;
+  },
+
+  getProposalCommentDetail: async (proposalId: number, authorId: string) => {
+    const response = await apiClient.get<any>(
+      `/api/v1/author/ipext/comment/${proposalId}`,
+      { params: { authorId } },
+    );
+    return response.data;
+  },
+
+  createProposalComment: async (data: {
+    proposalId: number;
+    authorIntegrationId: string;
+    status: string;
+    comment: string;
+  }) => {
+    const response = await apiClient.post('/api/v1/author/ipext/comment', data);
+    return response.data;
+  },
+
+  updateProposalComment: async (
+    proposalId: number,
+    data: {
+      authorIntegrationId: string;
+      status: string;
+      comment: string;
+    },
+  ) => {
+    // Note: proposalId in URL, authorIntegrationId in body per backend controller
+    const response = await apiClient.patch(
+      `/api/v1/author/ipext/comment/${proposalId}`,
+      data,
+    );
     return response.data;
   },
 };

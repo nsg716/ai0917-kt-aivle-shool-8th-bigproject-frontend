@@ -131,7 +131,7 @@ const normalizeAnalysisData = (data: PublishAnalysisResponseDto): any => {
     if (keys.includes('일시') || keys.includes('주체') || keys.includes('원인'))
       return '사건';
     if (keys.includes('규모') || keys.includes('목적') || keys.includes('상징'))
-      return '단체';
+      return '집단';
     if (keys.includes('종류') || keys.includes('규칙') || keys.includes('금기'))
       return '세계';
     return '기타';
@@ -369,7 +369,7 @@ const REVIEW_CATEGORIES = [
   { id: '인물', label: '인물', icon: User },
   { id: '장소', label: '장소', icon: MapPin },
   { id: '사건', label: '사건', icon: BookOpen },
-  { id: '단체', label: '단체', icon: Users },
+  { id: '집단', label: '집단', icon: Users },
   { id: '세계', label: '세계', icon: Globe },
   { id: '아이템', label: '아이템', icon: Box },
 ];
@@ -722,6 +722,22 @@ export function AuthorWorks({ integrationId }: AuthorWorksProps) {
             ...prev,
             [selectedManuscript.id]: data,
           }));
+
+          // Optimistically update selectedManuscript to readOnly
+          setSelectedManuscript((prev) =>
+            prev ? { ...prev, readOnly: true } : null,
+          );
+
+          // Invalidate queries to refresh data
+          queryClient.invalidateQueries({
+            queryKey: [
+              'author',
+              'manuscript',
+              selectedWorkId,
+              selectedManuscript.id,
+            ],
+          });
+          queryClient.invalidateQueries({ queryKey: ['author', 'works'] });
         }
       }
     },
@@ -1350,8 +1366,6 @@ export function AuthorWorks({ integrationId }: AuthorWorksProps) {
   // Confirm Publish Mutation (Apply Analysis Results)
   const confirmPublishMutation = useMutation({
     mutationFn: async () => {
-      console.log('DEBUG: confirmPublishMutation started');
-
       if (!selectedWorkId || !selectedManuscript || !settingBookDiff) {
         console.error('DEBUG: Missing required state', {
           selectedWorkId,
@@ -1599,39 +1613,43 @@ export function AuthorWorks({ integrationId }: AuthorWorksProps) {
 
               <div className="flex items-center gap-2">
                 {/* Save & Publish Buttons */}
-                {selectedManuscript && !selectedManuscript.readOnly && (
-                  <>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => saveMutation.mutate({})}
-                      disabled={!isDirty || saveMutation.isPending}
-                    >
-                      <Save className="w-4 h-4 mr-2" />
-                      저장
-                    </Button>
-                    {processingStatus[selectedManuscript.id] === 'ANALYZING' ? (
+                {selectedManuscript &&
+                  !selectedManuscript.readOnly &&
+                  processingStatus[selectedManuscript.id] !==
+                    'REVIEW_READY' && (
+                    <>
                       <Button
                         size="sm"
-                        disabled
                         variant="outline"
-                        className="bg-blue-500/10 text-blue-500 border-blue-200"
+                        onClick={() => saveMutation.mutate({})}
+                        disabled={!isDirty || saveMutation.isPending}
                       >
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        AI 분석 중
+                        <Save className="w-4 h-4 mr-2" />
+                        저장
                       </Button>
-                    ) : (
-                      <Button
-                        size="sm"
-                        className="bg-blue-600 hover:bg-blue-700"
-                        onClick={handlePublishClick}
-                      >
-                        <ClipboardCheck className="w-4 h-4 mr-2" />
-                        분석
-                      </Button>
-                    )}
-                  </>
-                )}
+                      {processingStatus[selectedManuscript.id] ===
+                      'ANALYZING' ? (
+                        <Button
+                          size="sm"
+                          disabled
+                          variant="outline"
+                          className="bg-blue-500/10 text-blue-500 border-blue-200"
+                        >
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          AI 분석 중
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          className="bg-blue-600 hover:bg-blue-700"
+                          onClick={handlePublishClick}
+                        >
+                          <ClipboardCheck className="w-4 h-4 mr-2" />
+                          분석
+                        </Button>
+                      )}
+                    </>
+                  )}
 
                 <Button
                   variant="ghost"

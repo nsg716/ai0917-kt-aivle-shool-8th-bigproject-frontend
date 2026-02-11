@@ -162,7 +162,7 @@ export function AuthorDashboard({ onLogout, onHome }: AuthorDashboardProps) {
         // Assuming notice object has 'source' field. If not, we might need to fallback or check type.
         // Based on DTO, it should have it.
         const source = notice.source || 'system';
-        await authorService.readSystemNotice(notice.id, source, integrationId);
+        await authorService.readSystemNotice(notice.id, integrationId);
         refetchNotifications();
       } catch (error) {
         console.error('Failed to mark notice as read', error);
