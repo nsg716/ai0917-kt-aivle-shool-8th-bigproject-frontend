@@ -25,12 +25,14 @@ export const PdfPreview = ({
   onFullScreen,
   pdfUrl,
   onDownload,
+  isLoading,
 }: {
   className?: string;
   isFullScreen?: boolean;
   onFullScreen?: () => void;
   pdfUrl?: string;
   onDownload?: () => void;
+  isLoading?: boolean;
 }) => {
   const [numPages, setNumPages] = useState<number>(0);
   const [pageNumber, setPageNumber] = useState<number>(1);
@@ -65,7 +67,14 @@ export const PdfPreview = ({
         className,
       )}
     >
-      {pdfUrl ? (
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center gap-4 text-slate-400">
+          <Loader2 className="w-10 h-10 animate-spin text-indigo-500" />
+          <p className="text-sm font-medium">
+            제안서 PDF를 불러오는 중입니다...
+          </p>
+        </div>
+      ) : pdfUrl ? (
         <div className="w-full h-full flex flex-col relative bg-slate-100/50">
           <div className="flex-1 overflow-auto p-4 relative">
             <div className="flex justify-center min-h-full">
