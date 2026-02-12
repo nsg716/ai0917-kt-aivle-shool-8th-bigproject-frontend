@@ -1,4 +1,12 @@
 import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '../../components/ui/breadcrumb';
+import {
   Brain,
   LayoutDashboard,
   Bell,
@@ -38,7 +46,7 @@ interface AdminDashboardProps {
 export function AdminDashboard({ onLogout, onHome }: AdminDashboardProps) {
   const [activeMenu, setActiveMenu] = useState('home');
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showActivityDropdown, setShowActivityDropdown] = useState(false);
   const [visibleCount, setVisibleCount] = useState(4);
   const notificationDropdownRef = useRef<HTMLDivElement>(null);
@@ -285,7 +293,7 @@ export function AdminDashboard({ onLogout, onHome }: AdminDashboardProps) {
               className="w-full flex items-center gap-3 p-3 bg-sidebar-accent hover:bg-muted transition-colors"
             >
               <div
-                className="w-10 h-10 rounded-full flex items-center justify-center text-white dark:text-black text-sm font-semibold"
+                className="w-10 h-10 rounded-full flex items-center justify-center text-primary-foreground text-sm font-semibold"
                 style={{ backgroundColor: 'var(--role-primary)' }}
               >
                 {userName.charAt(0)}
@@ -319,7 +327,7 @@ export function AdminDashboard({ onLogout, onHome }: AdminDashboardProps) {
           <div className="md:hidden space-y-2">
             <div className="flex items-center gap-3 bg-sidebar-accent rounded-lg">
               <div
-                className="w-10 h-10 rounded-full flex items-center justify-center text-white dark:text-black text-sm font-semibold"
+                className="w-10 h-10 rounded-full flex items-center justify-center text-primary-foreground text-sm font-semibold"
                 style={{ backgroundColor: 'var(--role-primary)' }}
               >
                 {userName.charAt(0)}
@@ -354,27 +362,31 @@ export function AdminDashboard({ onLogout, onHome }: AdminDashboardProps) {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <header className="h-16 bg-card border-b border-border px-4 md:px-8 flex items-center">
-          <div
-            className={`w-full flex items-center justify-between ${!sidebarOpen ? 'ml-16' : ''}`}
-          >
-            {/* Breadcrumb */}
-            <div className="flex items-center gap-2 text-sm">
-              <button
-                onClick={() => handleMenuClick('home')}
-                className="text-muted-foreground hover:text-foreground transition-colors"
-              >
-                홈
-              </button>
-              {activeMenu !== 'home' && (
-                <>
-                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-foreground">
-                    {activeMenu === 'notices' && '공지사항'}
-                    {activeMenu === 'permissions' && '권한'}
-                  </span>
-                </>
-              )}
+        <header
+          className={`h-16 bg-card border-b border-border px-4 md:px-8 flex items-center transition-[padding] duration-300 ease-in-out ${
+            !sidebarOpen ? 'pl-16 md:pl-24' : ''
+          }`}
+        >
+          <div className="w-full flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              {/* Breadcrumb */}
+              <div className="flex items-center gap-2 text-sm">
+                <button
+                  onClick={() => handleMenuClick('home')}
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  홈
+                </button>
+                {activeMenu !== 'home' && (
+                  <>
+                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-foreground">
+                      {activeMenu === 'notices' && '공지사항'}
+                      {activeMenu === 'permissions' && '권한'}
+                    </span>
+                  </>
+                )}
+              </div>
             </div>
 
             <div className="flex items-center gap-2">
