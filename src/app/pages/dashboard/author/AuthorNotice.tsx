@@ -52,6 +52,18 @@ export function AuthorNotice({ integrationId }: AuthorNoticeProps) {
 
   // Search is purely visual for now as API doesn't support it
   const [searchInput, setSearchInput] = useState('');
+  const [filteredNotices, setFilteredNotices] = useState<AuthorNoticeDto[]>([]);
+
+  useEffect(() => {
+    if (!searchInput.trim()) {
+      setFilteredNotices(notices);
+    } else {
+      const lower = searchInput.toLowerCase();
+      setFilteredNotices(
+        notices.filter((n) => n.title.toLowerCase().includes(lower)),
+      );
+    }
+  }, [searchInput, notices]);
 
   const fetchNotices = useCallback(async () => {
     setLoading(true);
@@ -59,6 +71,7 @@ export function AuthorNotice({ integrationId }: AuthorNoticeProps) {
       // API currently doesn't support keyword search, so we just fetch page
       const data = await authorService.getDashboardNotices(page, 10);
       setNotices(data.content);
+      setFilteredNotices(data.content);
       setTotalPages(data.totalPages);
     } catch (error) {
       console.error('데이터 로드 실패', error);
@@ -94,7 +107,7 @@ export function AuthorNotice({ integrationId }: AuthorNoticeProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-7xl mx-auto font-sans">
       <Card className="border-border shadow-sm gap-0">
         <CardHeader className="flex flex-col md:flex-row justify-between items-center gap-4 border-b">
           <span>공지사항 목록</span>
@@ -109,7 +122,6 @@ export function AuthorNotice({ integrationId }: AuthorNoticeProps) {
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                     setSearchInput(e.target.value)
                   }
-                  disabled // Disabled since API doesn't support it yet
                 />
               </div>
             </div>
@@ -133,7 +145,7 @@ export function AuthorNotice({ integrationId }: AuthorNoticeProps) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {notices.map((n) => (
+                {filteredNotices.map((n) => (
                   <tr
                     key={n.id}
                     className="hover:bg-muted/50 transition-colors cursor-pointer group"
@@ -177,7 +189,7 @@ export function AuthorNotice({ integrationId }: AuthorNoticeProps) {
           </div>
 
           {/* Pagination */}
-          <div className="flex items-center justify-center gap-1.5 py-4 border-t bg-slate-50/30">
+          <div className="flex items-center justify-center gap-1.5 py-4 border-t bg-muted/30">
             <Button
               variant="ghost"
               size="icon"
@@ -191,7 +203,7 @@ export function AuthorNotice({ integrationId }: AuthorNoticeProps) {
               <Button
                 key={i}
                 variant={page === i ? 'default' : 'ghost'}
-                className={`h-8 w-8 p-0 ${page === i ? 'bg-blue-600 text-white' : 'text-slate-600'}`}
+                className={`h-8 w-8 p-0 ${page === i ? '' : 'text-muted-foreground'}`}
                 onClick={() => setPage(i)}
               >
                 {i + 1}
@@ -219,12 +231,14 @@ export function AuthorNotice({ integrationId }: AuthorNoticeProps) {
           {selectedNotice && (
             <div className="space-y-4">
               <div className="space-y-2">
-                <h3 className="text-xl font-bold">{selectedNotice.title}</h3>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <span>{selectedNotice.writer}</span>
-                  <span>•</span>
+                <h3 className="text-xl font-bold text-foreground">
+                  {selectedNotice.title}
+                </h3>
+                <div className="flex gap-2 mt-2 text-xs text-muted-foreground">
+                  <span>작성자: {selectedNotice.writer}</span>
+                  <span>|</span>
                   <span>
-                    {new Date(selectedNotice.createdAt).toLocaleDateString()}
+                    날짜: {new Date(selectedNotice.createdAt).toLocaleString()}
                   </span>
                 </div>
               </div>
@@ -234,7 +248,7 @@ export function AuthorNotice({ integrationId }: AuthorNoticeProps) {
               {selectedNotice.originalFilename && (
                 <div className="pt-4">
                   <h4 className="text-sm font-semibold mb-2">첨부파일</h4>
-                  <div className="flex items-center gap-2 p-3 border rounded-md bg-white dark:bg-slate-900">
+                  <div className="flex items-center gap-2 p-3 border rounded-md bg-card">
                     <FileText className="w-4 h-4 text-blue-500" />
                     <span className="text-sm flex-1 truncate">
                       {selectedNotice.originalFilename}

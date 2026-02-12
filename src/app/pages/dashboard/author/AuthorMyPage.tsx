@@ -128,7 +128,6 @@ export function AuthorMyPage({
                     전화번호
                   </Label>
                   <div className="font-medium flex items-center gap-2">
-                    <Phone className="w-4 h-4 text-muted-foreground/50" />
                     {authUserData.mobile || '-'}
                   </div>
                   <Separator />
@@ -138,7 +137,6 @@ export function AuthorMyPage({
                     출생년도 / 성별
                   </Label>
                   <div className="font-medium flex items-center gap-2">
-                    <User className="w-4 h-4 text-muted-foreground/50" />
                     {authUserData.birthYear
                       ? `${authUserData.birthYear}년생`
                       : '-'}{' '}
@@ -156,7 +154,6 @@ export function AuthorMyPage({
                     가입일
                   </Label>
                   <div className="font-medium flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-muted-foreground/50" />
                     {authUserData.createdAt
                       ? format(
                           new Date(authUserData.createdAt),

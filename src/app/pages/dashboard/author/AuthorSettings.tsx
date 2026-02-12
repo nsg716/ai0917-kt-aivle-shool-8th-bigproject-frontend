@@ -49,7 +49,7 @@ export function AuthorSettings({
         <div className="flex gap-2">
           <Button
             variant="outline"
-            className="border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-900/20"
+            className="border-primary/20 text-primary hover:bg-primary/10"
           >
             <Sparkles className="w-4 h-4 mr-2" />
             AI 재분석
@@ -68,7 +68,7 @@ export function AuthorSettings({
               onClick={() => setSettingsCategory('characters')}
               className={`flex items-center gap-2 px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
                 settingsCategory === 'characters'
-                  ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+                  ? 'border-primary text-primary'
                   : 'border-transparent text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -79,7 +79,7 @@ export function AuthorSettings({
               onClick={() => setSettingsCategory('world')}
               className={`flex items-center gap-2 px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
                 settingsCategory === 'world'
-                  ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+                  ? 'border-primary text-primary'
                   : 'border-transparent text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -90,7 +90,7 @@ export function AuthorSettings({
               onClick={() => setSettingsCategory('narrative')}
               className={`flex items-center gap-2 px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
                 settingsCategory === 'narrative'
-                  ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+                  ? 'border-primary text-primary'
                   : 'border-transparent text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -115,16 +115,16 @@ function CharactersContent() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div className="flex gap-2">
-          <Badge
-            variant="secondary"
-            className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-          >
+          <Badge variant="secondary" className="bg-primary/10 text-primary">
             주요 인물 3
           </Badge>
           <Badge variant="outline">조연 12</Badge>
           <Badge variant="outline">단역 5</Badge>
         </div>
-        <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
+        <Button
+          size="sm"
+          className="bg-primary hover:bg-primary/90 text-primary-foreground"
+        >
           <Plus className="w-4 h-4 mr-2" /> 인물 추가
         </Button>
       </div>
@@ -134,9 +134,9 @@ function CharactersContent() {
         <Card className="group hover:shadow-md transition-all border-border cursor-pointer">
           <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+              <div className="w-12 h-12 rounded-full bg-muted overflow-hidden">
                 {/* Avatar Image Placeholder */}
-                <div className="w-full h-full flex items-center justify-center text-slate-400">
+                <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                   <UsersIcon className="w-6 h-6" />
                 </div>
               </div>
@@ -153,7 +153,7 @@ function CharactersContent() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 text-muted-foreground hover:text-blue-600"
+                className="h-8 w-8 text-muted-foreground hover:text-primary"
               >
                 <Edit className="w-4 h-4" />
               </Button>
@@ -184,8 +184,8 @@ function CharactersContent() {
         <Card className="group hover:shadow-md transition-all border-border cursor-pointer">
           <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
-                <div className="w-full h-full flex items-center justify-center text-slate-400">
+              <div className="w-12 h-12 rounded-full bg-muted overflow-hidden">
+                <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                   <UsersIcon className="w-6 h-6" />
                 </div>
               </div>
@@ -202,7 +202,7 @@ function CharactersContent() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 text-muted-foreground hover:text-blue-600"
+                className="h-8 w-8 text-muted-foreground hover:text-primary"
               >
                 <Edit className="w-4 h-4" />
               </Button>
@@ -270,7 +270,7 @@ function WorldContent() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-start gap-4 p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                <div className="w-16 h-16 bg-slate-200 dark:bg-slate-700 rounded-md flex-shrink-0"></div>
+                <div className="w-16 h-16 bg-muted rounded-md flex-shrink-0"></div>
                 <div>
                   <h4 className="font-medium text-foreground">
                     제국 수도 '아르카디아'
@@ -282,7 +282,7 @@ function WorldContent() {
                 </div>
               </div>
               <div className="flex items-start gap-4 p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                <div className="w-16 h-16 bg-slate-200 dark:bg-slate-700 rounded-md flex-shrink-0"></div>
+                <div className="w-16 h-16 bg-muted rounded-md flex-shrink-0"></div>
                 <div>
                   <h4 className="font-medium text-foreground">침묵의 숲</h4>
                   <p className="text-sm text-muted-foreground mt-1">
@@ -310,21 +310,21 @@ function WorldContent() {
         </div>
 
         <div className="space-y-4">
-          <Card className="bg-blue-50 border-blue-100 dark:bg-blue-900/10 dark:border-blue-900/30">
+          <Card className="bg-primary/5 border-primary/20">
             <CardHeader className="pb-2">
-              <div className="flex items-center gap-2 text-blue-700 dark:text-blue-400 font-medium">
+              <div className="flex items-center gap-2 text-primary font-medium">
                 <Lightbulb className="w-4 h-4" />
                 <span>AI 아이디어 제안</span>
               </div>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-blue-800 dark:text-blue-300 mb-3">
+              <p className="text-sm text-primary/80 mb-3">
                 현재 '마법 체계'에 대한 설정이 부족합니다. 4대 원소 기반의 마법
                 시스템을 제안해드릴까요?
               </p>
               <Button
                 size="sm"
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
               >
                 제안 보기
               </Button>
@@ -349,10 +349,10 @@ function NarrativeContent() {
       <div className="relative pl-8 border-l-2 border-border space-y-8">
         {/* Timeline Item 1 */}
         <div className="relative">
-          <div className="absolute -left-[41px] top-0 w-5 h-5 rounded-full bg-blue-500 border-4 border-background"></div>
+          <div className="absolute -left-[41px] top-0 w-5 h-5 rounded-full bg-primary border-4 border-background"></div>
           <div className="bg-card border border-border rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-bold text-blue-600 dark:text-blue-400">
+              <span className="text-sm font-bold text-primary">
                 제국력 385년
               </span>
               <Badge variant="outline">프롤로그</Badge>
@@ -367,7 +367,7 @@ function NarrativeContent() {
 
         {/* Timeline Item 2 */}
         <div className="relative">
-          <div className="absolute -left-[41px] top-0 w-5 h-5 rounded-full bg-slate-300 dark:bg-slate-600 border-4 border-background"></div>
+          <div className="absolute -left-[41px] top-0 w-5 h-5 rounded-full bg-muted-foreground/30 border-4 border-background"></div>
           <div className="bg-card border border-border rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-bold text-muted-foreground">
@@ -386,7 +386,7 @@ function NarrativeContent() {
 
         {/* Timeline Item 3 */}
         <div className="relative">
-          <div className="absolute -left-[41px] top-0 w-5 h-5 rounded-full bg-slate-300 dark:bg-slate-600 border-4 border-background"></div>
+          <div className="absolute -left-[41px] top-0 w-5 h-5 rounded-full bg-muted-foreground/30 border-4 border-background"></div>
           <div className="bg-card border border-border rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-bold text-muted-foreground">

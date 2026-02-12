@@ -221,6 +221,14 @@ export const managerService = {
     return response.data;
   },
 
+  updateIPProposalStatus: async (id: number, status: string) => {
+    const response = await apiClient.patch(
+      `/api/v1/manager/ipext/${id}/status`,
+      { status },
+    );
+    return response.data;
+  },
+
   deleteIPExpansionProject: async (id: number) => {
     const response = await apiClient.delete(`/api/v1/manager/ipext/${id}`);
     return response.data;

@@ -133,7 +133,7 @@ export function WorkAnalysisModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[95vw] h-[85vh] flex flex-col p-0 gap-0 bg-white">
+      <DialogContent className="max-w-[95vw] h-[85vh] flex flex-col p-0 gap-0 bg-background text-foreground">
         <DialogHeader className="p-6 border-b shrink-0 flex flex-row items-center justify-between">
           <DialogTitle className="text-xl font-bold">
             작품 심층 분석
@@ -145,8 +145,8 @@ export function WorkAnalysisModal({
           onValueChange={setActiveTab}
           className="flex-1 flex flex-col overflow-hidden"
         >
-          <div className="px-6 pt-4 border-b bg-slate-50/50">
-            <TabsList className="bg-slate-100">
+          <div className="px-6 pt-4 border-b bg-muted/50">
+            <TabsList className="bg-muted">
               <TabsTrigger value="relationship" className="gap-2">
                 <GitGraph className="w-4 h-4" />
                 인물 관계도
@@ -158,16 +158,16 @@ export function WorkAnalysisModal({
             </TabsList>
           </div>
 
-          <div className="flex-1 overflow-hidden bg-slate-50">
+          <div className="flex-1 overflow-hidden bg-muted/30">
             <TabsContent
               value="relationship"
               className="h-full mt-0 p-6 flex flex-col"
             >
-              <div className="bg-white rounded-xl shadow-sm border h-full overflow-auto relative flex flex-col">
+              <div className="bg-card rounded-xl shadow-sm border h-full overflow-auto relative flex flex-col">
                 <div className="min-w-full min-h-full p-6 flex items-center justify-center">
                   {analyzeRelationshipMutation.isPending ? (
-                    <div className="flex flex-col items-center justify-center gap-4 text-slate-500 h-full">
-                      <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+                    <div className="flex flex-col items-center justify-center gap-4 text-muted-foreground h-full">
+                      <Loader2 className="w-8 h-8 animate-spin text-primary" />
                       <p>전체 인물 관계도를 분석하고 있습니다...</p>
                     </div>
                   ) : relationshipChart ? (
@@ -177,7 +177,7 @@ export function WorkAnalysisModal({
                       className="m-auto"
                     />
                   ) : (
-                    <div className="text-center text-slate-500 h-full flex items-center justify-center">
+                    <div className="text-center text-muted-foreground h-full flex items-center justify-center">
                       <Button
                         onClick={() => analyzeRelationshipMutation.mutate()}
                         variant="outline"
@@ -192,9 +192,9 @@ export function WorkAnalysisModal({
             </TabsContent>
             <TabsContent value="timeline" className="h-full mt-0 flex flex-col">
               {/* Episode Selection Bar (Top) */}
-              <div className="bg-white border-b flex flex-wrap items-center gap-6 p-4 shrink-0">
+              <div className="bg-card border-b flex flex-wrap items-center gap-6 p-4 shrink-0">
                 <div className="flex items-center gap-4 flex-1 min-w-[300px] max-w-2xl">
-                  <h3 className="font-medium text-sm text-slate-700 shrink-0">
+                  <h3 className="font-medium text-sm text-foreground shrink-0">
                     에피소드 선택
                   </h3>
 
@@ -221,7 +221,7 @@ export function WorkAnalysisModal({
                             <CommandItem
                               value="select-all"
                               onSelect={handleSelectAll}
-                              className="font-medium text-indigo-600 justify-center text-center bg-indigo-50/50 hover:bg-indigo-50 my-1 cursor-pointer"
+                              className="font-medium text-primary justify-center text-center bg-muted/50 hover:bg-muted my-1 cursor-pointer"
                             >
                               {episodes &&
                               selectedEpisodes.length === episodes.length
@@ -274,8 +274,8 @@ export function WorkAnalysisModal({
               </div>
 
               {/* Chart Area (Bottom) */}
-              <div className="flex-1 p-6 overflow-hidden flex flex-col bg-slate-50">
-                <div className="bg-white rounded-xl shadow-sm border flex-1 overflow-auto relative flex flex-col">
+              <div className="flex-1 p-6 overflow-hidden flex flex-col bg-muted/30">
+                <div className="bg-card rounded-xl shadow-sm border flex-1 overflow-auto relative flex flex-col">
                   <div className="min-w-full min-h-full p-6 flex items-center justify-center">
                     {timelineChart ? (
                       <MermaidChart
@@ -284,7 +284,7 @@ export function WorkAnalysisModal({
                         className="m-auto"
                       />
                     ) : (
-                      <div className="text-center text-slate-500 h-full flex flex-col items-center justify-center">
+                      <div className="text-center text-muted-foreground h-full flex flex-col items-center justify-center">
                         <Clock className="w-12 h-12 mx-auto mb-3 opacity-20" />
                         <p>상단에서 에피소드를 선택하여 분석을 시작하세요.</p>
                       </div>
@@ -296,7 +296,7 @@ export function WorkAnalysisModal({
           </div>
         </Tabs>
 
-        <div className="p-4 border-t bg-white flex justify-end shrink-0">
+        <div className="p-4 border-t bg-card flex justify-end shrink-0">
           <Button onClick={onClose} variant="outline">
             닫기
           </Button>
@@ -358,10 +358,10 @@ function MermaidChart({
 
   if (error) {
     return (
-      <div className="text-red-500 text-sm flex flex-col items-center gap-2">
+      <div className="text-destructive text-sm flex flex-col items-center gap-2">
         <X className="w-6 h-6" />
         {error}
-        <pre className="text-xs bg-slate-100 p-2 rounded mt-2 max-w-lg overflow-auto">
+        <pre className="text-xs bg-muted p-2 rounded mt-2 max-w-lg overflow-auto">
           {chart}
         </pre>
       </div>

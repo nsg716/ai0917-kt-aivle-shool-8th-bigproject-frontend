@@ -204,27 +204,17 @@ export function AuthorManuscripts() {
 
   return (
     <div className="max-w-7xl mx-auto w-full space-y-6">
-      {/* Upload Info */}
-      <Card className="mb-6 border-border">
-        <CardContent className="p-6">
-          <div className="flex items-start gap-4">
-            <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
-              <Sparkles className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-            </div>
-            <div>
-              <h3 className="text-foreground mb-2">AI 자동 설정 추출</h3>
-              <p className="text-sm text-muted-foreground mb-3">
-                원문을 업로드하면 AI가 자동으로 인물, 세계관, 서사 설정을
-                추출하여 설정집에 저장합니다. 원본 텍스트는 저장되지 않으며,
-                추출된 설정만 관리됩니다.
-              </p>
-              <div className="text-xs text-muted-foreground">
-                지원 형식: TXT, DOCX, PDF • 최대 파일 크기: 50MB
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex items-center gap-3 mb-1">
+        <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+          <Sparkles className="w-5 h-5 text-primary" />
+        </div>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">
+          원고 관리
+        </h1>
+      </div>
+      <p className="text-sm text-muted-foreground ml-[52px]">
+        작성 중인 원고를 관리하고 AI 분석을 받아보세요.
+      </p>
 
       <div className="flex items-center justify-between mb-6">
         <Input
@@ -233,10 +223,7 @@ export function AuthorManuscripts() {
           onChange={(e) => setSearchTitle(e.target.value)}
           className="max-w-md"
         />
-        <Button
-          className="bg-blue-600 hover:bg-blue-700 text-white"
-          onClick={() => setOpenCreate(true)}
-        >
+        <Button onClick={() => setOpenCreate(true)}>
           <Upload className="w-4 h-4 mr-2" />새 원문 업로드
         </Button>
       </div>
@@ -499,7 +486,7 @@ export function AuthorManuscripts() {
                             <a
                               href={f.url}
                               download={f.name}
-                              className="text-xs text-blue-600 underline"
+                              className="text-xs text-blue-600 dark:text-blue-400 underline"
                             >
                               다운로드
                             </a>
@@ -601,7 +588,7 @@ export function AuthorManuscripts() {
                           <a
                             href={f.url}
                             download={f.name}
-                            className="text-xs text-blue-600 hover:underline block truncate"
+                            className="text-xs text-blue-600 dark:text-blue-400 hover:underline block truncate"
                           >
                             {f.name}
                           </a>
@@ -618,7 +605,7 @@ export function AuthorManuscripts() {
                           <a
                             href={f.url}
                             download={f.name}
-                            className="text-xs text-blue-600 hover:underline flex-shrink-0"
+                            className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex-shrink-0"
                           >
                             다운로드
                           </a>

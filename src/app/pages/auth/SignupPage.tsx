@@ -166,23 +166,23 @@ export function SignupPage({
   if (isLoading)
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="animate-spin text-slate-200" />
+        <Loader2 className="animate-spin text-primary" />
       </div>
     );
 
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6 py-12 text-slate-900">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 py-12 text-foreground">
       <div className="w-full max-w-[380px] space-y-10">
         <header className="space-y-4">
           <button
             onClick={onBack}
-            className="text-slate-400 hover:text-slate-900 transition-colors"
+            className="text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div className="space-y-1">
             <h1 className="text-2xl font-bold tracking-tight">계정 만들기</h1>
-            <p className="text-sm text-slate-500 font-medium">
+            <p className="text-sm text-muted-foreground font-medium">
               거의 다 왔습니다! 이메일 인증을 진행해주세요.
             </p>
           </div>
@@ -191,7 +191,7 @@ export function SignupPage({
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Email Verification Group */}
           <div className="space-y-3">
-            <Label className="text-[13px] font-semibold text-slate-700 ml-1">
+            <Label className="text-[13px] font-semibold text-foreground ml-1">
               이메일 주소
             </Label>
             <div className="flex gap-2">
@@ -204,12 +204,12 @@ export function SignupPage({
                     setFormData({ ...formData, siteEmail: e.target.value })
                   }
                   disabled={isEmailVerified}
-                  className={`h-12 rounded-xl border-slate-200 ${
-                    isEmailVerified ? 'bg-slate-50 text-slate-400' : ''
+                  className={`h-12 rounded-xl border-border ${
+                    isEmailVerified ? 'bg-muted/50 text-muted-foreground' : ''
                   }`}
                 />
                 {isEmailVerified && (
-                  <Check className="absolute right-3 top-3.5 w-5 h-5 text-blue-500" />
+                  <Check className="absolute right-3 top-3.5 w-5 h-5 text-primary" />
                 )}
               </div>
               {!isEmailVerified && (
@@ -218,7 +218,7 @@ export function SignupPage({
                   variant="outline"
                   onClick={handleRequestEmailCode}
                   disabled={requestEmailCodeMutation.isPending}
-                  className="h-12 px-4 font-bold rounded-xl border-slate-200 hover:bg-slate-50 transition-colors"
+                  className="h-12 px-4 font-bold rounded-xl border-border hover:bg-muted/50 transition-colors"
                 >
                   {requestEmailCodeMutation.isPending ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -238,7 +238,7 @@ export function SignupPage({
                   placeholder="인증번호 6자리"
                   value={emailCode}
                   onChange={(e) => setEmailCode(e.target.value)}
-                  className="h-12 rounded-xl border-slate-200 flex-1"
+                  className="h-12 rounded-xl border-border flex-1"
                 />
                 <Button
                   type="button"
@@ -246,7 +246,7 @@ export function SignupPage({
                   disabled={
                     verifyEmailCodeMutation.isPending || emailCode.length < 4
                   }
-                  className="h-12 px-6 font-bold bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
+                  className="h-12 px-6 font-bold bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-colors"
                 >
                   {verifyEmailCodeMutation.isPending ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -258,7 +258,7 @@ export function SignupPage({
             )}
 
             {isEmailVerified && (
-              <p className="text-[11px] text-blue-600 font-bold flex items-center gap-1.5 ml-1 animate-in fade-in duration-300">
+              <p className="text-[11px] text-primary font-bold flex items-center gap-1.5 ml-1 animate-in fade-in duration-300">
                 <ShieldCheck className="w-3.5 h-3.5" /> 이메일 인증이 성공적으로
                 완료되었습니다.
               </p>
@@ -268,14 +268,14 @@ export function SignupPage({
           {/* Password Section */}
           <div className="space-y-4">
             <div className="flex items-center justify-between ml-1">
-              <Label className="text-[13px] font-semibold text-slate-700">
+              <Label className="text-[13px] font-semibold text-foreground">
                 비밀번호 설정
               </Label>
               {formData.sitePwd.length > 0 && (
                 <span
                   className={`text-[11px] font-bold ${
                     strengthScore <= 2
-                      ? 'text-red-500'
+                      ? 'text-destructive'
                       : strengthScore === 3
                         ? 'text-orange-500'
                         : 'text-green-500'
@@ -299,12 +299,12 @@ export function SignupPage({
                   onChange={(e) =>
                     setFormData({ ...formData, sitePwd: e.target.value })
                   }
-                  className="h-12 border-slate-200 rounded-xl focus:ring-slate-400 pr-10"
+                  className="h-12 border-border rounded-xl focus:ring-ring pr-10"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPwd(!showPwd)}
-                  className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600"
+                  className="absolute right-3 top-3.5 text-muted-foreground hover:text-foreground"
                 >
                   {showPwd ? (
                     <EyeOff className="w-5 h-5" />
@@ -323,11 +323,11 @@ export function SignupPage({
                       className={`flex-1 rounded-full transition-colors duration-300 ${
                         step <= strengthScore
                           ? strengthScore <= 2
-                            ? 'bg-red-400'
+                            ? 'bg-destructive'
                             : strengthScore === 3
                               ? 'bg-orange-400'
-                              : 'bg-green-500'
-                          : 'bg-slate-100'
+                              : 'bg-green-600 dark:bg-green-500'
+                          : 'bg-muted'
                       }`}
                     />
                   ))}
@@ -341,9 +341,9 @@ export function SignupPage({
                 onChange={(e) =>
                   setFormData({ ...formData, sitePwdConfirm: e.target.value })
                 }
-                className={`h-12 border-slate-200 rounded-xl focus:ring-slate-400 ${
+                className={`h-12 border-border rounded-xl focus:ring-ring ${
                   pwdValidation.match && formData.sitePwdConfirm
-                    ? 'bg-blue-50/30 border-blue-200'
+                    ? 'bg-primary/10 border-primary/20'
                     : ''
                 }`}
               />
@@ -357,15 +357,15 @@ export function SignupPage({
           </div>
 
           {/* Identity (ReadOnly) */}
-          <div className="p-4 bg-slate-50/70 rounded-2xl border border-slate-100 flex justify-between items-center text-sm">
+          <div className="p-4 bg-muted/50 rounded-2xl border border-border flex justify-between items-center text-sm">
             <div className="space-y-1">
-              <p className="text-slate-400 text-xs">본인 인증 정보</p>
+              <p className="text-muted-foreground text-xs">본인 인증 정보</p>
               <p className="font-bold">
                 {formData.name} · {formData.mobile}
               </p>
             </div>
-            <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center">
-              <Check className="w-4 h-4 text-slate-500" />
+            <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+              <Check className="w-4 h-4 text-muted-foreground" />
             </div>
           </div>
 
@@ -402,7 +402,7 @@ export function SignupPage({
               !agreements.privacy ||
               completeSignupMutation.isPending
             }
-            className="w-full h-14 bg-slate-900 text-white rounded-[18px] font-bold text-base shadow-xl shadow-slate-100 disabled:bg-slate-200 disabled:shadow-none disabled:text-slate-400 transition-all active:scale-[0.98] hover:bg-slate-800"
+            className="w-full h-14 bg-primary text-primary-foreground rounded-[18px] font-bold text-base shadow-xl disabled:bg-muted disabled:shadow-none disabled:text-muted-foreground transition-all active:scale-[0.98] hover:bg-primary/90"
           >
             {completeSignupMutation.isPending ? (
               <Loader2 className="w-5 h-5 animate-spin" />
@@ -421,16 +421,16 @@ function ValidationItem({ isValid, text }: { isValid: boolean; text: string }) {
   return (
     <div
       className={`flex items-center gap-1.5 text-[11px] font-bold transition-colors ${
-        isValid ? 'text-blue-600' : 'text-slate-300'
+        isValid ? 'text-primary' : 'text-muted-foreground'
       }`}
     >
       <div
         className={`w-3.5 h-3.5 rounded-full flex items-center justify-center border ${
-          isValid ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-300'
+          isValid ? 'bg-primary border-primary' : 'bg-background border-border'
         }`}
       >
         <Check
-          className={`w-2.5 h-2.5 text-white ${
+          className={`w-2.5 h-2.5 text-primary-foreground ${
             isValid ? 'opacity-100' : 'opacity-0'
           }`}
         />
@@ -442,17 +442,17 @@ function ValidationItem({ isValid, text }: { isValid: boolean; text: string }) {
 
 function AgreementRow({ id, label, checked, onCheckedChange, url }: any) {
   return (
-    <div className="flex items-center justify-between group p-1 hover:bg-slate-50 rounded-lg transition-colors -mx-1 px-1">
+    <div className="flex items-center justify-between group p-1 hover:bg-accent rounded-lg transition-colors -mx-1 px-1">
       <div className="flex items-center gap-3">
         <Checkbox
           id={id}
           checked={checked}
           onCheckedChange={onCheckedChange}
-          className="w-5 h-5 border-slate-200 rounded-md data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+          className="w-5 h-5 border-border rounded-md data-[state=checked]:bg-primary data-[state=checked]:border-primary"
         />
         <Label
           htmlFor={id}
-          className="text-[13px] text-slate-600 font-bold cursor-pointer group-hover:text-slate-900"
+          className="text-[13px] text-muted-foreground font-bold cursor-pointer group-hover:text-foreground"
         >
           {label}
         </Label>
@@ -461,7 +461,7 @@ function AgreementRow({ id, label, checked, onCheckedChange, url }: any) {
         <DialogTrigger asChild>
           <button
             type="button"
-            className="text-[11px] font-bold text-slate-300 hover:text-slate-900 underline underline-offset-4 px-2 py-1"
+            className="text-[11px] font-bold text-muted-foreground hover:text-foreground underline underline-offset-4 px-2 py-1"
           >
             보기
           </button>
@@ -469,7 +469,7 @@ function AgreementRow({ id, label, checked, onCheckedChange, url }: any) {
         <DialogContent className="w-[90vw] max-w-[480px] h-[70vh] p-0 rounded-[24px] overflow-hidden">
           <iframe
             src={url}
-            className="w-full h-full border-none bg-white"
+            className="w-full h-full border-none bg-background"
             title={label}
           />
         </DialogContent>

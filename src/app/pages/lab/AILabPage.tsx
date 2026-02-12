@@ -343,23 +343,35 @@ export default function AILabPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="GET" className="font-bold text-blue-500">
+                  <SelectItem
+                    value="GET"
+                    className="font-bold text-blue-600 dark:text-blue-400"
+                  >
                     GET
                   </SelectItem>
-                  <SelectItem value="POST" className="font-bold text-green-500">
+                  <SelectItem
+                    value="POST"
+                    className="font-bold text-green-600 dark:text-green-400"
+                  >
                     POST
                   </SelectItem>
-                  <SelectItem value="PUT" className="font-bold text-orange-500">
+                  <SelectItem
+                    value="PUT"
+                    className="font-bold text-orange-600 dark:text-orange-400"
+                  >
                     PUT
                   </SelectItem>
                   <SelectItem
+                    value="DELETE"
+                    className="font-bold text-destructive"
+                  >
+                    DELETE
+                  </SelectItem>
+                  <SelectItem
                     value="PATCH"
-                    className="font-bold text-yellow-500"
+                    className="font-bold text-purple-600 dark:text-purple-400"
                   >
                     PATCH
-                  </SelectItem>
-                  <SelectItem value="DELETE" className="font-bold text-red-500">
-                    DELETE
                   </SelectItem>
                 </SelectContent>
               </Select>
@@ -407,7 +419,7 @@ export default function AILabPage() {
                 <Textarea
                   value={body}
                   onChange={(e) => setBody(e.target.value)}
-                  className="font-mono text-xs leading-relaxed h-full resize-none bg-slate-950 text-slate-50 p-4 border-0 focus-visible:ring-1"
+                  className="font-mono text-xs leading-relaxed h-full resize-none bg-muted/50 text-foreground p-4 border-0 focus-visible:ring-1"
                   placeholder="{ ... }"
                 />
               </TabsContent>
@@ -419,7 +431,7 @@ export default function AILabPage() {
                 <Textarea
                   value={headers}
                   onChange={(e) => setHeaders(e.target.value)}
-                  className="font-mono text-xs leading-relaxed h-full resize-none bg-slate-950 text-slate-50 p-4 border-0 focus-visible:ring-1"
+                  className="font-mono text-xs leading-relaxed h-full resize-none bg-muted/50 text-foreground p-4 border-0 focus-visible:ring-1"
                   placeholder='{ "Content-Type": "application/json" }'
                 />
               </TabsContent>
@@ -477,30 +489,30 @@ export default function AILabPage() {
             </div>
           </CardHeader>
 
-          <CardContent className="flex-1 p-0 relative bg-slate-50 dark:bg-slate-900 overflow-auto">
+          <CardContent className="flex-1 p-0 relative bg-background overflow-auto">
             {response ? (
               typeof response === 'string' &&
               (response.trim().startsWith('graph') ||
                 response.trim().startsWith('sequenceDiagram') ||
                 response.trim().startsWith('classDiagram')) ? (
-                <div className="p-4 h-full overflow-auto bg-white">
-                  <div className="mb-4 text-xs font-bold text-indigo-600 flex items-center gap-2 bg-indigo-50 px-3 py-2 rounded-lg border border-indigo-100">
+                <div className="p-4 h-full overflow-auto bg-card">
+                  <div className="mb-4 text-xs font-bold text-primary flex items-center gap-2 bg-primary/10 px-3 py-2 rounded-lg border border-primary/20">
                     <Code2 className="w-4 h-4" /> Mermaid Diagram Detected
                   </div>
-                  <div className="flex justify-center py-4 bg-white rounded-lg border border-slate-100 shadow-sm mb-6">
+                  <div className="flex justify-center py-4 bg-card rounded-lg border border-border shadow-sm mb-6">
                     <Mermaid chart={response} />
                   </div>
-                  <div className="pt-4 border-t border-slate-100">
-                    <p className="text-xs font-bold text-slate-500 mb-2 flex items-center gap-2">
+                  <div className="pt-4 border-t border-border">
+                    <p className="text-xs font-bold text-muted-foreground mb-2 flex items-center gap-2">
                       <Code2 className="w-3 h-3" /> Original Code
                     </p>
-                    <pre className="text-xs font-mono bg-slate-50 p-4 rounded-lg text-slate-600 whitespace-pre-wrap break-all border border-slate-200">
+                    <pre className="text-xs font-mono bg-muted p-4 rounded-lg text-muted-foreground whitespace-pre-wrap break-all border border-border">
                       {response}
                     </pre>
                   </div>
                 </div>
               ) : (
-                <pre className="p-4 text-xs font-mono leading-relaxed whitespace-pre-wrap break-all text-slate-800 dark:text-slate-200">
+                <pre className="p-4 text-xs font-mono leading-relaxed whitespace-pre-wrap break-all text-foreground">
                   {typeof response === 'object'
                     ? JSON.stringify(response, null, 2)
                     : response}

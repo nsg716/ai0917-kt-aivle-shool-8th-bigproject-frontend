@@ -88,7 +88,6 @@ export function ManagerMyPage({
                     전화번호
                   </Label>
                   <div className="font-medium flex items-center gap-2">
-                    <Phone className="w-4 h-4 text-muted-foreground/50" />
                     {userData.mobile || '-'}
                   </div>
                   <Separator />
@@ -98,10 +97,7 @@ export function ManagerMyPage({
                     출생년도 / 성별
                   </Label>
                   <div className="font-medium flex items-center gap-2">
-                    <User className="w-4 h-4 text-muted-foreground/50" />
-                    {userData.birthYear
-                      ? `${userData.birthYear}년생`
-                      : '-'} /{' '}
+                    {userData.birthYear ? `${userData.birthYear}년생` : '-'} /{' '}
                     {userData.gender === 'M'
                       ? '남성'
                       : userData.gender === 'F'
@@ -115,7 +111,6 @@ export function ManagerMyPage({
                     가입일
                   </Label>
                   <div className="font-medium flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-muted-foreground/50" />
                     {userData.createdAt
                       ? format(
                           new Date(userData.createdAt),

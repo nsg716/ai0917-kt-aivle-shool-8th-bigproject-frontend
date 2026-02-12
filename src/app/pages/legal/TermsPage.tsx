@@ -23,7 +23,7 @@ export default function TermsPage() {
 
         {/* 제목 섹션 */}
         <div className="flex items-center gap-3 mb-8 border-b pb-6 text-foreground">
-          <FileText className="w-8 h-8 text-blue-500" />
+          <FileText className="w-8 h-8 text-primary" />
           <h1 className="text-xl md:text-2xl font-bold tracking-tight">
             서비스 이용약관
           </h1>
@@ -45,10 +45,10 @@ export default function TermsPage() {
           {/* 제1조 */}
           <section className="space-y-3">
             <h2 className="text-base md:text-lg font-bold flex items-center gap-2">
-              <span className="w-1.5 h-1.5 bg-blue-500 rounded-full" />
+              <span className="w-1.5 h-1.5 bg-primary rounded-full" />
               제1조 (용어의 정의)
             </h2>
-            <ul className="list-disc pl-6 space-y-1 text-slate-600 dark:text-slate-400">
+            <ul className="list-disc pl-6 space-y-1 text-muted-foreground">
               <li>
                 &quot;서비스&quot;란 회사가 운영하는 IP.AI 플랫폼을 의미합니다.
               </li>
@@ -63,10 +63,10 @@ export default function TermsPage() {
           {/* 제2조: 핵심 수정 부분 (이메일 인증 필수 명시) */}
           <section className="space-y-3">
             <h2 className="text-base md:text-lg font-bold flex items-center gap-2">
-              <span className="w-1.5 h-1.5 bg-blue-500 rounded-full" />
+              <span className="w-1.5 h-1.5 bg-primary rounded-full" />
               제2조 (이용 계약의 성립 및 승낙 거절)
             </h2>
-            <div className="bg-slate-50 dark:bg-slate-900/50 p-5 rounded-xl border border-slate-100 dark:border-slate-800">
+            <div className="bg-muted/50 p-5 rounded-xl border border-border">
               <p className="font-semibold mb-2">
                 1. 이용 계약은 다음의 과정을 거쳐 성립합니다.
               </p>
@@ -98,7 +98,7 @@ export default function TermsPage() {
           {/* 제3조 */}
           <section className="space-y-3">
             <h2 className="text-base md:text-lg font-bold flex items-center gap-2">
-              <span className="w-1.5 h-1.5 bg-blue-500 rounded-full" />
+              <span className="w-1.5 h-1.5 bg-primary rounded-full" />
               제3조 (서비스의 내용)
             </h2>
             <p>회사는 회원에게 다음과 같은 기능을 제공합니다.</p>
@@ -112,7 +112,7 @@ export default function TermsPage() {
           {/* 제4조 */}
           <section className="space-y-3">
             <h2 className="text-base md:text-lg font-bold flex items-center gap-2">
-              <span className="w-1.5 h-1.5 bg-blue-500 rounded-full" />
+              <span className="w-1.5 h-1.5 bg-primary rounded-full" />
               제4조 (회원의 의무)
             </h2>
             <p>회원은 서비스를 이용할 때 다음 행위를 하여서는 안 됩니다.</p>
@@ -132,10 +132,10 @@ export default function TermsPage() {
           {/* 제5조 */}
           <section className="space-y-3">
             <h2 className="text-base md:text-lg font-bold flex items-center gap-2">
-              <span className="w-1.5 h-1.5 bg-blue-500 rounded-full" />
+              <span className="w-1.5 h-1.5 bg-primary rounded-full" />
               제5조 (지식재산권 및 데이터 활용)
             </h2>
-            <ul className="list-disc pl-6 space-y-1 text-slate-600 dark:text-slate-400">
+            <ul className="list-disc pl-6 space-y-1 text-muted-foreground">
               <li>
                 회원이 서비스에 업로드한 콘텐츠(작품 원문 등)의 저작권은 회원
                 본인에게 있습니다.
@@ -171,7 +171,7 @@ export default function TermsPage() {
           {/* 제6조 */}
           <section className="space-y-3">
             <h2 className="text-base md:text-lg font-bold flex items-center gap-2">
-              <span className="w-1.5 h-1.5 bg-blue-500 rounded-full" />
+              <span className="w-1.5 h-1.5 bg-primary rounded-full" />
               제6조 (계약 해지 및 데이터 보관)
             </h2>
             <ul className="list-disc pl-6 space-y-1">
@@ -190,7 +190,7 @@ export default function TermsPage() {
           {/* 제7조 */}
           <section className="space-y-3">
             <h2 className="text-base md:text-lg font-bold flex items-center gap-2">
-              <span className="w-1.5 h-1.5 bg-blue-500 rounded-full" />
+              <span className="w-1.5 h-1.5 bg-primary rounded-full" />
               제7조 (책임의 제한)
             </h2>
             <p>

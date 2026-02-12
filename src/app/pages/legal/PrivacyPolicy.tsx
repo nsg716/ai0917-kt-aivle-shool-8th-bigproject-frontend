@@ -23,7 +23,7 @@ export default function PrivacyPolicy() {
 
         {/* 제목 */}
         <div className="flex items-center gap-3 mb-6 border-b pb-6 text-foreground">
-          <ShieldCheck className="w-8 h-8 text-blue-500" />
+          <ShieldCheck className="w-8 h-8 text-primary" />
           <h1 className="text-xl md:text-2xl font-bold tracking-tight">
             개인정보처리방침
           </h1>
@@ -46,10 +46,10 @@ export default function PrivacyPolicy() {
           {/* 1. 수집 항목 */}
           <section className="space-y-3">
             <h2 className="text-base md:text-lg font-bold flex items-center gap-2">
-              <span className="w-1 h-5 bg-blue-500 rounded-full" />
+              <span className="w-1 h-5 bg-primary rounded-full" />
               1. 수집하는 개인정보 항목
             </h2>
-            <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl">
+            <div className="bg-muted/50 p-4 rounded-xl">
               <ul className="list-disc pl-6 space-y-2">
                 <li>
                   <strong>이메일 인증 및 가입</strong>: 이메일 주소,{' '}
@@ -108,7 +108,7 @@ export default function PrivacyPolicy() {
             <p>
               회사는 목적 달성 시 정보를 즉시 파기하는 것을 원칙으로 합니다.
             </p>
-            <ul className="list-disc pl-6 space-y-1 text-slate-600 dark:text-slate-400">
+            <ul className="list-disc pl-6 space-y-1 text-muted-foreground">
               <li>
                 <strong>
                   이메일 인증번호: 인증 성공 시 또는 유효시간(5분) 만료 시 즉시
@@ -130,7 +130,7 @@ export default function PrivacyPolicy() {
           {/* 4. 위탁 및 제3자 제공 (현재 클라우드 안 쓰는 상태 반영) */}
           <section className="space-y-3">
             <h2 className="text-base md:text-lg font-bold flex items-center gap-2">
-              <span className="w-1 h-5 bg-blue-500 rounded-full" />
+              <span className="w-1 h-5 bg-primary rounded-full" />
               4. 개인정보의 위탁 및 제3자 제공
             </h2>
             <p className="text-muted-foreground italic">
@@ -152,12 +152,12 @@ export default function PrivacyPolicy() {
               <span className="w-1 h-5 bg-blue-500 rounded-full" />
               5. 개인정보 보호책임자
             </h2>
-            <div className="p-4 bg-blue-50/50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl">
+            <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl">
               <ul className="text-sm space-y-1">
                 <li>• 책임자: IP.AI 팀</li>
                 <li>
                   • 문의처:{' '}
-                  <span className="font-semibold text-blue-600">
+                  <span className="font-semibold text-primary">
                     ipai0917@naver.com
                   </span>
                 </li>

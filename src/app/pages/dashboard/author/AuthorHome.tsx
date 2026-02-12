@@ -8,7 +8,7 @@ import {
 import {
   BookOpen,
   Database,
-  CheckCircle,
+  TrendingUp,
   ChevronLeft,
   ChevronRight,
   Megaphone,
@@ -128,8 +128,8 @@ export function AuthorHome({ integrationId }: AuthorHomeProps) {
 
         <Card className="border-border shadow-sm hover:shadow-md transition-shadow">
           <CardContent className="p-6 flex items-center gap-4">
-            <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center shrink-0">
-              <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
+            <div className="w-12 h-12 bg-green-100 dark:bg-green-500/20 rounded-lg flex items-center justify-center shrink-0">
+              <TrendingUp className="w-6 h-6 text-green-600 dark:text-green-400" />
             </div>
             <div className="space-y-1 overflow-hidden">
               <div className="text-2xl font-bold text-foreground truncate">

@@ -114,7 +114,7 @@ export function AuthorWorkExplorer({
     >
       <div className="h-12 px-4 border-b border-border flex items-center shrink-0 whitespace-nowrap">
         <span className="font-semibold text-sm flex items-center gap-2 whitespace-nowrap min-w-0">
-          <Folder className="w-4 h-4 text-blue-500 shrink-0" />
+          <Folder className="w-4 h-4 text-blue-500 dark:text-blue-400 shrink-0" />
           <span className="truncate">내 작품</span>
         </span>
         <TooltipProvider>
@@ -260,16 +260,16 @@ function WorkItem({
                   )}
                 </Button>
               </CollapsibleTrigger>
-              <Book className="w-4 h-4 mr-2 text-blue-500 shrink-0" />
+              <Book className="w-4 h-4 mr-2 text-primary shrink-0" />
               <span className="truncate flex-1 text-left">{work.title}</span>
               <span
                 className={cn(
-                  'ml-2 text-xs px-1.5 py-0.5 rounded-full border shrink-0',
+                  'ml-2 text-xs px-1.5 py-0.5 rounded-full border shrink-0 font-semibold',
                   work.status === 'COMPLETED'
-                    ? 'border-green-500 text-green-600 bg-green-50'
+                    ? 'border-green-500 text-green-600 bg-green-50 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800'
                     : work.status === 'NEW'
-                      ? 'border-yellow-500 text-yellow-600 bg-yellow-50'
-                      : 'border-blue-500 text-blue-600 bg-blue-50',
+                      ? 'border-yellow-500 text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800'
+                      : 'border-blue-500 text-blue-600 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800',
                 )}
               >
                 {work.status === 'COMPLETED'
@@ -303,7 +303,7 @@ function WorkItem({
               작품 정보
             </ContextMenuItem>
             <ContextMenuItem
-              className="text-red-600 focus:text-red-600 focus:bg-red-50"
+              className="text-destructive focus:text-destructive focus:bg-destructive/10"
               onClick={() => {
                 onDeleteWork?.(work.id);
               }}
@@ -340,7 +340,7 @@ function WorkItem({
                     </span>
                     {/* ReadOnly Lock Icon for Manuscript Item */}
                     {manuscript.readOnly && (
-                      <Lock className="w-3 h-3 text-slate-400 ml-auto mr-2" />
+                      <Lock className="w-3 h-3 text-muted-foreground ml-auto mr-2" />
                     )}
                   </div>
                 );
@@ -365,7 +365,7 @@ function WorkItem({
                         원문 이름 변경
                       </ContextMenuItem>
                       <ContextMenuItem
-                        className="text-red-600 focus:text-red-600 focus:bg-red-50"
+                        className="text-destructive focus:text-destructive focus:bg-destructive/10"
                         onClick={(e) => {
                           e.stopPropagation();
                           onDeleteManuscript?.(work.id, manuscript.id);

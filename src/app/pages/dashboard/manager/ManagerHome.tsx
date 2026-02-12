@@ -97,13 +97,16 @@ export function ManagerHome({ onNavigate }: ManagerHomeProps) {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto font-sans p-4">
+    <div className="space-y-6 max-w-7xl mx-auto p-4">
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {/* Pending Proposals */}
-        <Card className="border-border shadow-sm hover:shadow-md transition-shadow">
+        <Card
+          className="border-border shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+          onClick={() => handleNavigate('/manager/proposals')}
+        >
           <CardContent className="p-6 flex items-center gap-4">
-            <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center shrink-0">
+            <div className="w-12 h-12 bg-orange-500/10 rounded-lg flex items-center justify-center shrink-0">
               <FileText className="w-6 h-6 text-orange-600 dark:text-orange-400" />
             </div>
             <div className="space-y-1 overflow-hidden">
@@ -118,9 +121,12 @@ export function ManagerHome({ onNavigate }: ManagerHomeProps) {
         </Card>
 
         {/* Managed Authors */}
-        <Card className="border-border shadow-sm hover:shadow-md transition-shadow">
+        <Card
+          className="border-border shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+          onClick={() => handleNavigate('/manager/authors')}
+        >
           <CardContent className="p-6 flex items-center gap-4">
-            <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center shrink-0">
+            <div className="w-12 h-12 bg-blue-500/10 rounded-lg flex items-center justify-center shrink-0">
               <Users className="w-6 h-6 text-blue-600 dark:text-blue-400" />
             </div>
             <div className="space-y-1 overflow-hidden">
@@ -135,9 +141,12 @@ export function ManagerHome({ onNavigate }: ManagerHomeProps) {
         </Card>
 
         {/* Active Authors */}
-        <Card className="border-border shadow-sm hover:shadow-md transition-shadow">
+        <Card
+          className="border-border shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+          onClick={() => handleNavigate('/manager/authors')}
+        >
           <CardContent className="p-6 flex items-center gap-4">
-            <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center shrink-0">
+            <div className="w-12 h-12 bg-green-500/10 rounded-lg flex items-center justify-center shrink-0">
               <Activity className="w-6 h-6 text-green-600 dark:text-green-400" />
             </div>
             <div className="space-y-1 overflow-hidden">

@@ -18,6 +18,13 @@ import {
 } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '../../../components/ui/dialog';
+import {
   Card,
   CardContent,
   CardHeader,
@@ -265,7 +272,7 @@ export function AdminNotices({ readOnly = false }: AdminNoticesProps) {
               <div className="relative flex-1 md:w-52">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
-                  placeholder="제목 입력 (Enter)"
+                  placeholder="제목 검색"
                   className="pl-9 h-9 bg-background"
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
@@ -340,7 +347,7 @@ export function AdminNotices({ readOnly = false }: AdminNoticesProps) {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 text-red-500 disabled:opacity-30"
+                            className="h-8 w-8 text-red-500 disabled:opacity-30 hover:text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
                             onClick={() => handleDelete(n.id)}
                           >
                             <Trash2 className="w-4 h-4" />
@@ -355,7 +362,7 @@ export function AdminNotices({ readOnly = false }: AdminNoticesProps) {
           </div>
 
           {/* 페이지네이션 */}
-          <div className="flex items-center justify-center gap-1.5 py-4 border-t bg-slate-50/30">
+          <div className="flex items-center justify-center gap-1.5 py-4 border-t bg-muted/30">
             <Button
               variant="ghost"
               size="icon"
@@ -369,7 +376,7 @@ export function AdminNotices({ readOnly = false }: AdminNoticesProps) {
               <Button
                 key={i}
                 variant={page === i ? 'default' : 'ghost'}
-                className={`h-8 w-8 p-0 ${page === i ? 'bg-blue-600 text-white' : 'text-slate-600'}`}
+                className={`h-8 w-8 p-0 ${page === i ? '' : 'text-muted-foreground'}`}
                 onClick={() => setPage(i)}
               >
                 {i + 1}
@@ -389,180 +396,173 @@ export function AdminNotices({ readOnly = false }: AdminNoticesProps) {
       </Card>
 
       {/* --- 통합 모달 (작성/수정/보기) --- */}
-      {modalMode && (
-        <div
-          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200"
-          onClick={closeModal}
-        >
-          <Card
-            className="w-full max-w-lg shadow-2xl border-none"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <CardHeader className="border-b flex flex-row items-center justify-between py-4">
-              <CardTitle className="text-lg">
-                {modalMode === 'view'
-                  ? '공지사항 상세'
-                  : modalMode === 'edit'
-                    ? '공지 수정'
-                    : '새 공지 등록'}
-              </CardTitle>
-              <Button variant="ghost" size="icon" onClick={closeModal}>
-                <CloseIcon className="w-4 h-4" />
-              </Button>
-            </CardHeader>
-            <CardContent className="p-6 space-y-5">
-              {modalMode === 'view' && selectedNotice ? (
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="text-xl font-bold text-slate-900">
-                      {selectedNotice.title}
-                    </h3>
-                    <div className="flex gap-2 mt-2 text-xs text-slate-500">
-                      <span>작성자: {selectedNotice.writer}</span>
-                      <span>|</span>
-                      <span>
-                        날짜:{' '}
-                        {new Date(selectedNotice.createdAt).toLocaleString()}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="bg-slate-50 p-4 rounded-lg text-slate-700 whitespace-pre-wrap min-h-[150px] text-sm leading-relaxed">
-                    {selectedNotice.content}
-                  </div>
-                  {selectedNotice.originalFilename && (
-                    <div className="flex items-center gap-2 p-3 border rounded-md bg-white">
-                      <FileText className="w-4 h-4 text-blue-500" />
-                      <span className="text-sm flex-1 truncate">
-                        {selectedNotice.originalFilename}
-                      </span>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-xs h-7"
-                        onClick={() =>
-                          handleDownload(
-                            selectedNotice.id,
-                            selectedNotice.originalFilename!,
-                          )
-                        }
-                      >
-                        다운로드
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase">
-                      작성자
-                    </label>
-                    <div className="text-sm font-medium text-foreground px-3 py-2 bg-muted/50 rounded-md">
-                      {modalMode === 'create' ? (
-                        <>
-                          <span className="mr-2">{maskName(currentUser)}</span>
-                          <span className="text-muted-foreground text-xs">
-                            ({currentUserEmail})
-                          </span>
-                        </>
-                      ) : (
-                        <>
-                          <span className="mr-2">{writer}</span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase">
-                      제목
-                    </label>
-                    <Input
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      placeholder="공지 제목"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase">
-                      내용
-                    </label>
-                    <Textarea
-                      value={content}
-                      onChange={(e) => setContent(e.target.value)}
-                      className="h-40 resize-none"
-                      placeholder="내용을 입력하세요"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase">
-                      파일 첨부
-                    </label>
-                    <div className="flex items-center gap-2">
-                      {!existingFileName && !selectedFile && (
-                        <Input
-                          type="file"
-                          className="text-xs cursor-pointer flex-1"
-                          ref={fileInputRef}
-                          onChange={(e) =>
-                            setSelectedFile(e.target.files?.[0] || null)
-                          }
-                        />
-                      )}
-                      {(selectedFile || existingFileName) && (
-                        <div className="flex-1 flex items-center gap-2 p-2 border rounded-md bg-muted/30">
-                          <FileText className="w-4 h-4 text-blue-500 shrink-0" />
-                          <span className="text-sm truncate flex-1">
-                            {existingFileName || selectedFile?.name}
-                          </span>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 w-8 shrink-0"
-                            onClick={() => {
-                              if (!confirm('정말 첨부파일을 삭제하시겠습니까?'))
-                                return;
+      <Dialog open={!!modalMode} onOpenChange={(open) => !open && closeModal()}>
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {modalMode === 'view'
+                ? '공지사항 상세'
+                : modalMode === 'edit'
+                  ? '공지 수정'
+                  : '새 공지 등록'}
+            </DialogTitle>
+          </DialogHeader>
 
-                              // UI에서만 즉시 제거 (낙관적 업데이트)
-                              setSelectedFile(null);
-                              setExistingFileName(null);
-                              setDeleteFile(true);
-                              if (fileInputRef.current) {
-                                fileInputRef.current.value = '';
-                              }
-                            }}
-                            title="파일 삭제"
-                          >
-                            <CloseIcon className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      )}
-                    </div>
+          <div className="space-y-5 py-4">
+            {modalMode === 'view' && selectedNotice ? (
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-xl font-bold text-foreground">
+                    {selectedNotice.title}
+                  </h3>
+                  <div className="flex gap-2 mt-2 text-xs text-muted-foreground">
+                    <span>작성자: {selectedNotice.writer}</span>
+                    <span>|</span>
+                    <span>
+                      날짜:{' '}
+                      {new Date(selectedNotice.createdAt).toLocaleString()}
+                    </span>
                   </div>
-                </>
-              )}
-            </CardContent>
-            <div className="p-4 border-t bg-slate-50/50 flex justify-end gap-2">
-              <Button variant="outline" onClick={closeModal}>
-                닫기
+                </div>
+                <div className="bg-muted/50 p-4 rounded-lg text-foreground whitespace-pre-wrap min-h-[150px] text-sm leading-relaxed">
+                  {selectedNotice.content}
+                </div>
+                {selectedNotice.originalFilename && (
+                  <div className="flex items-center gap-2 p-3 border rounded-md bg-card">
+                    <FileText className="w-4 h-4 text-primary" />
+                    <span className="text-sm flex-1 truncate">
+                      {selectedNotice.originalFilename}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs h-7"
+                      onClick={() =>
+                        handleDownload(
+                          selectedNotice.id,
+                          selectedNotice.originalFilename!,
+                        )
+                      }
+                    >
+                      다운로드
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-muted-foreground uppercase">
+                    작성자
+                  </label>
+                  <div className="text-sm font-medium text-foreground px-3 py-2 bg-muted/50 rounded-md">
+                    {modalMode === 'create' ? (
+                      <>
+                        <span className="mr-2">{maskName(currentUser)}</span>
+                        <span className="text-muted-foreground text-xs">
+                          ({currentUserEmail})
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="mr-2">{writer}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-muted-foreground uppercase">
+                    제목
+                  </label>
+                  <Input
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="공지 제목"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-muted-foreground uppercase">
+                    내용
+                  </label>
+                  <Textarea
+                    value={content}
+                    onChange={(e) => setContent(e.target.value)}
+                    className="h-40 resize-none"
+                    placeholder="내용을 입력하세요"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-muted-foreground uppercase">
+                    파일 첨부
+                  </label>
+                  <div className="flex items-center gap-2">
+                    {!existingFileName && !selectedFile && (
+                      <Input
+                        type="file"
+                        className="text-xs cursor-pointer flex-1"
+                        ref={fileInputRef}
+                        onChange={(e) =>
+                          setSelectedFile(e.target.files?.[0] || null)
+                        }
+                      />
+                    )}
+                    {(selectedFile || existingFileName) && (
+                      <div className="flex-1 flex items-center gap-2 p-2 border rounded-md bg-muted/30">
+                        <FileText className="w-4 h-4 text-primary shrink-0" />
+                        <span className="text-sm truncate flex-1">
+                          {existingFileName || selectedFile?.name}
+                        </span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8 shrink-0"
+                          onClick={() => {
+                            if (!confirm('정말 첨부파일을 삭제하시겠습니까?'))
+                              return;
+
+                            // UI에서만 즉시 제거 (낙관적 업데이트)
+                            setSelectedFile(null);
+                            setExistingFileName(null);
+                            setDeleteFile(true);
+                            if (fileInputRef.current) {
+                              fileInputRef.current.value = '';
+                            }
+                          }}
+                          title="파일 삭제"
+                        >
+                          <CloseIcon className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={closeModal}>
+              닫기
+            </Button>
+            {modalMode !== 'view' && (
+              <Button
+                onClick={handleSave}
+                disabled={loading}
+                className="bg-primary px-8 text-primary-foreground hover:bg-primary/90"
+              >
+                {loading ? (
+                  <Loader2 className="animate-spin w-4 h-4" />
+                ) : modalMode === 'edit' ? (
+                  '수정 저장'
+                ) : (
+                  '등록'
+                )}
               </Button>
-              {modalMode !== 'view' && (
-                <Button
-                  onClick={handleSave}
-                  disabled={loading}
-                  className="bg-blue-600 px-8 text-white"
-                >
-                  {loading ? (
-                    <Loader2 className="animate-spin w-4 h-4" />
-                  ) : (
-                    '저장하기'
-                  )}
-                </Button>
-              )}
-            </div>
-          </Card>
-        </div>
-      )}
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

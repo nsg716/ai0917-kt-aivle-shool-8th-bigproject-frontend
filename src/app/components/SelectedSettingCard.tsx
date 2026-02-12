@@ -112,8 +112,8 @@ export function SelectedSettingCard({
         'relative group transition-all duration-200 overflow-hidden',
         onClick && 'cursor-pointer hover:border-primary/50 hover:shadow-md',
         isCrown
-          ? 'border-yellow-500 shadow-md ring-1 ring-yellow-500 bg-yellow-50/10'
-          : 'border-slate-200',
+          ? 'border-yellow-500 shadow-md ring-1 ring-yellow-500 bg-yellow-500/10 dark:bg-yellow-500/20'
+          : 'border-border',
       )}
       onClick={onClick}
     >
@@ -123,7 +123,7 @@ export function SelectedSettingCard({
           <div
             className={cn(
               'absolute top-2.5 right-2.5 z-10 p-1 rounded-full transition-colors',
-              onSelectCrown && 'cursor-pointer hover:bg-slate-100',
+              onSelectCrown && 'cursor-pointer hover:bg-accent',
             )}
             onClick={(e) => {
               e.stopPropagation();
@@ -134,8 +134,8 @@ export function SelectedSettingCard({
               className={cn(
                 'w-4 h-4 transition-colors',
                 isCrown
-                  ? 'fill-yellow-500 text-yellow-500'
-                  : 'text-slate-300 hover:text-slate-400',
+                  ? 'fill-amber-500 text-amber-500 dark:text-amber-400'
+                  : 'text-muted-foreground hover:text-muted-foreground/80',
               )}
             />
           </div>
@@ -146,7 +146,7 @@ export function SelectedSettingCard({
           <Button
             variant="ghost"
             size="icon"
-            className="absolute top-2 left-2 h-5 w-5 text-slate-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity z-20"
+            className="absolute top-2 left-2 h-5 w-5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity z-20"
             onClick={(e) => {
               e.stopPropagation();
               onRemove();
@@ -166,21 +166,21 @@ export function SelectedSettingCard({
           <div className="flex flex-col min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <h5
-                className="font-semibold text-sm text-slate-900 truncate"
+                className="font-semibold text-sm text-foreground truncate"
                 title={item.keyword}
               >
                 {item.keyword}
               </h5>
               <Badge
                 variant="outline"
-                className="text-[10px] px-1 h-5 shrink-0 font-normal text-slate-500"
+                className="text-[10px] px-1 h-5 shrink-0 font-normal text-muted-foreground"
               >
                 {item.category}
               </Badge>
             </div>
 
             {/* Work Title below Keyword */}
-            <div className="text-[11px] text-slate-400 truncate mt-0.5">
+            <div className="text-[11px] text-muted-foreground truncate mt-0.5">
               {item.workTitle}
               {item.authorName && <span className="mx-1">·</span>}
               {item.authorName}
@@ -189,20 +189,24 @@ export function SelectedSettingCard({
         </div>
 
         {/* Description / Background - Rendered as Badges */}
-        <div className={cn('h-[44px] overflow-hidden', !hideRemove && 'pl-1')}>
+        <div
+          className={cn('min-h-[100px] overflow-hidden', !hideRemove && 'pl-1')}
+        >
           {descriptionValues.length > 0 ? (
-            <div className="line-clamp-2 leading-[22px]">
+            <div className="line-clamp-4 leading-[22px]">
               {descriptionValues.map((val, idx) => (
                 <span
                   key={idx}
-                  className="inline-block px-1.5 py-0.5 mr-1 rounded text-[10px] font-medium bg-slate-100 text-slate-600 border border-slate-200 align-middle"
+                  className="inline-block px-1.5 py-0.5 mr-1 rounded text-[10px] font-medium bg-muted text-muted-foreground border border-border align-middle"
                 >
                   {val}
                 </span>
               ))}
             </div>
           ) : (
-            <span className="text-xs text-slate-300 italic">설명 없음</span>
+            <span className="text-xs text-muted-foreground/50 italic">
+              설명 없음
+            </span>
           )}
         </div>
 
@@ -214,13 +218,13 @@ export function SelectedSettingCard({
             {item.species && (
               <Badge
                 variant="secondary"
-                className="text-[10px] px-1.5 h-5 bg-slate-100 text-slate-600 hover:bg-slate-200"
+                className="text-[10px] px-1.5 h-5 bg-secondary text-secondary-foreground hover:bg-secondary/80"
               >
                 {item.species}
               </Badge>
             )}
             {item.nickname && (
-              <span className="text-[10px] text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">
+              <span className="text-[10px] text-muted-foreground bg-secondary/50 px-1.5 py-0.5 rounded border border-border">
                 {item.nickname}
               </span>
             )}
@@ -231,7 +235,7 @@ export function SelectedSettingCard({
       {/* Core Label for Crown */}
       {isCrown && (
         <div className="absolute bottom-2 right-2">
-          <span className="text-[9px] font-bold text-yellow-600 bg-yellow-100 px-1.5 py-0.5 rounded-full border border-yellow-200/50">
+          <span className="text-[9px] font-bold text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 rounded-full border border-amber-200/50">
             CORE
           </span>
         </div>

@@ -45,14 +45,14 @@ pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/b
 
 function PdfThumbnail({ fileUrl }: { fileUrl: string }) {
   return (
-    <div className="w-full h-40 overflow-hidden bg-slate-100 rounded-t-lg relative flex items-center justify-center">
-      <div className="absolute inset-0 flex items-center justify-center bg-slate-100">
-        <BarChart3 className="w-10 h-10 text-slate-300" />
+    <div className="w-full h-40 overflow-hidden bg-muted rounded-t-lg relative flex items-center justify-center">
+      <div className="absolute inset-0 flex items-center justify-center bg-muted">
+        <BarChart3 className="w-10 h-10 text-muted-foreground/30" />
       </div>
       <Document
         file={fileUrl}
         loading={
-          <div className="absolute inset-0 flex items-center justify-center text-xs text-slate-400">
+          <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">
             로딩 중...
           </div>
         }
@@ -158,16 +158,16 @@ export function ManagerIPTrend() {
       value: `${trendData?.statistics?.totalReports ?? 0}건`,
       description: '누적 생성 리포트',
       icon: FileText,
-      color: 'text-blue-600',
-      bg: 'bg-blue-100',
+      color: 'text-blue-600 dark:text-blue-400',
+      bg: 'bg-blue-500/10',
     },
     {
       title: '완료된 리포트',
       value: `${trendData?.statistics?.completedReports ?? 0}건`,
       description: '정상 처리됨',
       icon: CheckCircle,
-      color: 'text-purple-600',
-      bg: 'bg-purple-100',
+      color: 'text-purple-600 dark:text-purple-400',
+      bg: 'bg-purple-500/10',
     },
     {
       title: '최근 생성일',
@@ -176,8 +176,8 @@ export function ManagerIPTrend() {
         : '-',
       description: '마지막 업데이트',
       icon: Clock,
-      color: 'text-green-600',
-      bg: 'bg-green-100',
+      color: 'text-orange-600 dark:text-orange-400',
+      bg: 'bg-orange-500/10',
     },
   ];
 
@@ -203,24 +203,23 @@ export function ManagerIPTrend() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {isTrendLoading
           ? Array.from({ length: 3 }).map((_, i) => (
-              <Card
-                key={i}
-                className="border-slate-200 shadow-sm animate-pulse"
-              >
-                <CardContent className="p-6 h-[100px] bg-slate-50" />
+              <Card key={i} className="border-border shadow-sm animate-pulse">
+                <CardContent className="p-6 h-[100px] bg-muted/50" />
               </Card>
             ))
           : stats.map((stat, index) => (
-              <Card key={index} className="border-slate-200 shadow-sm">
+              <Card key={index} className="border-border shadow-sm">
                 <CardContent className="p-6 flex items-center justify-between">
                   <div className="space-y-1">
-                    <p className="text-sm font-medium text-slate-500">
+                    <p className="text-sm font-medium text-muted-foreground">
                       {stat.title}
                     </p>
-                    <p className="text-2xl font-bold text-slate-900">
+                    <p className="text-2xl font-bold text-foreground">
                       {stat.value}
                     </p>
-                    <p className="text-xs text-slate-400">{stat.description}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {stat.description}
+                    </p>
                   </div>
                   <div className={`p-3 rounded-full ${stat.bg}`}>
                     <stat.icon className={`w-5 h-5 ${stat.color}`} />
@@ -231,18 +230,18 @@ export function ManagerIPTrend() {
       </div>
 
       {/* Filter Toolbar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-t border-slate-100 pt-8">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-t border-border pt-8">
         <div className="flex items-center gap-2">
           <h2 className="text-lg font-semibold">리포트 목록</h2>
-          <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 text-xs font-medium">
+          <span className="px-2.5 py-0.5 rounded-full bg-muted text-muted-foreground text-xs font-medium">
             {reportsData?.totalElements ?? 0}
           </span>
         </div>
 
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-slate-400" />
-            <span className="text-sm text-slate-500">필터:</span>
+            <Filter className="w-4 h-4 text-muted-foreground" />
+            <span className="text-sm text-muted-foreground">필터:</span>
           </div>
           <Select value={selectedYear} onValueChange={setSelectedYear}>
             <SelectTrigger className="w-[120px]">
@@ -267,15 +266,15 @@ export function ManagerIPTrend() {
         {(reportsData?.content || []).map((report) => (
           <Card
             key={report.id}
-            className="group cursor-pointer hover:shadow-md transition-all duration-200 border-slate-200 overflow-hidden"
+            className="group cursor-pointer hover:shadow-md transition-all duration-200 border-border overflow-hidden"
             onClick={() => setPreviewId(report.id)}
           >
-            <div className="bg-slate-100 relative overflow-hidden group-hover:shadow-inner transition-all">
+            <div className="bg-muted relative overflow-hidden group-hover:shadow-inner transition-all">
               {/* PDF Preview (First Page Crop) */}
               {gridPreviewUrl ? (
                 <PdfThumbnail fileUrl={gridPreviewUrl} />
               ) : (
-                <div className="w-full h-40 flex items-center justify-center bg-slate-50 group-hover:bg-slate-100 transition-colors"></div>
+                <div className="w-full h-40 flex items-center justify-center bg-muted/50 group-hover:bg-muted transition-colors"></div>
               )}
 
               {/* Overlay Actions */}
@@ -291,10 +290,10 @@ export function ManagerIPTrend() {
                   className={cn(
                     'px-2 py-0.5 rounded-md text-xs font-medium shadow-sm',
                     report.status === 'COMPLETED'
-                      ? 'bg-green-100 text-green-700'
+                      ? 'bg-green-500/10 text-green-700 dark:text-green-400'
                       : report.status === 'FAILED'
-                        ? 'bg-red-100 text-red-700'
-                        : 'bg-yellow-100 text-yellow-700',
+                        ? 'bg-destructive/10 text-destructive dark:text-destructive'
+                        : 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400',
                   )}
                 >
                   {report.status}
@@ -306,12 +305,12 @@ export function ManagerIPTrend() {
               <div className="flex justify-between items-start mb-2">
                 <div>
                   <h3
-                    className="font-semibold text-slate-900 line-clamp-1"
+                    className="font-semibold text-foreground line-clamp-1"
                     title={report.fileName}
                   >
                     {report.fileName?.replace(/\.pdf$/i, '') || '제목 없음'}
                   </h3>
-                  <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                  <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
                     <Clock className="w-3 h-3" />
                     {new Date(report.createdAt).toLocaleDateString()}
                   </p>
@@ -330,13 +329,13 @@ export function ManagerIPTrend() {
             size="sm"
             onClick={() => setPage((p) => Math.max(0, p - 1))}
             disabled={page === 0}
-            className="text-slate-600"
+            className="text-muted-foreground"
           >
             이전
           </Button>
-          <div className="text-sm font-medium text-slate-600 px-4">
-            <span className="text-slate-900">{page + 1}</span>
-            <span className="mx-1 text-slate-400">/</span>
+          <div className="text-sm font-medium text-muted-foreground px-4">
+            <span className="text-foreground">{page + 1}</span>
+            <span className="mx-1 text-muted-foreground">/</span>
             {reportsData.totalPages}
           </div>
           <Button
@@ -346,7 +345,7 @@ export function ManagerIPTrend() {
               setPage((p) => Math.min(reportsData.totalPages - 1, p + 1))
             }
             disabled={page >= reportsData.totalPages - 1}
-            className="text-slate-600"
+            className="text-muted-foreground"
           >
             다음
           </Button>
@@ -372,24 +371,24 @@ export function ManagerIPTrend() {
           )}
         >
           {/* Modal Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b bg-white z-[100] shrink-0 relative min-h-[60px]">
+          <div className="flex items-center justify-between px-6 py-4 border-b bg-background z-[100] shrink-0 relative min-h-[60px]">
             <div className="flex items-center gap-3">
               <DialogTitle className="text-xl font-bold">
                 {previewData?.fileName || '리포트 미리보기'}
               </DialogTitle>
               {previewData && (
                 <>
-                  <span className="text-sm text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
+                  <span className="text-sm text-muted-foreground bg-muted px-2 py-0.5 rounded-md">
                     {previewData.analysisDate}
                   </span>
                   <span
                     className={cn(
                       'px-2 py-0.5 rounded-md text-xs font-medium',
                       previewData.status === 'COMPLETED'
-                        ? 'bg-green-100 text-green-700'
+                        ? 'bg-green-500/10 text-green-700 dark:text-green-400'
                         : previewData.status === 'FAILED'
-                          ? 'bg-red-100 text-red-700'
-                          : 'bg-yellow-100 text-yellow-700',
+                          ? 'bg-destructive/10 text-destructive dark:text-destructive'
+                          : 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400',
                     )}
                   >
                     {previewData.status}
@@ -413,7 +412,7 @@ export function ManagerIPTrend() {
                 variant="ghost"
                 size="icon"
                 onClick={() => setIsFullScreen(!isFullScreen)}
-                className="text-slate-500 hover:text-slate-900"
+                className="text-muted-foreground hover:text-foreground"
               >
                 {isFullScreen ? (
                   <Minimize2 className="w-5 h-5" />
@@ -425,7 +424,7 @@ export function ManagerIPTrend() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-slate-500 hover:text-red-500"
+                  className="text-muted-foreground hover:text-destructive"
                 >
                   <X className="w-5 h-5" />
                 </Button>
@@ -434,7 +433,7 @@ export function ManagerIPTrend() {
           </div>
 
           {/* PDF Viewer Area */}
-          <div className="flex-1 bg-slate-100 overflow-hidden relative">
+          <div className="flex-1 bg-muted overflow-hidden relative">
             {isPreviewLoading || (previewId && !pdfUrl) ? (
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -446,7 +445,7 @@ export function ManagerIPTrend() {
                 title="PDF Preview"
               />
             ) : (
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 gap-4">
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground gap-4">
                 <FileText className="w-16 h-16 opacity-20" />
                 <p>미리보기 파일을 불러올 수 없습니다.</p>
               </div>

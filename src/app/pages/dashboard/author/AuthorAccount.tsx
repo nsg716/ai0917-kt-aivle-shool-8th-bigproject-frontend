@@ -35,8 +35,8 @@ export function AuthorAccount() {
             <div className="p-6">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex gap-3">
-                  <div className="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center">
-                    <Key className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                  <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
+                    <Key className="w-5 h-5 text-muted-foreground" />
                   </div>
                   <div>
                     <h3 className="font-medium text-foreground">
@@ -55,8 +55,8 @@ export function AuthorAccount() {
             <div className="p-6">
               <div className="flex items-start justify-between">
                 <div className="flex gap-3">
-                  <div className="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center">
-                    <Smartphone className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                  <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
+                    <Smartphone className="w-5 h-5 text-muted-foreground" />
                   </div>
                   <div>
                     <h3 className="font-medium text-foreground">2단계 인증</h3>
@@ -72,8 +72,8 @@ export function AuthorAccount() {
             {/* Notifications Section */}
             <div className="p-6">
               <div className="flex gap-3 mb-6">
-                <div className="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center">
-                  <Bell className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
+                  <Bell className="w-5 h-5 text-muted-foreground" />
                 </div>
                 <div>
                   <h3 className="font-medium text-foreground">알림 설정</h3>

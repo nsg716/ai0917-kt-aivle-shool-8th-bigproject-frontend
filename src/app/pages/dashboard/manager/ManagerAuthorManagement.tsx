@@ -145,7 +145,7 @@ export function ManagerAuthorManagement() {
 
       {/* Author List */}
       <Card>
-        <CardHeader className="border-b">
+        <CardHeader className="border-b border-border">
           <div className="flex justify-between items-center">
             <CardTitle>작가 목록</CardTitle>
             <div className="flex items-center gap-2">
@@ -174,7 +174,7 @@ export function ManagerAuthorManagement() {
                 </SelectContent>
               </Select>
               <Button variant="outline" onClick={() => setShowIdModal(true)}>
-                작가 ID 입력
+                작가 코드 입력
               </Button>
             </div>
           </div>
@@ -194,7 +194,7 @@ export function ManagerAuthorManagement() {
               {authorPage?.content?.map((author: ManagerAuthorDto) => (
                 <TableRow
                   key={author.id}
-                  className="cursor-pointer hover:bg-slate-50"
+                  className="cursor-pointer hover:bg-accent"
                   onClick={() => setSelectedAuthorId(author.id)}
                 >
                   <TableCell className="font-medium">{author.name}</TableCell>
@@ -225,7 +225,7 @@ export function ManagerAuthorManagement() {
           </Table>
 
           {/* Pagination */}
-          <div className="flex items-center justify-center p-4 gap-2 border-t">
+          <div className="flex items-center justify-center p-4 gap-2 border-t border-border">
             <Button
               variant="outline"
               size="sm"
@@ -296,7 +296,7 @@ export function ManagerAuthorManagement() {
                 <h4 className="font-semibold mb-3 flex items-center gap-2">
                   <BookOpen className="w-4 h-4" /> 최근 작품
                 </h4>
-                <div className="border rounded-lg divide-y">
+                <div className="border border-border rounded-lg divide-y divide-border">
                   {authorDetail.recentWorks?.map((work: any) => (
                     <div
                       key={work.id}
@@ -318,8 +318,11 @@ export function ManagerAuthorManagement() {
               </div>
             </div>
           ) : (
-            <div className="h-40 flex items-center justify-center">
-              Loading...
+            <div className="h-40 flex items-center justify-center text-muted-foreground">
+              <div className="flex flex-col items-center gap-2">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <span className="text-sm">로딩 중...</span>
+              </div>
             </div>
           )}
         </DialogContent>
@@ -328,14 +331,14 @@ export function ManagerAuthorManagement() {
       <Dialog open={showIdModal} onOpenChange={setShowIdModal}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>작가 ID 입력</DialogTitle>
+            <DialogTitle>작가 코드 입력</DialogTitle>
             <DialogDescription>
-              운영자와 작가의 매칭 기능 • 작가에게서 전달받은 키를 입력하세요.
+              운영자와 작가의 매칭 기능 • 작가에게서 전달받은 코드를 입력하세요.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <Input
-              placeholder="예: AUTH-ABCDE"
+              placeholder="예: 123456"
               value={manualAuthorId}
               onChange={(e) => setManualAuthorId(e.target.value)}
             />

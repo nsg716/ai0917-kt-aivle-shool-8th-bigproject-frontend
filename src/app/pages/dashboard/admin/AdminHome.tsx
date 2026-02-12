@@ -354,7 +354,7 @@ export function AdminHome() {
               <Settings className="w-5 h-5 text-muted-foreground" />
               <span>배포 현황</span>
             </CardTitle>
-            <Badge className="bg-green-500 text-white">운영 중</Badge>
+            <Badge className="bg-green-500 text-white dark:bg-green-900/50 dark:text-green-100">운영 중</Badge>
           </div>
         </CardHeader>
         <CardContent className="p-6">

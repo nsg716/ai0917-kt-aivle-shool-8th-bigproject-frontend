@@ -150,7 +150,10 @@ const HighlightText = ({
     <>
       {parts.map((part, i) =>
         part.toLowerCase() === highlight.toLowerCase() ? (
-          <span key={i} className="bg-yellow-100 font-medium text-yellow-900">
+          <span
+            key={i}
+            className="bg-yellow-500/20 font-medium text-yellow-700 dark:text-yellow-300"
+          >
             {part}
           </span>
         ) : (
@@ -207,6 +210,145 @@ const formats = [
   },
 ];
 
+function getContentStrategy(formatId: string | null) {
+  const common = {
+    valueProp: {
+      title: 'IP 원천 가치 및 시장성 분석',
+      desc: '원작의 핵심 키워드, 독자 반응 데이터(댓글, 평점), 유사 성공 사례 비교 분석.',
+      sub: '장르적 특성에 따른 주 타겟층(예: 2030 남성)과 원작의 팬덤 유지율 등을 지표로 제시합니다.',
+      icon: Target,
+    },
+    adaptation: {
+      title: '매체 최적화 각색 시나리오',
+      desc: '원작의 방대한 서사를 선택된 매체의 호흡과 문법에 맞게 재구성합니다.',
+      sub: '매체별 스토리텔링 구조 재설계',
+      icon: FileText,
+    },
+    visual: {
+      title: '캐릭터 및 비주얼 가이드',
+      desc: 'AI가 분석한 캐릭터의 외형 묘사와 성격을 시각적으로 구체화합니다.',
+      sub: '매체별 비주얼 스타일 최적화',
+      icon: Palette,
+    },
+    world: {
+      title: '코어 메커니즘 및 세계관 자산',
+      desc: '원작의 설정을 매체에 맞는 자산으로 변환합니다.',
+      sub: '매체별 핵심 재미 요소 및 규칙 정의',
+      icon: Globe,
+    },
+    business: {
+      title: '타겟팅 및 비즈니스 모델',
+      desc: '수익 구조와 마케팅 전략을 구체화합니다.',
+      sub: '매체별 수익화(BM) 모델 수립',
+      icon: Target,
+    },
+    feasibility: {
+      title: '제작 난이도 및 리소스 리포트',
+      desc: '실제 제작에 들어가는 비용과 기술적 난이도를 시뮬레이션합니다.',
+      sub: '제작 효율성 및 리스크 분석',
+      icon: Settings2,
+    },
+  };
+
+  switch (formatId) {
+    case 'webtoon':
+      return {
+        ...common,
+        adaptation: {
+          ...common.adaptation,
+          sub: "주간 연재를 위한 회당 호흡, '절단신공' 포인트.",
+        },
+        visual: {
+          ...common.visual,
+          sub: '그림체 방향성, 선화 느낌, 채색 톤 가이드.',
+        },
+        business: {
+          ...common.business,
+          sub: '굿즈화 연계 가능성이 높은 아이템/캐릭터 선정 및 팝업스토어 기획.',
+        },
+      };
+    case 'drama':
+    case 'movie':
+      return {
+        ...common,
+        adaptation: {
+          ...common.adaptation,
+          sub: '3막 구조나 시즌제 에피소드 배분.',
+        },
+        visual: {
+          ...common.visual,
+          sub: '배우의 이미지와 싱크로율을 매칭한 캐스팅 페르소나.',
+        },
+        business: {
+          ...common.business,
+          sub: '글로벌 OTT(넷플릭스 등) 선호 장르 분석을 통한 판권 수출 전략.',
+        },
+        feasibility: {
+          ...common.feasibility,
+          sub: '일상적 배경 위주의 촬영 가능 여부(로케이션 비용 절감).',
+        },
+      };
+    case 'game':
+      return {
+        ...common,
+        adaptation: {
+          ...common.adaptation,
+          sub: '플레이어의 동기 부여를 위한 메인 퀘스트라인.',
+        },
+        visual: {
+          ...common.visual,
+          sub: '3D 모델링을 위한 전후좌우 캐릭터 시트.',
+        },
+        world: {
+          ...common.world,
+          sub: '성장 트리, 전투 시스템, 수집 요소 등 게임의 재미 루프.',
+        },
+        business: {
+          ...common.business,
+          sub: '아이템 파밍 및 멀티플레이어 경쟁(PvP) 구조를 통한 수익화.',
+        },
+        feasibility: {
+          ...common.feasibility,
+          sub: '원작 설정 기반의 밸런싱 완료 여부 및 개발 우선순위.',
+        },
+      };
+    case 'spinoff':
+      return {
+        ...common,
+        adaptation: {
+          ...common.adaptation,
+          sub: "주간 연재를 위한 회당 호흡, '절단신공' 포인트.",
+        },
+        visual: {
+          ...common.visual,
+          sub: '그림체 방향성, 선화 느낌, 채색 톤 가이드.',
+        },
+        world: {
+          ...common.world,
+          sub: '본편의 설정을 해치지 않는 프리퀄/시퀄의 타임라인 설계.',
+        },
+        business: {
+          ...common.business,
+          sub: '굿즈화 연계 가능성이 높은 아이템/캐릭터 선정 및 팝업스토어 기획.',
+        },
+      };
+    case 'commercial':
+      return {
+        ...common,
+        visual: {
+          ...common.visual,
+          sub: '3D 모델링을 위한 전후좌우 캐릭터 시트.',
+        },
+        business: {
+          ...common.business,
+          sub: '굿즈화 연계 가능성이 높은 아이템/캐릭터 선정 및 팝업스토어 기획.',
+        },
+      };
+    default:
+      return common;
+  }
+}
+
 const SettingComparison = ({
   original,
   updated,
@@ -221,10 +363,10 @@ const SettingComparison = ({
   );
 
   return (
-    <div className="border rounded-md overflow-hidden text-xs">
-      <div className="grid grid-cols-2 bg-slate-100 border-b font-bold text-slate-700">
-        <div className="p-2 border-r flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-slate-400" />
+    <div className="border rounded-md overflow-hidden text-xs border-border">
+      <div className="grid grid-cols-2 bg-muted border-b font-bold text-foreground">
+        <div className="p-2 border-r border-border flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full bg-muted-foreground" />
           기존 설정 (Original)
         </div>
         <div className="p-2 flex items-center gap-2">
@@ -242,17 +384,21 @@ const SettingComparison = ({
           newVal &&
           JSON.stringify(origVal) !== JSON.stringify(newVal);
 
-        let origClass = 'p-2 border-r bg-white text-slate-600';
-        let newClass = 'p-2 bg-white text-slate-600';
+        let origClass =
+          'p-2 border-r border-border bg-card text-muted-foreground';
+        let newClass = 'p-2 bg-card text-muted-foreground';
 
         if (isAdded) {
-          newClass = 'p-2 bg-green-50 text-green-700 font-medium';
+          newClass =
+            'p-2 bg-green-500/10 text-green-700 dark:text-green-400 font-medium';
         } else if (isDeleted) {
           origClass =
-            'p-2 border-r bg-red-50 text-red-700 font-medium decoration-red-300';
+            'p-2 border-r border-border bg-destructive/10 text-destructive font-medium decoration-destructive';
         } else if (isModified) {
-          origClass = 'p-2 border-r bg-yellow-50 text-yellow-700';
-          newClass = 'p-2 bg-yellow-50 text-yellow-700 font-medium';
+          origClass =
+            'p-2 border-r border-border bg-yellow-500/10 text-yellow-700 dark:text-yellow-400';
+          newClass =
+            'p-2 bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 font-medium';
         }
 
         const formatValue = (val: any) => {
@@ -263,11 +409,13 @@ const SettingComparison = ({
               return val.map((item, i) => (
                 <div
                   key={i}
-                  className="mb-1 last:mb-0 pl-2 border-l-2 border-slate-200"
+                  className="mb-1 last:mb-0 pl-2 border-l-2 border-border"
                 >
                   {Object.entries(item).map(([k, v]) => (
                     <div key={k} className="flex gap-1">
-                      <span className="font-semibold text-slate-500">{k}:</span>
+                      <span className="font-semibold text-muted-foreground">
+                        {k}:
+                      </span>
                       <span>{String(v)}</span>
                     </div>
                   ))}
@@ -278,10 +426,12 @@ const SettingComparison = ({
           }
           if (typeof val === 'object') {
             return (
-              <div className="pl-2 border-l-2 border-slate-200">
+              <div className="pl-2 border-l-2 border-border">
                 {Object.entries(val).map(([k, v]) => (
                   <div key={k} className="flex gap-1">
-                    <span className="font-semibold text-slate-500">{k}:</span>
+                    <span className="font-semibold text-muted-foreground">
+                      {k}:
+                    </span>
                     <span>{String(v)}</span>
                   </div>
                 ))}
@@ -292,15 +442,18 @@ const SettingComparison = ({
         };
 
         return (
-          <div key={key} className="grid grid-cols-2 border-b last:border-0">
+          <div
+            key={key}
+            className="grid grid-cols-2 border-b last:border-0 border-border"
+          >
             <div className={origClass}>
-              <span className="font-bold mr-2 text-[10px] text-slate-400 block mb-1">
+              <span className="font-bold mr-2 text-[10px] text-muted-foreground block mb-1">
                 {key}
               </span>
               {formatValue(origVal)}
             </div>
             <div className={newClass}>
-              <span className="font-bold mr-2 text-[10px] text-slate-400 block mb-1">
+              <span className="font-bold mr-2 text-[10px] text-muted-foreground block mb-1">
                 {key}
               </span>
               {formatValue(newVal)}
@@ -348,7 +501,7 @@ const LorebookContentViewer = ({
     });
 
     if (entries.length === 0) {
-      return <div className="text-slate-500 italic">내용 없음</div>;
+      return <div className="text-muted-foreground italic">내용 없음</div>;
     }
 
     return (
@@ -356,10 +509,12 @@ const LorebookContentViewer = ({
         {entries.map(([key, value]) => (
           <div
             key={key}
-            className="bg-slate-50 rounded p-3 border border-slate-100"
+            className="bg-muted/50 rounded p-3 border border-border"
           >
-            <div className="text-xs font-bold text-slate-500 mb-1">{key}</div>
-            <div className="text-sm text-slate-800 whitespace-pre-wrap">
+            <div className="text-xs font-bold text-muted-foreground mb-1">
+              {key}
+            </div>
+            <div className="text-sm text-foreground whitespace-pre-wrap">
               {typeof value === 'object'
                 ? JSON.stringify(value, null, 2)
                 : String(value)}
@@ -477,23 +632,23 @@ export function AuthorIPExpansion({
     <div className="space-y-6 max-w-7xl mx-auto font-sans pb-20">
       {/* 담당 매니저 정보 카드 */}
       {myManager && myManager.managerName ? (
-        <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-100 dark:from-slate-900 dark:to-slate-900 dark:border-slate-800">
+        <Card className="bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20">
           <CardContent className="p-6 flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-slate-800 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-lg">
+              <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-lg">
                 {myManager.managerName.charAt(0)}
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-blue-900 dark:text-slate-100">
+                <h3 className="text-lg font-semibold text-foreground">
                   담당 운영자: {myManager.managerName}
                 </h3>
-                <p className="text-sm text-blue-700 dark:text-slate-400">
+                <p className="text-sm text-muted-foreground">
                   {myManager.managerSiteEmail || myManager.managerEmail}
                 </p>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">
+              <p className="text-sm text-primary font-medium">
                 IP 확장을 위한 1:1 지원을 받고 있습니다
               </p>
               <Button
@@ -535,11 +690,11 @@ export function AuthorIPExpansion({
                     setGeneratedAuthorCode(code);
                     setIsGenerateOpen(true);
                   } catch (err) {
-                    toast.error('작가 ID 생성에 실패했습니다.');
+                    toast.error('작가 코드 생성에 실패했습니다.');
                   }
                 }}
               >
-                <Plus className="mr-2 h-4 w-4" /> 작가 ID 생성
+                <Plus className="mr-2 h-4 w-4" /> 작가 코드 생성
               </Button>
             )}
           </div>
@@ -551,15 +706,15 @@ export function AuthorIPExpansion({
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {!myManager?.managerIntegrationId ? (
-                <div className="col-span-full h-60 flex flex-col items-center justify-center gap-3 text-slate-500 border-2 border-dashed border-slate-200 rounded-lg">
-                  <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center">
-                    <Sparkles className="w-6 h-6 text-slate-300" />
+                <div className="col-span-full h-60 flex flex-col items-center justify-center gap-3 text-muted-foreground border-2 border-dashed border-border rounded-lg">
+                  <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+                    <Sparkles className="w-6 h-6 text-muted-foreground" />
                   </div>
                   <div className="text-center">
-                    <p className="font-medium text-slate-900">
+                    <p className="font-medium text-foreground">
                       담당 매니저와 연동되지 않았습니다
                     </p>
-                    <p className="text-sm mt-1 text-slate-400">
+                    <p className="text-sm mt-1 text-muted-foreground">
                       매니저와 연동 후 제안서를 확인하실 수 있습니다.
                     </p>
                   </div>
@@ -575,26 +730,32 @@ export function AuthorIPExpansion({
                   return (
                     <Card
                       key={proposal.id}
-                      className="group cursor-pointer hover:shadow-md transition-all border-slate-200 overflow-hidden"
-                      onClick={() => handleOpenDetail(proposal)}
+                      className="group cursor-pointer hover:shadow-md transition-all border-border overflow-hidden"
+                      onClick={() => {
+                        if (proposal.status === 'NEW') {
+                          toast.info('AI 분석이 진행 중입니다.');
+                          return;
+                        }
+                        handleOpenDetail(proposal);
+                      }}
                     >
                       <CardHeader className="p-0">
                         <div
                           className={cn(
                             'h-16 bg-gradient-to-br relative overflow-hidden',
                             formatItem?.color === 'green'
-                              ? 'from-green-50 to-green-100'
+                              ? 'from-green-50 to-green-100 dark:from-green-950/40 dark:to-green-900/40'
                               : formatItem?.color === 'purple'
-                                ? 'from-purple-50 to-purple-100'
+                                ? 'from-purple-50 to-purple-100 dark:from-purple-950/40 dark:to-purple-900/40'
                                 : formatItem?.color === 'blue'
-                                  ? 'from-blue-50 to-blue-100'
+                                  ? 'from-blue-50 to-blue-100 dark:from-blue-950/40 dark:to-blue-900/40'
                                   : formatItem?.color === 'red'
-                                    ? 'from-red-50 to-red-100'
+                                    ? 'from-red-50 to-red-100 dark:from-red-950/40 dark:to-red-900/40'
                                     : formatItem?.color === 'amber'
-                                      ? 'from-amber-50 to-amber-100'
+                                      ? 'from-amber-50 to-amber-100 dark:from-amber-950/40 dark:to-amber-900/40'
                                       : formatItem?.color === 'pink'
-                                        ? 'from-pink-50 to-pink-100'
-                                        : 'from-slate-50 to-slate-100',
+                                        ? 'from-pink-50 to-pink-100 dark:from-pink-950/40 dark:to-pink-900/40'
+                                        : 'from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900',
                           )}
                         >
                           <div className="absolute inset-0 flex items-center justify-center">
@@ -602,26 +763,49 @@ export function AuthorIPExpansion({
                               className={cn(
                                 'w-6 h-6 opacity-20',
                                 formatItem?.color === 'green'
-                                  ? 'text-green-600'
+                                  ? 'text-green-600 dark:text-green-400'
                                   : formatItem?.color === 'purple'
-                                    ? 'text-purple-600'
+                                    ? 'text-purple-600 dark:text-purple-400'
                                     : formatItem?.color === 'blue'
-                                      ? 'text-blue-600'
+                                      ? 'text-blue-600 dark:text-blue-400'
                                       : formatItem?.color === 'red'
-                                        ? 'text-red-600'
+                                        ? 'text-red-600 dark:text-red-400'
                                         : formatItem?.color === 'amber'
-                                          ? 'text-amber-600'
+                                          ? 'text-amber-600 dark:text-amber-400'
                                           : formatItem?.color === 'pink'
-                                            ? 'text-pink-600'
-                                            : 'text-slate-600',
+                                            ? 'text-pink-600 dark:text-pink-400'
+                                            : 'text-slate-600 dark:text-slate-400',
                               )}
                             />
                           </div>
-                          <Badge className="absolute top-2 left-2 bg-white/90 shadow-sm backdrop-blur-sm text-slate-700 hover:bg-white/90 border-0 text-[10px] h-5 px-1.5">
+                          <Badge className="absolute top-2 left-2 bg-white/90 shadow-sm backdrop-blur-sm text-slate-700 hover:bg-white/90 border-0 text-[10px] h-5 px-1.5 dark:bg-slate-950/90 dark:text-slate-200">
                             {formatItem?.title ||
                               proposal.targetFormat ||
                               proposal.format ||
                               'Unknown'}
+                          </Badge>
+                          <Badge
+                            className={cn(
+                              'absolute top-2 right-2 shadow-sm border-0 text-[10px] h-5 px-1.5',
+                              proposal.status === 'APPROVED'
+                                ? 'bg-emerald-500 hover:bg-emerald-600'
+                                : proposal.status === 'PENDING_APPROVAL'
+                                  ? 'bg-blue-500 hover:bg-blue-600'
+                                  : proposal.status === 'REJECTED'
+                                    ? 'bg-destructive hover:bg-destructive/90'
+                                    : 'bg-muted-foreground hover:bg-muted-foreground/90',
+                            )}
+                          >
+                            {proposal.statusDescription ||
+                              (proposal.status === 'NEW'
+                                ? '신규'
+                                : proposal.status === 'PENDING_APPROVAL'
+                                  ? '승인 대기'
+                                  : proposal.status === 'APPROVED'
+                                    ? '승인됨'
+                                    : proposal.status === 'REJECTED'
+                                      ? '반려됨'
+                                      : proposal.status)}
                           </Badge>
                         </div>
                       </CardHeader>
@@ -648,15 +832,15 @@ export function AuthorIPExpansion({
                   );
                 })
               ) : (
-                <div className="col-span-full h-60 flex flex-col items-center justify-center gap-3 text-slate-500 border-2 border-dashed border-slate-200 rounded-lg">
-                  <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center">
-                    <Sparkles className="w-6 h-6 text-slate-300" />
+                <div className="col-span-full h-60 flex flex-col items-center justify-center gap-3 text-muted-foreground border-2 border-dashed border-border rounded-lg">
+                  <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+                    <Sparkles className="w-6 h-6 text-muted-foreground/50" />
                   </div>
                   <div className="text-center">
-                    <p className="font-medium text-slate-900">
+                    <p className="font-medium text-foreground">
                       도착한 제안서가 없습니다
                     </p>
-                    <p className="text-sm mt-1 text-slate-400">
+                    <p className="text-sm mt-1 text-muted-foreground">
                       매니저로부터 새로운 IP 확장 제안이 오면 이곳에 표시됩니다.
                     </p>
                   </div>
@@ -731,6 +915,7 @@ function AuthorProjectDetailModal({
   );
   const [actionComment, setActionComment] = useState('');
   const [isEditMode, setIsEditMode] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   // Fetch existing comment if any
   const { data: existingComment, refetch: refetchComment } = useQuery({
@@ -913,13 +1098,36 @@ function AuthorProjectDetailModal({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-[85vw] lg:max-w-4xl max-h-[90vh] p-0 gap-0 rounded-xl overflow-y-auto flex flex-col bg-white shadow-2xl border-0">
+        <DialogContent
+          className={cn(
+            'p-0 gap-0 rounded-xl overflow-y-auto flex flex-col bg-card shadow-2xl border-0 transition-all duration-300',
+            isExpanded
+              ? 'w-screen h-screen max-w-none max-h-none rounded-none'
+              : 'max-w-[85vw] lg:max-w-4xl max-h-[90vh]',
+          )}
+        >
+          {/* Maximize/Minimize Button */}
+          <div className="absolute top-4 right-12 z-50 flex gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-slate-500 hover:text-slate-900 bg-white/50 hover:bg-white/80 h-6 w-6 rounded-full"
+              onClick={() => setIsExpanded(!isExpanded)}
+            >
+              {isExpanded ? (
+                <Minimize2 className="w-3.5 h-3.5" />
+              ) : (
+                <Maximize2 className="w-3.5 h-3.5" />
+              )}
+            </Button>
+          </div>
+
           <ScrollArea className="flex-1">
             {/* Hero Header */}
             <div
               className={cn(
                 'relative h-40 flex items-end p-6 overflow-hidden shrink-0',
-                'bg-slate-50 border-b border-slate-100',
+                'bg-muted/30 border-b border-border',
               )}
             >
               <div className="relative z-10 w-full flex justify-between items-end">
@@ -972,7 +1180,7 @@ function AuthorProjectDetailModal({
 
             <div className="p-6 space-y-8">
               {/* 1. PDF Preview */}
-              <div className="w-full h-[500px] bg-slate-100 rounded-xl overflow-hidden border border-slate-200 shadow-sm">
+              <div className="w-full h-[500px] bg-muted/30 rounded-xl overflow-hidden border border-border shadow-sm">
                 <PdfPreview
                   isFullScreen={false}
                   className="h-full w-full"
@@ -990,71 +1198,80 @@ function AuthorProjectDetailModal({
                   핵심 내용 요약
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {[
-                    {
-                      title: '시장 전략 (Market Strategy)',
-                      icon: Target,
-                      content: project.expMarket,
-                      color: 'text-rose-600',
-                      bg: 'bg-rose-50',
-                    },
-                    {
-                      title: '서사 기획 (Creative Narrative)',
-                      icon: Zap,
-                      content: project.expCreative,
-                      color: 'text-indigo-600',
-                      bg: 'bg-indigo-50',
-                    },
-                    {
-                      title: '아트 컨셉 (Visual Concept)',
-                      icon: ImageIcon,
-                      content: project.expVisual,
-                      color: 'text-pink-600',
-                      bg: 'bg-pink-50',
-                    },
-                    {
-                      title: '세계관 확장 (World Expansion)',
-                      icon: Monitor,
-                      content: project.expWorld,
-                      color: 'text-purple-600',
-                      bg: 'bg-purple-50',
-                    },
-                    {
-                      title: '사업 모델 (Business Model)',
-                      icon: BarChart,
-                      content: project.expBusiness,
-                      color: 'text-emerald-600',
-                      bg: 'bg-emerald-50',
-                    },
-                    {
-                      title: '기술 환경 (Technical Environment)',
-                      icon: BookOpen,
-                      content: project.expProduction,
-                      color: 'text-blue-600',
-                      bg: 'bg-blue-50',
-                    },
-                  ].map((item: any, i) => (
-                    <Card
-                      key={i}
-                      className="border-slate-100 shadow-sm hover:shadow-md transition-all hover:-translate-y-1 duration-300"
-                    >
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-sm flex items-center gap-2 text-slate-800">
-                          <div className={`p-1.5 rounded-md ${item.bg}`}>
-                            <item.icon
-                              className={`w-3.5 h-3.5 ${item.color}`}
-                            />
-                          </div>
-                          {item.title}
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-wrap">
-                          {item.content || '내용이 없습니다.'}
-                        </p>
-                      </CardContent>
-                    </Card>
-                  ))}
+                  {(() => {
+                    const strategy = getContentStrategy(
+                      project.targetFormat || project.format,
+                    ) as any;
+                    return [
+                      {
+                        key: 'valueProp',
+                        content: project.expMarket,
+                        color: 'text-rose-600 dark:text-rose-400',
+                        bg: 'bg-rose-50 dark:bg-rose-900/20',
+                      },
+                      {
+                        key: 'adaptation',
+                        content: project.expCreative,
+                        color: 'text-indigo-600 dark:text-indigo-400',
+                        bg: 'bg-indigo-50 dark:bg-indigo-900/20',
+                      },
+                      {
+                        key: 'visual',
+                        content: project.expVisual,
+                        color: 'text-pink-600 dark:text-pink-400',
+                        bg: 'bg-pink-50 dark:bg-pink-900/20',
+                      },
+                      {
+                        key: 'world',
+                        content: project.expWorld,
+                        color: 'text-purple-600 dark:text-purple-400',
+                        bg: 'bg-purple-50 dark:bg-purple-900/20',
+                      },
+                      {
+                        key: 'business',
+                        content: project.expBusiness,
+                        color: 'text-emerald-600 dark:text-emerald-400',
+                        bg: 'bg-emerald-50 dark:bg-emerald-900/20',
+                      },
+                      {
+                        key: 'feasibility',
+                        content: project.expProduction,
+                        color: 'text-blue-600 dark:text-blue-400',
+                        bg: 'bg-blue-50 dark:bg-blue-900/20',
+                      },
+                    ].map((item: any, i) => {
+                      const strategyItem = strategy[item.key];
+                      const Icon = strategyItem?.icon || item.icon;
+
+                      return (
+                        <Card
+                          key={i}
+                          className="border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-all hover:-translate-y-1 duration-300 bg-card dark:bg-card"
+                        >
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm flex items-center gap-2 text-slate-800 dark:text-slate-200">
+                              <div className={`p-1.5 rounded-md ${item.bg}`}>
+                                <Icon className={`w-3.5 h-3.5 ${item.color}`} />
+                              </div>
+                              <div>
+                                <div>{strategyItem?.title || item.title}</div>
+                                {strategyItem?.sub && (
+                                  <div className="text-[10px] text-muted-foreground font-normal mt-0.5">
+                                    {strategyItem.sub}
+                                  </div>
+                                )}
+                              </div>
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed whitespace-pre-wrap">
+                              {item.content || '내용이 없습니다.'}
+                            </p>
+                          </CardContent>
+                        </Card>
+                      );
+                    });
+                  })()}
                 </div>
               </section>
 
@@ -1072,23 +1289,23 @@ function AuthorProjectDetailModal({
                       label: '원천 설정집 (Source Settings)',
                       value: `${project.lorebookIds?.length || 0}개`,
                       icon: BookOpen,
-                      color: 'text-indigo-600',
-                      bg: 'bg-indigo-50',
+                      color: 'text-indigo-600 dark:text-indigo-400',
+                      bg: 'bg-indigo-50 dark:bg-indigo-900/20',
                       onClick: () => setShowLorebookListModal(true),
                     },
                     {
                       label: '포맷 (Format)',
                       value: project.targetFormat || project.format,
                       icon: Film,
-                      color: 'text-slate-600',
-                      bg: 'bg-slate-50',
+                      color: 'text-muted-foreground',
+                      bg: 'bg-muted/50',
                     },
                     {
                       label: '장르 (Genre)',
                       value: project.targetGenre || '미지정',
                       icon: Sparkles,
-                      color: 'text-amber-600',
-                      bg: 'bg-amber-50',
+                      color: 'text-muted-foreground',
+                      bg: 'bg-muted/50',
                     },
                     {
                       label: '타겟 (Target)',
@@ -1104,8 +1321,8 @@ function AuthorProjectDetailModal({
                             : '통합'
                       }`,
                       icon: Users,
-                      color: 'text-blue-600',
-                      bg: 'bg-blue-50',
+                      color: 'text-muted-foreground',
+                      bg: 'bg-muted/50',
                     },
                     {
                       label: '예산 (Budget)',
@@ -1118,8 +1335,8 @@ function AuthorProjectDetailModal({
                               ? '중형 예산'
                               : project.budgetScale || '미정',
                       icon: DollarSign,
-                      color: 'text-green-600',
-                      bg: 'bg-green-50',
+                      color: 'text-green-600 dark:text-green-400',
+                      bg: 'bg-green-50 dark:bg-green-900/20',
                     },
                     {
                       label: '세계관 설정 (World)',
@@ -1238,15 +1455,29 @@ function AuthorProjectDetailModal({
                           },
                         ]
                       : []),
+                    ...(project.addPrompt
+                      ? [
+                          {
+                            label: '추가 요청사항 (Prompt)',
+                            value: project.addPrompt,
+                            icon: MessageSquare,
+                            color: 'text-slate-600',
+                            bg: 'bg-slate-50',
+                            isFullWidth: true,
+                          },
+                        ]
+                      : []),
                   ].map((item: any, i) => (
                     <div
                       key={i}
                       onClick={item.onClick}
-                      className={`flex items-start gap-3 p-3 rounded-lg border border-slate-100 ${item.bg} ${
-                        item.onClick
-                          ? 'cursor-pointer hover:bg-opacity-80 transition-colors'
-                          : ''
-                      }`}
+                      className={cn(
+                        `flex items-start gap-3 p-3 rounded-lg border border-slate-100 ${item.bg}`,
+                        item.onClick &&
+                          'cursor-pointer hover:bg-opacity-80 transition-colors',
+                        item.isFullWidth &&
+                          'col-span-1 md:col-span-2 lg:col-span-3',
+                      )}
                     >
                       <div className={`p-1.5 rounded-md bg-white/60 shrink-0`}>
                         <item.icon className={`w-4 h-4 ${item.color}`} />
@@ -1255,29 +1486,19 @@ function AuthorProjectDetailModal({
                         <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-0.5">
                           {item.label}
                         </p>
-                        <p className="text-sm font-semibold text-slate-900 truncate">
+                        <p
+                          className={cn(
+                            'text-sm font-semibold text-slate-900',
+                            item.isFullWidth
+                              ? 'whitespace-pre-wrap leading-relaxed'
+                              : 'truncate',
+                          )}
+                        >
                           {item.value || '-'}
                         </p>
                       </div>
                     </div>
                   ))}
-
-                  {/* Add Prompt (Full Width) */}
-                  {project.addPrompt && (
-                    <div className="col-span-1 md:col-span-2 lg:col-span-3 flex items-start gap-3 p-3 rounded-lg border border-slate-100 bg-slate-50">
-                      <div className="p-1.5 rounded-md bg-white/60 shrink-0">
-                        <MessageSquare className="w-4 h-4 text-slate-600" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-0.5">
-                          추가 요청사항 (Prompt)
-                        </p>
-                        <p className="text-sm font-medium text-slate-900 whitespace-pre-wrap leading-relaxed">
-                          {project.addPrompt}
-                        </p>
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
@@ -1293,7 +1514,7 @@ function AuthorProjectDetailModal({
             </Button>
             <div className="flex gap-2">
               <Button
-                className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2"
+                className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2"
                 onClick={() => setShowReviewModal(true)}
               >
                 <Check className="w-4 h-4" />

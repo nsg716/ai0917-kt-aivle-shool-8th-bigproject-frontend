@@ -10,11 +10,18 @@ export function Mermaid({ chart }: MermaidProps) {
   const uniqueId = useRef(`mermaid-${Math.random().toString(36).substr(2, 9)}`);
 
   useEffect(() => {
-    mermaid.initialize({ 
-      startOnLoad: false,
-      theme: 'default',
-      securityLevel: 'loose',
-    });
+    mermaid.initialize({
+        startOnLoad: false,
+        theme: 'default',
+        securityLevel: 'loose',
+        themeVariables: {
+          fontSize: '16px',
+        },
+        flowchart: {
+          htmlLabels: true,
+          curve: 'basis',
+        },
+      });
   }, []);
 
   useEffect(() => {
