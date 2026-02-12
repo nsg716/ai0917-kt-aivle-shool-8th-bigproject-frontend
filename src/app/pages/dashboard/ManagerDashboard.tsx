@@ -22,6 +22,14 @@ import {
 import { maskName } from '../../utils/format';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '../../components/ui/breadcrumb';
 import { Suspense, lazy, useState, useRef, useEffect } from 'react';
 import { ThemeToggle } from '../../components/ui/theme-toggle';
 import { useQuery } from '@tanstack/react-query';
@@ -75,7 +83,7 @@ function DashboardContentLoader() {
 export function ManagerDashboard({ onLogout, onHome }: ManagerDashboardProps) {
   const [activeMenu, setActiveMenu] = useState('home');
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showActivityDropdown, setShowActivityDropdown] = useState(false);
   const [visibleCount, setVisibleCount] = useState(4);
   const profileDropdownRef = useRef<HTMLDivElement>(null);
@@ -323,7 +331,7 @@ export function ManagerDashboard({ onLogout, onHome }: ManagerDashboardProps) {
             onClick={() => handleMenuClick('notice')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
               activeMenu === 'notice'
-                ? 'text-white'
+                ? 'text-primary-foreground'
                 : 'text-sidebar-foreground hover:bg-sidebar-accent'
             }`}
             style={
@@ -396,7 +404,7 @@ export function ManagerDashboard({ onLogout, onHome }: ManagerDashboardProps) {
           <div className="md:hidden space-y-2">
             <div className="flex items-center gap-3 px-4 py-3 bg-sidebar-accent rounded-lg">
               <div
-                className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm"
+                className="w-8 h-8 rounded-full flex items-center justify-center text-primary-foreground text-sm"
                 style={{ backgroundColor: 'var(--role-primary)' }}
               >
                 {userName.charAt(0)}
@@ -439,33 +447,40 @@ export function ManagerDashboard({ onLogout, onHome }: ManagerDashboardProps) {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <header className="h-16 bg-card border-b border-border px-4 md:px-8 flex items-center">
-          <div
-            className={`w-full flex items-center justify-between ${!sidebarOpen ? 'ml-16' : ''}`}
-          >
-            <div>
+        <header
+          className={`h-16 bg-card border-b border-border px-4 md:px-8 flex items-center transition-[padding] duration-300 ease-in-out ${
+            !sidebarOpen ? 'pl-16 md:pl-24' : ''
+          }`}
+        >
+          <div className="w-full flex items-center justify-between">
+            <div className="flex items-center gap-2">
               {/* Breadcrumb */}
-              <div className="flex items-center gap-2 text-sm">
-                <button
-                  onClick={() => handleMenuClick('home')}
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  홈
-                </button>
-                {activeMenu !== 'home' && (
-                  <>
-                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-foreground">
-                      {activeMenu === 'ip-trend-analysis' && 'IP 트렌드 분석'}
-                      {activeMenu === 'ip-expansion' && 'IP 확장'}
-                      {activeMenu === 'author-management' && '작가'}
-                      {activeMenu === 'notice' && '공지사항'}
-                      {activeMenu === 'mypage' && '마이페이지'}
-                      {activeMenu === 'settings' && '설정'}
-                    </span>
-                  </>
-                )}
-              </div>
+              <Breadcrumb>
+                <BreadcrumbList>
+                  <BreadcrumbItem>
+                    <BreadcrumbLink
+                      onClick={() => handleMenuClick('home')}
+                      className="cursor-pointer"
+                    >
+                      홈
+                    </BreadcrumbLink>
+                  </BreadcrumbItem>
+                  {activeMenu !== 'home' && (
+                    <>
+                      <BreadcrumbSeparator />
+                      <BreadcrumbItem>
+                        <BreadcrumbPage>
+                          {activeMenu === 'author-management' && '작가 관리'}
+                          {activeMenu === 'notice' && '공지사항'}
+                          {activeMenu === 'ip-expansion' && 'IP 확장 관리'}
+                          {activeMenu === 'ip-trend-analysis' && 'IP 트렌드'}
+                          {activeMenu === 'mypage' && '마이페이지'}
+                        </BreadcrumbPage>
+                      </BreadcrumbItem>
+                    </>
+                  )}
+                </BreadcrumbList>
+              </Breadcrumb>
             </div>
 
             <div className="flex items-center gap-3">
@@ -475,7 +490,10 @@ export function ManagerDashboard({ onLogout, onHome }: ManagerDashboardProps) {
                   variant="ghost"
                   size="icon"
                   className="text-muted-foreground relative"
-                  onClick={() => setShowActivityDropdown(!showActivityDropdown)}
+                  onClick={() => {
+                    setShowActivityDropdown(!showActivityDropdown);
+                    setNewNotification(false);
+                  }}
                 >
                   <Bell className="w-5 h-5" />
                   {(unreadCount > 0 || newNotification) && (
@@ -520,7 +538,7 @@ export function ManagerDashboard({ onLogout, onHome }: ManagerDashboardProps) {
                               <div
                                 key={notice.id}
                                 className={`p-4 hover:bg-muted/50 transition-colors cursor-pointer ${
-                                  !notice.isRead ? 'bg-blue-50/10' : ''
+                                  !notice.isRead ? 'bg-primary/5' : ''
                                 }`}
                                 onClick={() => handleNotificationClick(notice)}
                               >
