@@ -355,12 +355,18 @@ export const authorService = {
   },
 
   // Lorebooks (Settings)
-  getLorebooks: async (userId: string, title: string, workId: number) => {
+  getLorebooks: async (
+    userId: string,
+    title: string,
+    workId: number,
+    page?: number,
+    size?: number,
+  ) => {
     const response = await apiClient.get<any>(
       `/api/v1/author/${userId}/${title}/lorebook`,
-      { params: { workId } },
+      { params: { workId, page, size } },
     );
-    return response.data.content || response.data;
+    return response.data;
   },
 
   getLorebooksByCategory: async (
