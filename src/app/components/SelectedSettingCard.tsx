@@ -23,7 +23,36 @@ interface SelectedSettingCardProps {
   onSelectCrown?: () => void;
   onClick?: () => void;
   hideRemove?: boolean;
+  highlight?: string;
 }
+
+// Helper to highlight search matches
+const HighlightText = ({
+  text,
+  highlight,
+}: {
+  text: string;
+  highlight?: string;
+}) => {
+  if (!highlight || !highlight.trim()) return <>{text}</>;
+  const parts = text.split(new RegExp(`(${highlight})`, 'gi'));
+  return (
+    <>
+      {parts.map((part, i) =>
+        part.toLowerCase() === highlight.toLowerCase() ? (
+          <span
+            key={i}
+            className="bg-yellow-500/20 font-medium text-yellow-700 dark:text-yellow-300"
+          >
+            {part}
+          </span>
+        ) : (
+          part
+        ),
+      )}
+    </>
+  );
+};
 
 // Helper to format complex objects/arrays into natural text
 const getFormattedValues = (val: any): string[] => {
@@ -100,6 +129,7 @@ export function SelectedSettingCard({
   onSelectCrown,
   onClick,
   hideRemove,
+  highlight,
 }: SelectedSettingCardProps) {
   const showCrown = isCrown || !!onSelectCrown;
   const descriptionValues = parseAndFormatJson(
@@ -169,7 +199,7 @@ export function SelectedSettingCard({
                 className="font-semibold text-sm text-foreground truncate"
                 title={item.keyword}
               >
-                {item.keyword}
+                <HighlightText text={item.keyword} highlight={highlight} />
               </h5>
               <Badge
                 variant="outline"
