@@ -70,7 +70,16 @@ export function WorkAnalysisModal({
     },
     onSuccess: (data) => {
       if (data) {
-        setRelationshipChart(data);
+        // Ensure graph type is specified
+        let chartData = data;
+        if (
+          !chartData.trim().startsWith('graph') &&
+          !chartData.trim().startsWith('sequenceDiagram') &&
+          !chartData.trim().startsWith('classDiagram')
+        ) {
+          chartData = `graph TD\n${chartData}`;
+        }
+        setRelationshipChart(chartData);
       }
     },
   });
@@ -149,7 +158,7 @@ export function WorkAnalysisModal({
             <TabsList className="bg-muted">
               <TabsTrigger value="relationship" className="gap-2">
                 <GitGraph className="w-4 h-4" />
-                인물 관계도
+                전체 인물 관계도
               </TabsTrigger>
               <TabsTrigger value="timeline" className="gap-2">
                 <Clock className="w-4 h-4" />
