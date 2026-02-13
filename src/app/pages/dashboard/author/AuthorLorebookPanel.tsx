@@ -127,6 +127,7 @@ export function AuthorLorebookPanel({
     queryKey: ['author', 'lorebook', userId, work?.title, activeCategory],
     queryFn: () => {
       if (activeCategory === 'all') {
+        // For display, use default pagination or small size if needed, but here we just fetch
         return authorService.getLorebooks(userId, work!.title, workId);
       }
       return authorService.getLorebooksByCategory(
@@ -139,19 +140,18 @@ export function AuthorLorebookPanel({
     enabled: !!work?.title && !!userId,
   });
 
-  // Fetch ALL Data for Counts
+  // Fetch ALL Data for Counts (size=1000 to ensure we get all for counting)
   const { data: allLorebooksData } = useQuery({
-    queryKey: ['author', 'lorebook', userId, work?.title, 'all'],
-    queryFn: () => authorService.getLorebooks(userId, work!.title, workId),
+    queryKey: ['author', 'lorebook', userId, work?.title, 'all', 'counts'],
+    queryFn: () =>
+      authorService.getLorebooks(userId, work!.title, workId, 0, 1000),
     enabled: !!work?.title && !!userId,
   });
 
-  const allLorebooks = Array.isArray(allLorebooksData)
-    ? allLorebooksData
-    : (allLorebooksData as any)?.data &&
-        Array.isArray((allLorebooksData as any).data)
-      ? (allLorebooksData as any).data
-      : [];
+  const allLorebooks =
+    allLorebooksData?.content ||
+    (Array.isArray(allLorebooksData) ? allLorebooksData : []) ||
+    [];
 
   const categoryCounts = allLorebooks.reduce(
     (acc: any, item: any) => {
@@ -179,11 +179,12 @@ export function AuthorLorebookPanel({
     { all: 0 },
   );
 
-  const lorebooks = Array.isArray(lorebooksData)
-    ? lorebooksData
-    : (lorebooksData as any)?.data && Array.isArray((lorebooksData as any).data)
-      ? (lorebooksData as any).data
-      : [];
+  const lorebooks =
+    (lorebooksData?.content
+      ? lorebooksData.content
+      : Array.isArray(lorebooksData)
+        ? lorebooksData
+        : []) || [];
 
   const displayItems =
     lorebooks.map((item: any) => {
