@@ -54,6 +54,7 @@ import {
   Layout,
   Info,
   ClipboardList,
+  RefreshCw,
 } from 'lucide-react';
 import { IPProposalCommentDto } from '../../../types/author';
 import { ManagerCommentResponseDto } from '../../../types/manager';
@@ -872,49 +873,6 @@ export function ManagerIPExpansion() {
                         ).toLocaleDateString()
                       : '-'}
                   </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        className="h-6 w-6 p-0 hover:bg-accent rounded-full"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <span className="sr-only">메뉴 열기</span>
-                        <MoreHorizontal className="h-3 w-3 text-muted-foreground" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-[140px]">
-                      <DropdownMenuItem
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleOpenDetail(proposal);
-                        }}
-                      >
-                        <Maximize2 className="mr-2 h-3.5 w-3.5" />
-                        상세 보기
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleEditProject(proposal);
-                        }}
-                      >
-                        <Edit className="mr-2 h-3.5 w-3.5" />
-                        수정
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        className="text-destructive focus:text-destructive focus:bg-destructive/10"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDelete(proposal.id);
-                        }}
-                      >
-                        <Trash2 className="mr-2 h-3.5 w-3.5" />
-                        삭제
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
                 </div>
               </Card>
             );
@@ -1021,9 +979,22 @@ function ProjectDetailModal({
     useState<any>(null);
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
-  const [reviewComments, setReviewComments] = useState<
-    ManagerCommentResponseDto[]
-  >([]);
+  const [reviewData, setReviewData] = useState<any>(null);
+  const [showFinalDecisionConfirm, setShowFinalDecisionConfirm] =
+    useState(false);
+  const [pendingFinalDecision, setPendingFinalDecision] = useState<
+    'APPROVED' | 'REJECTED' | null
+  >(null);
+
+  const confirmFinalDecision = () => {
+    if (pendingFinalDecision && project.id) {
+      updateStatusMutation.mutate({
+        id: project.id,
+        status: pendingFinalDecision,
+      });
+      setShowFinalDecisionConfirm(false);
+    }
+  };
 
   const queryClient = useQueryClient();
 
@@ -1048,16 +1019,18 @@ function ProjectDetailModal({
 
   const handleFinalDecision = (status: 'APPROVED' | 'REJECTED') => {
     if (!project.id) return;
-    updateStatusMutation.mutate({ id: project.id, status });
+    setPendingFinalDecision(status);
+    setShowFinalDecisionConfirm(true);
   };
 
+  const comments = reviewData?.comments || [];
   const allApproved =
-    Array.isArray(reviewComments) &&
-    reviewComments.length > 0 &&
-    reviewComments.every((c) => c.status === 'APPROVED');
+    Array.isArray(comments) &&
+    comments.length > 0 &&
+    comments.every((c: any) => c.status === 'APPROVED');
   const anyRejected =
-    Array.isArray(reviewComments) &&
-    reviewComments.some((c) => c.status === 'REJECTED');
+    Array.isArray(comments) &&
+    comments.some((c: any) => c.status === 'REJECTED');
 
   const { data: lorebooks } = useQuery({
     queryKey: ['manager', 'proposal-lorebooks', managerId, project.id],
@@ -1137,12 +1110,12 @@ function ProjectDetailModal({
 
   const handleOpenReviewModal = async () => {
     try {
-      const comments = await managerService.getProposalComments(project.id);
-      setReviewComments(Array.isArray(comments) ? comments : []);
+      const data = await managerService.getProposalComments(project.id);
+      setReviewData(data);
       setShowReviewModal(true);
     } catch (e) {
       toast.error('검토 내역을 불러오는데 실패했습니다.');
-      setReviewComments([]);
+      setReviewData(null);
     }
   };
 
@@ -1174,6 +1147,40 @@ function ProjectDetailModal({
               className="bg-destructive hover:bg-destructive/90"
             >
               삭제
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Final Decision Confirmation Dialog */}
+      <AlertDialog
+        open={showFinalDecisionConfirm}
+        onOpenChange={setShowFinalDecisionConfirm}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              프로젝트를 최종{' '}
+              {pendingFinalDecision === 'APPROVED' ? '승인' : '반려'}
+              하시겠습니까?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingFinalDecision === 'APPROVED'
+                ? '승인 처리 시 작가에게 알림이 전송되며, 프로젝트가 다음 단계로 진행됩니다.'
+                : '반려 처리 시 작가에게 알림이 전송되며, 프로젝트가 반려 상태로 변경됩니다.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmFinalDecision}
+              className={
+                pendingFinalDecision === 'APPROVED'
+                  ? 'bg-emerald-600 hover:bg-emerald-700'
+                  : 'bg-destructive hover:bg-destructive/90'
+              }
+            >
+              {pendingFinalDecision === 'APPROVED' ? '승인' : '반려'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1230,7 +1237,10 @@ function ProjectDetailModal({
                     <span className="w-0.5 h-3 bg-border" />
                     <span className="flex items-center gap-1.5">
                       <Users className="w-3.5 h-3.5 text-muted-foreground" />{' '}
-                      {project.authorName || '작가 미정'}
+                      {project.matchedAuthorNames &&
+                      project.matchedAuthorNames.length > 0
+                        ? project.matchedAuthorNames.join(', ')
+                        : project.authorName || '작가 미정'}
                     </span>
                   </div>
                 </div>
@@ -1428,8 +1438,8 @@ function ProjectDetailModal({
                               (project.mediaDetail || project.mediaDetails)
                                 ?.style || '미지정',
                             icon: ImageIcon,
-                            color: 'text-pink-600',
-                            bg: 'bg-pink-50',
+                            color: 'text-pink-600 dark:text-pink-400',
+                            bg: 'bg-pink-50 dark:bg-pink-900/20',
                           },
                           {
                             label: '연출 호흡',
@@ -1437,8 +1447,8 @@ function ProjectDetailModal({
                               (project.mediaDetail || project.mediaDetails)
                                 ?.pacing || '미지정',
                             icon: Clock,
-                            color: 'text-indigo-600',
-                            bg: 'bg-indigo-50',
+                            color: 'text-indigo-600 dark:text-indigo-400',
+                            bg: 'bg-indigo-50 dark:bg-indigo-900/20',
                           },
                           {
                             label: '엔딩 포인트',
@@ -1446,8 +1456,8 @@ function ProjectDetailModal({
                               (project.mediaDetail || project.mediaDetails)
                                 ?.endingPoint || '미지정',
                             icon: Target,
-                            color: 'text-rose-600',
-                            bg: 'bg-rose-50',
+                            color: 'text-rose-600 dark:text-rose-400',
+                            bg: 'bg-rose-50 dark:bg-rose-900/20',
                           },
                         ]
                       : []),
@@ -1461,15 +1471,15 @@ function ProjectDetailModal({
                               (project.mediaDetail || project.mediaDetails)
                                 ?.seasonType || '미지정',
                             icon: Calendar,
-                            color: 'text-pink-600',
-                            bg: 'bg-pink-50',
+                            color: 'text-pink-600 dark:text-pink-400',
+                            bg: 'bg-pink-50 dark:bg-pink-900/20',
                           },
                           {
                             label: '회차당 분량',
                             value: `${(project.mediaDetail || project.mediaDetails)?.episodeDuration || 60}분`,
                             icon: Clock,
-                            color: 'text-indigo-600',
-                            bg: 'bg-indigo-50',
+                            color: 'text-indigo-600 dark:text-indigo-400',
+                            bg: 'bg-indigo-50 dark:bg-indigo-900/20',
                           },
                           {
                             label: '서브 포커스',
@@ -1477,8 +1487,8 @@ function ProjectDetailModal({
                               (project.mediaDetail || project.mediaDetails)
                                 ?.subFocus || '미지정',
                             icon: Zap,
-                            color: 'text-yellow-600',
-                            bg: 'bg-yellow-50',
+                            color: 'text-yellow-600 dark:text-yellow-400',
+                            bg: 'bg-yellow-50 dark:bg-yellow-900/20',
                           },
                         ]
                       : []),
@@ -1490,8 +1500,8 @@ function ProjectDetailModal({
                             label: '러닝타임',
                             value: `${(project.mediaDetail || project.mediaDetails)?.runningTime || 120}분`,
                             icon: Clock,
-                            color: 'text-indigo-600',
-                            bg: 'bg-indigo-50',
+                            color: 'text-indigo-600 dark:text-indigo-400',
+                            bg: 'bg-indigo-50 dark:bg-indigo-900/20',
                           },
                           {
                             label: '컬러 테마',
@@ -1499,8 +1509,8 @@ function ProjectDetailModal({
                               (project.mediaDetail || project.mediaDetails)
                                 ?.colorTheme || '미지정',
                             icon: Palette,
-                            color: 'text-purple-600',
-                            bg: 'bg-purple-50',
+                            color: 'text-purple-600 dark:text-purple-400',
+                            bg: 'bg-purple-50 dark:bg-purple-900/20',
                           },
                           {
                             label: '중점 막(Act)',
@@ -1508,8 +1518,70 @@ function ProjectDetailModal({
                               (project.mediaDetail || project.mediaDetails)
                                 ?.focusAct || '미지정',
                             icon: Layout,
-                            color: 'text-emerald-600',
-                            bg: 'bg-emerald-50',
+                            color: 'text-emerald-600 dark:text-emerald-400',
+                            bg: 'bg-emerald-50 dark:bg-emerald-900/20',
+                          },
+                        ]
+                      : []),
+                    ...(project.targetFormat === 'GAME' ||
+                    project.format === 'game'
+                      ? [
+                          {
+                            label: '게임 장르',
+                            value:
+                              (project.mediaDetail || project.mediaDetails)
+                                ?.genre || '미지정',
+                            icon: Gamepad2,
+                            color: 'text-purple-600 dark:text-purple-400',
+                            bg: 'bg-purple-50 dark:bg-purple-900/20',
+                          },
+                          {
+                            label: '핵심 재미',
+                            value:
+                              (project.mediaDetail || project.mediaDetails)
+                                ?.coreFun || '미지정',
+                            icon: Sparkles,
+                            color: 'text-amber-600 dark:text-amber-400',
+                            bg: 'bg-amber-50 dark:bg-amber-900/20',
+                          },
+                          {
+                            label: '타겟 플랫폼',
+                            value:
+                              (project.mediaDetail || project.mediaDetails)
+                                ?.platform || '미지정',
+                            icon: Monitor,
+                            color: 'text-blue-600 dark:text-blue-400',
+                            bg: 'bg-blue-50 dark:bg-blue-900/20',
+                          },
+                          {
+                            label: '핵심 루프',
+                            value:
+                              (project.mediaDetail || project.mediaDetails)
+                                ?.coreLoop || '미지정',
+                            icon: RefreshCw,
+                            color: 'text-indigo-600 dark:text-indigo-400',
+                            bg: 'bg-indigo-50 dark:bg-indigo-900/20',
+                          },
+                          {
+                            label: '수익 모델 (BM)',
+                            value:
+                              (project.mediaDetail || project.mediaDetails)
+                                ?.platformBM || '미지정',
+                            icon: DollarSign,
+                            color: 'text-green-600 dark:text-green-400',
+                            bg: 'bg-green-50 dark:bg-green-900/20',
+                          },
+                        ]
+                      : []),
+                    ...(project.additionalRequest
+                      ? [
+                          {
+                            label: '추가 요청사항',
+                            value: project.additionalRequest,
+                            icon: MessageSquare,
+                            color: 'text-slate-600',
+                            bg: 'bg-slate-50',
+                            isFullWidth: true,
                           },
                         ]
                       : []),
@@ -1592,20 +1664,6 @@ function ProjectDetailModal({
               >
                 <ClipboardList className="w-4 h-4 mr-2" /> 검토 내역
               </Button>
-              {project.status === 'PENDING' && (
-                <Button
-                  onClick={() => {
-                    const element = document.getElementById('feedback-section');
-                    if (element) {
-                      element.scrollIntoView({ behavior: 'smooth' });
-                    }
-                  }}
-                  className="gap-2 bg-indigo-600 hover:bg-indigo-700 text-white"
-                >
-                  <MessageSquare className="w-4 h-4" /> 피드백 보기
-                </Button>
-              )}
-              {/* 작가 제안하기 버튼 제거됨 */}
             </div>
           </DialogFooter>
         </DialogContent>
@@ -1630,55 +1688,97 @@ function ProjectDetailModal({
             <DialogTitle>검토 내역</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 max-h-[60vh] overflow-y-auto">
-            {reviewComments.length > 0 ? (
-              reviewComments.map((comment) => (
-                <div
-                  key={comment.commentId}
-                  className="bg-slate-50 p-4 rounded-lg space-y-2 border border-slate-100"
-                >
-                  <div className="flex justify-between items-center">
-                    <span className="font-bold text-slate-900 text-sm">
-                      {comment.authorName}
-                    </span>
-                    <Badge
-                      variant={
-                        comment.status === 'APPROVED'
-                          ? 'default'
-                          : comment.status === 'REJECTED'
-                            ? 'destructive'
-                            : 'secondary'
-                      }
-                      className={cn(
-                        'text-[10px] px-2 py-0.5',
-                        comment.status === 'APPROVED' &&
-                          'bg-emerald-600 hover:bg-emerald-700',
-                        comment.status === 'REJECTED' &&
-                          'bg-rose-600 hover:bg-rose-700',
-                        comment.status === 'ARCHIVED' &&
-                          'bg-slate-400 hover:bg-slate-500',
-                      )}
-                    >
-                      {comment.status === 'APPROVED'
-                        ? '승인'
-                        : comment.status === 'REJECTED'
-                          ? '반려'
-                          : comment.status === 'ARCHIVED'
-                            ? '미사용'
-                            : '대기'}
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-slate-600 whitespace-pre-wrap">
-                    {comment.comment}
-                  </p>
-                  <p className="text-xs text-slate-400 text-right">
-                    {new Date(comment.createdAt).toLocaleString()}
-                  </p>
+            {/* Stats Header */}
+            {reviewData && (
+              <div className="bg-slate-50 p-3 rounded-lg border mb-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-slate-600">
+                    전체 검토 현황
+                  </span>
+                  <span className="font-bold text-lg text-slate-900">
+                    {reviewData.authorCommentCurrentCount} /{' '}
+                    {reviewData.totalAuthorCount}명
+                  </span>
                 </div>
-              ))
+              </div>
+            )}
+
+            {reviewData?.matchedAuthors &&
+            reviewData.matchedAuthors.length > 0 ? (
+              reviewData.matchedAuthors.map(
+                (authorName: string, idx: number) => {
+                  const comment = reviewData.comments?.find(
+                    (c: any) => c.authorName === authorName,
+                  );
+
+                  return (
+                    <div
+                      key={idx}
+                      className="bg-white p-4 rounded-lg space-y-3 border border-slate-200 shadow-sm"
+                    >
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 text-xs font-bold">
+                            {authorName.charAt(0)}
+                          </div>
+                          <span className="font-bold text-slate-900 text-sm">
+                            {authorName}
+                          </span>
+                        </div>
+                        {comment ? (
+                          <Badge
+                            variant={
+                              comment.status === 'APPROVED'
+                                ? 'default'
+                                : comment.status === 'REJECTED'
+                                  ? 'destructive'
+                                  : 'secondary'
+                            }
+                            className={cn(
+                              'text-[10px] px-2 py-0.5',
+                              comment.status === 'APPROVED' &&
+                                'bg-emerald-600 hover:bg-emerald-700',
+                              comment.status === 'REJECTED' &&
+                                'bg-rose-600 hover:bg-rose-700',
+                              comment.status === 'ARCHIVED' &&
+                                'bg-slate-400 hover:bg-slate-500',
+                            )}
+                          >
+                            {comment.status === 'APPROVED'
+                              ? '승인'
+                              : comment.status === 'REJECTED'
+                                ? '반려'
+                                : comment.status === 'ARCHIVED'
+                                  ? '미사용'
+                                  : '대기'}
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] bg-slate-50 text-slate-400 border-slate-200 font-normal"
+                          >
+                            아직 검토하지 않음
+                          </Badge>
+                        )}
+                      </div>
+                      {comment && (
+                        <div className="pl-10">
+                          <div className="bg-slate-50 p-3 rounded-md text-sm text-slate-700 whitespace-pre-wrap">
+                            {comment.comment}
+                          </div>
+                          <p className="text-xs text-slate-400 text-right mt-1.5">
+                            {new Date(comment.createdAt).toLocaleString()}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                },
+              )
             ) : (
               <div className="text-center py-8 text-slate-500">
                 <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                <p>검토 내역이 없습니다.</p>
+                <p>매칭된 작가가 없습니다.</p>
               </div>
             )}
           </div>
@@ -2167,6 +2267,7 @@ function CreateIPExpansionDialog({
   const [authorSearch, setAuthorSearch] = useState('');
   const [workSearch, setWorkSearch] = useState('');
   const [lorebookSearch, setLorebookSearch] = useState('');
+  const [selectedLorebookSearch, setSelectedLorebookSearch] = useState('');
   const [viewingLorebook, setViewingLorebook] = useState<any>(null);
 
   const [showAllGenres, setShowAllGenres] = useState(false);
@@ -2308,6 +2409,13 @@ function CreateIPExpansionDialog({
     }
     return filtered;
   }, [lorebooks, lorebookSearch, lorebookCategoryTab]);
+
+  const filteredSelectedLorebooks = useMemo(() => {
+    if (!selectedLorebooks) return [];
+    return selectedLorebooks.filter((l: any) =>
+      l.keyword.toLowerCase().includes(selectedLorebookSearch.toLowerCase()),
+    );
+  }, [selectedLorebooks, selectedLorebookSearch]);
 
   const toggleAllLorebooks = (checked: boolean) => {
     if (checked) {
@@ -3327,15 +3435,28 @@ function CreateIPExpansionDialog({
                     {/* 4. Selected List */}
                     <Card className="flex flex-col overflow-hidden min-h-[500px] lg:h-full border-slate-200 shadow-sm bg-slate-50/50">
                       <CardHeader className="py-4 px-4 border-b bg-slate-100/50 shrink-0 space-y-2">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h3 className="font-bold flex items-center gap-2 text-slate-800 text-base">
-                              <Check className="w-4 h-4 text-slate-500" />{' '}
-                              선택된 설정집 ({selectedLorebooks.length})
-                            </h3>
-                            <p className="text-xs text-slate-500 mt-1">
-                              다양한 작품의 설정집을 조합할 수 있습니다.
-                            </p>
+                        <div className="flex flex-col gap-3">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h3 className="font-bold flex items-center gap-2 text-slate-800 text-base">
+                                <Check className="w-4 h-4 text-slate-500" />{' '}
+                                선택된 설정집 ({selectedLorebooks.length})
+                              </h3>
+                              <p className="text-xs text-slate-500 mt-1">
+                                다양한 작품의 설정집을 조합할 수 있습니다.
+                              </p>
+                            </div>
+                          </div>
+                          <div className="relative">
+                            <Search className="w-4 h-4 absolute left-3 top-2.5 text-muted-foreground" />
+                            <Input
+                              placeholder="선택된 설정집 검색..."
+                              className="pl-9 h-9 text-sm bg-white border-slate-200 focus-visible:ring-slate-400"
+                              value={selectedLorebookSearch}
+                              onChange={(e) =>
+                                setSelectedLorebookSearch(e.target.value)
+                              }
+                            />
                           </div>
                         </div>
 
@@ -3411,18 +3532,21 @@ function CreateIPExpansionDialog({
                         </div>
                       </CardHeader>
                       <ScrollArea className="flex-1 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent overflow-y-auto">
-                        {selectedLorebooks.length === 0 ? (
+                        {filteredSelectedLorebooks.length === 0 ? (
                           <div className="h-full flex flex-col items-center justify-center text-slate-400 p-6 text-center min-h-[200px]">
                             <p className="text-sm font-medium">
-                              선택된 설정집이 없습니다.
+                              {selectedLorebookSearch
+                                ? '검색 결과가 없습니다.'
+                                : '선택된 설정집이 없습니다.'}
                             </p>
                           </div>
                         ) : (
                           <div className="p-3 space-y-2">
-                            {selectedLorebooks.map((item, idx) => (
+                            {filteredSelectedLorebooks.map((item, idx) => (
                               <SelectedSettingCard
                                 key={item.lorebookId}
                                 item={item}
+                                highlight={selectedLorebookSearch}
                                 onRemove={() => {
                                   setSelectedLorebooks((prev) =>
                                     prev.filter(
