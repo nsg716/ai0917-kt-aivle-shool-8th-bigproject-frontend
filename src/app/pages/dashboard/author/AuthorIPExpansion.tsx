@@ -720,7 +720,7 @@ export function AuthorIPExpansion({
               <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
             </div>
           ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {!myManager?.managerIntegrationId ? (
                 <div className="col-span-full h-60 flex flex-col items-center justify-center gap-3 text-muted-foreground border-2 border-dashed border-border rounded-lg">
                   <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">

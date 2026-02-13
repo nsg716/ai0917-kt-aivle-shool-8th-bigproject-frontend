@@ -1790,23 +1790,25 @@ function ProjectDetailModal({
             >
               닫기
             </Button>
-            {allApproved && (
-              <Button
-                onClick={() => handleFinalDecision('APPROVED')}
-                className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white"
-              >
-                최종 승인
-              </Button>
-            )}
-            {anyRejected && (
-              <Button
-                onClick={() => handleFinalDecision('REJECTED')}
-                variant="destructive"
-                className="flex-1 sm:flex-none"
-              >
-                최종 반려
-              </Button>
-            )}
+            {allApproved &&
+              !['APPROVED', 'REJECTED'].includes(project.status) && (
+                <Button
+                  onClick={() => handleFinalDecision('APPROVED')}
+                  className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white"
+                >
+                  최종 승인
+                </Button>
+              )}
+            {anyRejected &&
+              !['APPROVED', 'REJECTED'].includes(project.status) && (
+                <Button
+                  onClick={() => handleFinalDecision('REJECTED')}
+                  variant="destructive"
+                  className="flex-1 sm:flex-none"
+                >
+                  최종 반려
+                </Button>
+              )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
