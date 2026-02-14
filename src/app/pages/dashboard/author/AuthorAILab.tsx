@@ -45,7 +45,7 @@ export function AuthorAILab() {
           <CardHeader>
             <CardTitle>미리보기</CardTitle>
           </CardHeader>
-          <CardContent className="flex-1 flex items-center justify-center overflow-auto min-h-0 p-4 bg-card rounded-md m-4 border">
+          <CardContent className="flex-1 flex items-center justify-center overflow-auto min-h-0 p-0">
             <Mermaid chart={graphCode} />
           </CardContent>
         </Card>

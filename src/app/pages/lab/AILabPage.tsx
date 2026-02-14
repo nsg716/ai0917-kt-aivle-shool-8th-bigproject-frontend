@@ -499,7 +499,7 @@ export default function AILabPage() {
                   <div className="mb-4 text-xs font-bold text-primary flex items-center gap-2 bg-primary/10 px-3 py-2 rounded-lg border border-primary/20">
                     <Code2 className="w-4 h-4" /> Mermaid Diagram Detected
                   </div>
-                  <div className="flex justify-center py-4 bg-card rounded-lg border border-border shadow-sm mb-6">
+                  <div className="mb-6">
                     <Mermaid chart={response} />
                   </div>
                   <div className="pt-4 border-t border-border">
