@@ -633,15 +633,42 @@ export function ManagerIPExpansion() {
 
   const deleteMutation = useMutation({
     mutationFn: managerService.deleteIPExpansionProject,
-    onSuccess: () => {
+    onMutate: async (id) => {
+      const queryKey = [
+        'manager',
+        'ip-expansion',
+        'proposals',
+        page,
+        me?.integrationId,
+      ];
+      await queryClient.cancelQueries({ queryKey });
+      const previousProposals = queryClient.getQueryData(queryKey);
+
+      queryClient.setQueryData(queryKey, (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          content: old.content.filter((p: any) => p.id !== id),
+          totalElements: Math.max(0, (old.totalElements || 0) - 1),
+        };
+      });
+
+      return { previousProposals, queryKey };
+    },
+    onError: (err, id, context) => {
+      if (context?.previousProposals) {
+        queryClient.setQueryData(context.queryKey, context.previousProposals);
+      }
+      toast.error('프로젝트 삭제에 실패했습니다.');
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({
         queryKey: ['manager', 'ip-expansion', 'proposals'],
       });
+    },
+    onSuccess: () => {
       setSelectedProject(null);
       toast.success('프로젝트가 삭제되었습니다.');
-    },
-    onError: () => {
-      toast.error('프로젝트 삭제에 실패했습니다.');
     },
   });
 
@@ -1001,19 +1028,63 @@ function ProjectDetailModal({
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status }: { id: number; status: string }) =>
       managerService.updateIPProposalStatus(id, status),
-    onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({
+    onMutate: async ({ id, status }) => {
+      // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
+      await queryClient.cancelQueries({
         queryKey: ['manager', 'ip-expansion', 'proposals'],
       });
+
+      // Snapshot the previous value
+      const previousData = queryClient.getQueriesData({
+        queryKey: ['manager', 'ip-expansion', 'proposals'],
+      });
+
+      // Optimistically update to the new value
+      queryClient.setQueriesData(
+        { queryKey: ['manager', 'ip-expansion', 'proposals'] },
+        (old: any) => {
+          if (!old || !old.content) return old;
+          return {
+            ...old,
+            content: old.content.map((p: any) =>
+              p.id === id
+                ? {
+                    ...p,
+                    status,
+                    statusDescription:
+                      status === 'APPROVED' ? '승인됨' : '반려됨',
+                  }
+                : p,
+            ),
+          };
+        },
+      );
+
+      // Return a context object with the snapshotted value
+      return { previousData };
+    },
+    onSuccess: (data, variables) => {
       toast.success(
         `프로젝트가 ${variables.status === 'APPROVED' ? '최종 승인' : '반려'}되었습니다.`,
       );
       setShowReviewModal(false);
       onClose();
     },
-    onError: (e) => {
-      console.log(e);
+    onError: (err, newTodo, context) => {
+      // If the mutation fails, use the context returned from onMutate to roll back
+      if (context?.previousData) {
+        context.previousData.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
+      console.log(err);
       toast.error('상태 변경에 실패했습니다.');
+    },
+    onSettled: () => {
+      // Always refetch after error or success:
+      queryClient.invalidateQueries({
+        queryKey: ['manager', 'ip-expansion', 'proposals'],
+      });
     },
   });
 
@@ -1249,7 +1320,7 @@ function ProjectDetailModal({
 
             <div className="p-6 space-y-8">
               {/* 1. PDF Preview */}
-              <div className="w-full h-[500px] bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm">
+              <div className="w-full h-[500px] bg-muted dark:bg-muted/20 rounded-xl overflow-hidden border border-border shadow-sm">
                 <PdfPreview
                   isFullScreen={false}
                   className="h-full w-full"
@@ -1261,7 +1332,7 @@ function ProjectDetailModal({
 
               {/* 2. Core Content Strategy (6 Grid) */}
               <section>
-                <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-slate-900 dark:text-slate-50">
+                <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-foreground">
                   <Sparkles className="w-5 h-5 text-purple-500" />
                   핵심 내용 요약
                 </h3>
@@ -1314,10 +1385,10 @@ function ProjectDetailModal({
                       return (
                         <Card
                           key={i}
-                          className="border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-all hover:-translate-y-1 duration-300 bg-card dark:bg-card"
+                          className="border-border shadow-sm hover:shadow-md transition-all hover:-translate-y-1 duration-300 bg-card"
                         >
                           <CardHeader className="pb-2">
-                            <CardTitle className="text-sm flex items-center gap-2 text-slate-800 dark:text-slate-200">
+                            <CardTitle className="text-sm flex items-center gap-2 text-foreground">
                               <div className={`p-1.5 rounded-md ${item.bg}`}>
                                 <Icon className={`w-3.5 h-3.5 ${item.color}`} />
                               </div>
@@ -1332,7 +1403,7 @@ function ProjectDetailModal({
                             </CardTitle>
                           </CardHeader>
                           <CardContent>
-                            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed whitespace-pre-wrap">
+                            <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">
                               {item.content || '내용이 없습니다.'}
                             </p>
                           </CardContent>
@@ -1344,9 +1415,9 @@ function ProjectDetailModal({
               </section>
 
               {/* 3. Input Setting Summary & Lorebooks */}
-              <div className="space-y-6 pt-6 border-t border-slate-100">
-                <h3 className="text-lg font-bold flex items-center gap-2 text-slate-800 pt-6 border-t border-slate-100">
-                  <Settings className="w-5 h-5 text-slate-500" />
+              <div className="space-y-6 pt-6 border-t border-border">
+                <h3 className="text-lg font-bold flex items-center gap-2 text-foreground pt-6 border-t border-border">
+                  <Settings className="w-5 h-5 text-muted-foreground" />
                   입력 설정 요약
                 </h3>
 
@@ -1365,8 +1436,8 @@ function ProjectDetailModal({
                       label: '포맷 (Format)',
                       value: project.targetFormat || project.format,
                       icon: Film,
-                      color: 'text-slate-600',
-                      bg: 'bg-slate-50',
+                      color: 'text-muted-foreground',
+                      bg: 'bg-muted',
                     },
                     {
                       label: '장르 (Genre)',
@@ -1579,8 +1650,8 @@ function ProjectDetailModal({
                             label: '추가 요청사항',
                             value: project.additionalRequest,
                             icon: MessageSquare,
-                            color: 'text-slate-600',
-                            bg: 'bg-slate-50',
+                            color: 'text-muted-foreground',
+                            bg: 'bg-muted/50',
                             isFullWidth: true,
                           },
                         ]
@@ -1591,8 +1662,8 @@ function ProjectDetailModal({
                             label: '추가 요청사항 (Prompt)',
                             value: project.addPrompt,
                             icon: MessageSquare,
-                            color: 'text-slate-600',
-                            bg: 'bg-slate-50',
+                            color: 'text-muted-foreground',
+                            bg: 'bg-muted/50',
                             isFullWidth: true,
                           },
                         ]
@@ -1602,23 +1673,25 @@ function ProjectDetailModal({
                       key={i}
                       onClick={item.onClick}
                       className={cn(
-                        `flex items-start gap-3 p-3 rounded-lg border border-slate-100 ${item.bg}`,
+                        `flex items-start gap-3 p-3 rounded-lg border border-border ${item.bg}`,
                         item.onClick &&
                           'cursor-pointer hover:bg-opacity-80 transition-colors',
                         item.isFullWidth &&
                           'col-span-1 md:col-span-2 lg:col-span-3',
                       )}
                     >
-                      <div className={`p-1.5 rounded-md bg-white/60 shrink-0`}>
+                      <div
+                        className={`p-1.5 rounded-md bg-background/60 shrink-0`}
+                      >
                         <item.icon className={`w-4 h-4 ${item.color}`} />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-0.5">
+                        <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-0.5">
                           {item.label}
                         </p>
                         <p
                           className={cn(
-                            'text-sm font-semibold text-slate-900',
+                            'text-sm font-semibold text-foreground',
                             item.isFullWidth
                               ? 'whitespace-pre-wrap leading-relaxed'
                               : 'truncate',
@@ -1634,11 +1707,11 @@ function ProjectDetailModal({
             </div>
           </ScrollArea>
 
-          <DialogFooter className="p-4 bg-white border-t flex items-center justify-between z-20">
+          <DialogFooter className="p-4 bg-background border-t flex items-center justify-between z-20">
             <Button
               variant="outline"
               onClick={onClose}
-              className="text-slate-500"
+              className="text-muted-foreground"
             >
               닫기
             </Button>
@@ -1646,21 +1719,21 @@ function ProjectDetailModal({
               <Button
                 variant="destructive"
                 onClick={handleDeleteClick}
-                className="gap-2 bg-white text-red-600 border border-red-200 hover:bg-red-50 hover:text-red-700 hover:border-red-300 shadow-none"
+                className="gap-2 bg-background text-red-600 border border-red-200 hover:bg-red-50 hover:text-red-700 hover:border-red-300 shadow-none dark:bg-red-950/20 dark:border-red-900/50 dark:hover:bg-red-900/30"
               >
                 <Trash2 className="w-4 h-4" /> 삭제
               </Button>
               <Button
                 variant="outline"
                 onClick={() => onEdit(project)}
-                className="bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200"
+                className="bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200 dark:bg-blue-950/20 dark:text-blue-400 dark:border-blue-900/50 dark:hover:bg-blue-900/30"
               >
                 <Edit className="w-4 h-4 mr-2" /> 수정
               </Button>
               <Button
                 variant="outline"
                 onClick={handleOpenReviewModal}
-                className="bg-amber-50 text-amber-700 hover:bg-amber-100 border-amber-200"
+                className="bg-amber-50 text-amber-700 hover:bg-amber-100 border-amber-200 dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-900/50 dark:hover:bg-amber-900/30"
               >
                 <ClipboardList className="w-4 h-4 mr-2" /> 검토 내역
               </Button>
@@ -1670,7 +1743,7 @@ function ProjectDetailModal({
       </Dialog>
 
       <Dialog open={showPdfFullScreen} onOpenChange={setShowPdfFullScreen}>
-        <DialogContent className="!w-screen !h-screen !max-w-none rounded-none border-0 p-0 overflow-y-auto bg-slate-50">
+        <DialogContent className="!w-screen !h-screen !max-w-none rounded-none border-0 p-0 overflow-y-auto bg-background">
           <div className="relative w-full min-h-full flex items-center justify-center p-8">
             <PdfPreview
               className="w-full h-full shadow-none border-0"
@@ -1683,19 +1756,19 @@ function ProjectDetailModal({
       </Dialog>
 
       <Dialog open={showReviewModal} onOpenChange={setShowReviewModal}>
-        <DialogContent className="max-w-md bg-white">
+        <DialogContent className="max-w-md bg-background">
           <DialogHeader>
             <DialogTitle>검토 내역</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 max-h-[60vh] overflow-y-auto">
             {/* Stats Header */}
             {reviewData && (
-              <div className="bg-slate-50 p-3 rounded-lg border mb-4">
+              <div className="bg-muted p-3 rounded-lg border mb-4">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-slate-600">
+                  <span className="text-sm font-medium text-muted-foreground">
                     전체 검토 현황
                   </span>
-                  <span className="font-bold text-lg text-slate-900">
+                  <span className="font-bold text-lg text-foreground">
                     {reviewData.authorCommentCurrentCount} /{' '}
                     {reviewData.totalAuthorCount}명
                   </span>
@@ -1714,14 +1787,14 @@ function ProjectDetailModal({
                   return (
                     <div
                       key={idx}
-                      className="bg-white p-4 rounded-lg space-y-3 border border-slate-200 shadow-sm"
+                      className="bg-card p-4 rounded-lg space-y-3 border border-border shadow-sm"
                     >
                       <div className="flex justify-between items-center">
                         <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 text-xs font-bold">
+                          <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-muted-foreground text-xs font-bold">
                             {authorName.charAt(0)}
                           </div>
-                          <span className="font-bold text-slate-900 text-sm">
+                          <span className="font-bold text-foreground text-sm">
                             {authorName}
                           </span>
                         </div>
@@ -1741,7 +1814,7 @@ function ProjectDetailModal({
                               comment.status === 'REJECTED' &&
                                 'bg-rose-600 hover:bg-rose-700',
                               comment.status === 'ARCHIVED' &&
-                                'bg-slate-400 hover:bg-slate-500',
+                                'bg-muted-foreground hover:bg-muted-foreground/80',
                             )}
                           >
                             {comment.status === 'APPROVED'
@@ -1755,7 +1828,7 @@ function ProjectDetailModal({
                         ) : (
                           <Badge
                             variant="outline"
-                            className="text-[10px] bg-slate-50 text-slate-400 border-slate-200 font-normal"
+                            className="text-[10px] bg-muted/50 text-muted-foreground border-border font-normal"
                           >
                             아직 검토하지 않음
                           </Badge>
@@ -1763,10 +1836,10 @@ function ProjectDetailModal({
                       </div>
                       {comment && (
                         <div className="pl-10">
-                          <div className="bg-slate-50 p-3 rounded-md text-sm text-slate-700 whitespace-pre-wrap">
+                          <div className="bg-muted/50 p-3 rounded-md text-sm text-foreground whitespace-pre-wrap">
                             {comment.comment}
                           </div>
-                          <p className="text-xs text-slate-400 text-right mt-1.5">
+                          <p className="text-xs text-muted-foreground text-right mt-1.5">
                             {new Date(comment.createdAt).toLocaleString()}
                           </p>
                         </div>
@@ -1776,7 +1849,7 @@ function ProjectDetailModal({
                 },
               )
             ) : (
-              <div className="text-center py-8 text-slate-500">
+              <div className="text-center py-8 text-muted-foreground">
                 <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-50" />
                 <p>매칭된 작가가 없습니다.</p>
               </div>
@@ -1829,23 +1902,25 @@ function ProjectDetailModal({
                 </h3>
                 <Badge>{selectedLorebookDetail.category}</Badge>
               </div>
-              <div className="bg-slate-50 p-4 rounded-lg space-y-2">
+              <div className="bg-muted p-4 rounded-lg space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-slate-500">작가</span>
+                  <span className="text-muted-foreground">작가</span>
                   <span className="font-medium">
                     {selectedLorebookDetail.authorName}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-slate-500">작품</span>
+                  <span className="text-muted-foreground">작품</span>
                   <span className="font-medium">
                     {selectedLorebookDetail.workTitle}
                   </span>
                 </div>
               </div>
               <div>
-                <h4 className="font-bold mb-2 text-sm text-slate-500">내용</h4>
-                <div className="p-4 bg-white border rounded-lg min-h-[100px] text-sm leading-relaxed">
+                <h4 className="font-bold mb-2 text-sm text-muted-foreground">
+                  내용
+                </h4>
+                <div className="p-4 bg-card border border-border rounded-lg min-h-[100px] text-sm leading-relaxed">
                   {(() => {
                     if (!selectedLorebookDetail.description)
                       return '내용이 없습니다.';
@@ -1881,10 +1956,10 @@ function ProjectDetailModal({
                             <div className="space-y-4">
                               {Object.entries(innerData).map(([key, value]) => (
                                 <div key={key} className="flex flex-col gap-1">
-                                  <span className="font-bold text-slate-800 bg-slate-100 px-2 py-1 rounded inline-block w-fit text-xs">
+                                  <span className="font-bold text-foreground bg-muted px-2 py-1 rounded inline-block w-fit text-xs">
                                     {key}
                                   </span>
-                                  <div className="text-slate-600 whitespace-pre-wrap pl-1">
+                                  <div className="text-muted-foreground whitespace-pre-wrap pl-1">
                                     {Array.isArray(value) ? (
                                       <ul className="list-disc list-inside">
                                         {value.map((v: any, i: number) => (
@@ -1954,7 +2029,7 @@ function ProjectDetailModal({
         open={showLorebookListModal}
         onOpenChange={setShowLorebookListModal}
       >
-        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto flex flex-col bg-slate-50">
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto flex flex-col bg-muted/30">
           <DialogHeader className="px-1">
             <DialogTitle className="flex items-center gap-2">
               <BookOpen className="w-5 h-5 text-indigo-600" />
@@ -2005,7 +2080,7 @@ function ProjectDetailModal({
                   (lb) =>
                     lorebookFilter === '전체' || lb.category === lorebookFilter,
                 ).length === 0) && (
-                <div className="col-span-full py-12 text-center text-slate-500">
+                <div className="col-span-full py-12 text-center text-muted-foreground">
                   해당 카테고리의 설정집이 없습니다.
                 </div>
               )}
@@ -2161,7 +2236,7 @@ function CreateIPExpansionDialog({
         label: '군상극/정치형',
         tooltip:
           '집단 간 대립과 권력 구조를 다루는 기획에 유리합니다. \n추천 확장: 드라마, 게임',
-        color: 'bg-slate-100 text-slate-700 border-slate-200',
+        color: 'bg-muted text-muted-foreground border-border',
       });
     }
 
@@ -2957,7 +3032,7 @@ function CreateIPExpansionDialog({
           )}
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-2 border-b bg-white z-10">
+          <div className="flex items-center justify-between px-6 py-2 border-b bg-background z-10">
             <div>
               <DialogTitle className="text-base font-bold">
                 {initialData
@@ -2993,7 +3068,7 @@ function CreateIPExpansionDialog({
           </div>
 
           {/* Steps */}
-          <div className="px-6 py-4 bg-slate-50 border-b shrink-0">
+          <div className="px-6 py-4 bg-muted/30 border-b shrink-0">
             <div className="flex items-center justify-center max-w-3xl mx-auto">
               {[
                 '설정집 선택',
@@ -3014,10 +3089,10 @@ function CreateIPExpansionDialog({
                         className={cn(
                           'w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs transition-all z-10',
                           isActive
-                            ? 'bg-slate-900 text-white shadow-lg scale-110'
+                            ? 'bg-primary text-primary-foreground shadow-lg scale-110'
                             : isCompleted
-                              ? 'bg-slate-900 text-white'
-                              : 'bg-white border-2 border-slate-200 text-slate-400',
+                              ? 'bg-primary text-primary-foreground'
+                              : 'bg-background border-2 border-muted text-muted-foreground',
                         )}
                       >
                         {isCompleted ? <Check className="w-3.5 h-3.5" /> : step}
@@ -3026,10 +3101,10 @@ function CreateIPExpansionDialog({
                         className={cn(
                           'text-[10px] font-medium absolute -bottom-4 w-20 text-center',
                           isActive
-                            ? 'text-slate-900'
+                            ? 'text-foreground'
                             : isCompleted
-                              ? 'text-slate-500'
-                              : 'text-slate-300',
+                              ? 'text-muted-foreground'
+                              : 'text-muted/50',
                         )}
                       >
                         {label}
@@ -3039,7 +3114,7 @@ function CreateIPExpansionDialog({
                       <div
                         className={cn(
                           'w-10 sm:w-16 h-[2px] mx-1 mb-2',
-                          isCompleted ? 'bg-slate-900' : 'bg-slate-200',
+                          isCompleted ? 'bg-primary' : 'bg-muted',
                         )}
                       />
                     )}
@@ -3402,7 +3477,7 @@ function CreateIPExpansionDialog({
                                       onCheckedChange={() =>
                                         toggleLorebook(lorebook)
                                       }
-                                      className="mt-0.5 data-[state=checked]:bg-slate-900 data-[state=checked]:border-slate-900"
+                                      className="mt-0.5 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                                     />
                                     <div
                                       className="flex-1 min-w-0 cursor-pointer select-none"
@@ -3435,16 +3510,16 @@ function CreateIPExpansionDialog({
                     </Card>
 
                     {/* 4. Selected List */}
-                    <Card className="flex flex-col overflow-hidden min-h-[500px] lg:h-full border-slate-200 shadow-sm bg-slate-50/50">
-                      <CardHeader className="py-4 px-4 border-b bg-slate-100/50 shrink-0 space-y-2">
+                    <Card className="flex flex-col overflow-hidden min-h-[500px] lg:h-full border-border shadow-sm bg-muted/20">
+                      <CardHeader className="py-4 px-4 border-b bg-muted/40 shrink-0 space-y-2">
                         <div className="flex flex-col gap-3">
                           <div className="flex justify-between items-start">
                             <div>
-                              <h3 className="font-bold flex items-center gap-2 text-slate-800 text-base">
-                                <Check className="w-4 h-4 text-slate-500" />{' '}
+                              <h3 className="font-bold flex items-center gap-2 text-foreground text-base">
+                                <Check className="w-4 h-4 text-muted-foreground" />{' '}
                                 선택된 설정집 ({selectedLorebooks.length})
                               </h3>
-                              <p className="text-xs text-slate-500 mt-1">
+                              <p className="text-xs text-muted-foreground mt-1">
                                 다양한 작품의 설정집을 조합할 수 있습니다.
                               </p>
                             </div>
@@ -3453,7 +3528,7 @@ function CreateIPExpansionDialog({
                             <Search className="w-4 h-4 absolute left-3 top-2.5 text-muted-foreground" />
                             <Input
                               placeholder="선택된 설정집 검색..."
-                              className="pl-9 h-9 text-sm bg-white border-slate-200 focus-visible:ring-slate-400"
+                              className="pl-9 h-9 text-sm bg-background border-input focus-visible:ring-ring"
                               value={selectedLorebookSearch}
                               onChange={(e) =>
                                 setSelectedLorebookSearch(e.target.value)
@@ -3482,7 +3557,7 @@ function CreateIPExpansionDialog({
                                         </Badge>
                                       </span>
                                     </TooltipTrigger>
-                                    <TooltipContent className="z-[1000] bg-slate-900 text-white border-0 shadow-xl">
+                                    <TooltipContent className="z-[1000] bg-popover text-popover-foreground border shadow-xl">
                                       <p className="max-w-[240px] text-xs leading-relaxed font-medium">
                                         {badge.tooltip}
                                       </p>
@@ -3499,14 +3574,14 @@ function CreateIPExpansionDialog({
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    className="h-5 w-5 p-0 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-200/50"
+                                    className="h-5 w-5 p-0 text-muted-foreground hover:text-foreground rounded-full hover:bg-muted"
                                   >
                                     <HelpCircle className="w-3.5 h-3.5" />
                                   </Button>
                                 </TooltipTrigger>
                                 <TooltipContent
                                   side="bottom"
-                                  className="p-4 max-w-[300px] space-y-3 z-[100] bg-slate-900 border-slate-800 text-white shadow-xl"
+                                  className="p-4 max-w-[300px] space-y-3 z-[100] bg-popover border-border text-popover-foreground shadow-xl"
                                 >
                                   <div className="font-bold mb-1 text-sm flex items-center gap-2">
                                     <Info className="w-4 h-4 text-sky-400" />
@@ -3521,7 +3596,7 @@ function CreateIPExpansionDialog({
                                         <span className="font-bold text-xs text-sky-200">
                                           {tip.label}
                                         </span>
-                                        <span className="text-[11px] text-slate-300 leading-tight">
+                                        <span className="text-[11px] text-muted-foreground leading-tight">
                                           {tip.text}
                                         </span>
                                       </li>
@@ -3533,9 +3608,9 @@ function CreateIPExpansionDialog({
                           </TooltipProvider>
                         </div>
                       </CardHeader>
-                      <ScrollArea className="flex-1 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent overflow-y-auto">
+                      <ScrollArea className="flex-1 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent overflow-y-auto">
                         {filteredSelectedLorebooks.length === 0 ? (
-                          <div className="h-full flex flex-col items-center justify-center text-slate-400 p-6 text-center min-h-[200px]">
+                          <div className="h-full flex flex-col items-center justify-center text-muted-foreground p-6 text-center min-h-[200px]">
                             <p className="text-sm font-medium">
                               {selectedLorebookSearch
                                 ? '검색 결과가 없습니다.'
@@ -3586,18 +3661,18 @@ function CreateIPExpansionDialog({
             {currentStep === 2 && (
               <div className="w-full max-w-[900px] mx-auto py-6 h-full flex flex-col">
                 <div className="text-center mb-6 shrink-0">
-                  <h2 className="text-xl font-bold mb-1 tracking-tight text-slate-900">
+                  <h2 className="text-xl font-bold mb-1 tracking-tight text-foreground">
                     설정 충돌 검수
                   </h2>
-                  <p className="text-sm text-slate-500">
+                  <p className="text-sm text-muted-foreground">
                     선택한 설정집들 간의 논리적 충돌 가능성을 분석했습니다.
                   </p>
                 </div>
 
-                <Card className="flex-1 flex flex-col border-slate-200 shadow-sm bg-white">
-                  <CardHeader className="border-b bg-slate-50/50 py-3 px-5">
+                <Card className="flex-1 flex flex-col border-border shadow-sm bg-card">
+                  <CardHeader className="border-b bg-muted/40 py-3 px-5">
                     <div className="flex items-center justify-between">
-                      <CardTitle className="flex items-center gap-2 text-slate-800 text-sm">
+                      <CardTitle className="flex items-center gap-2 text-foreground text-sm">
                         <AlertTriangle className="w-4 h-4 text-amber-500" />
                         <span className="font-semibold">AI 분석 결과</span>
                         <Badge
@@ -3612,7 +3687,7 @@ function CreateIPExpansionDialog({
                           건의 충돌 감지
                         </Badge>
                       </CardTitle>
-                      <span className="text-[10px] text-slate-400">
+                      <span className="text-[10px] text-muted-foreground">
                         Analysis ID: #EXP-
                         {Math.floor(Math.random() * 10000)
                           .toString()
@@ -3620,7 +3695,7 @@ function CreateIPExpansionDialog({
                       </span>
                     </div>
                   </CardHeader>
-                  <ScrollArea className="flex-1 bg-white">
+                  <ScrollArea className="flex-1 bg-card">
                     <div className="p-5 space-y-3">
                       {Object.entries(conflictResult?.충돌 || {}).flatMap(
                         ([category, items]: [string, any]) =>
@@ -3643,23 +3718,23 @@ function CreateIPExpansionDialog({
                                   });
                                   setShowConflictDetail(true);
                                 }}
-                                className="group p-4 rounded-lg border border-slate-100 bg-slate-50/30 hover:border-amber-200 hover:bg-amber-50/30 transition-all duration-300 cursor-pointer"
+                                className="group p-4 rounded-lg border border-border bg-muted/20 hover:border-amber-200 hover:bg-amber-50/30 transition-all duration-300 cursor-pointer"
                               >
                                 <div className="flex items-start justify-between mb-2">
-                                  <h4 className="font-bold text-slate-800 flex items-center gap-2 text-sm">
-                                    <span className="w-5 h-5 rounded-full bg-white border border-slate-200 flex items-center justify-center text-[10px] text-slate-500 group-hover:border-amber-300 group-hover:text-amber-600 transition-colors">
+                                  <h4 className="font-bold text-foreground flex items-center gap-2 text-sm">
+                                    <span className="w-5 h-5 rounded-full bg-card border border-border flex items-center justify-center text-[10px] text-muted-foreground group-hover:border-amber-300 group-hover:text-amber-600 transition-colors">
                                       !
                                     </span>
                                     {category} - {itemName}
                                   </h4>
                                   <Badge
                                     variant="outline"
-                                    className="text-[10px] font-normal text-slate-400 border-slate-200"
+                                    className="text-[10px] font-normal text-muted-foreground border-border"
                                   >
                                     상세 보기 &gt;
                                   </Badge>
                                 </div>
-                                <p className="text-slate-600 text-xs leading-relaxed pl-7 line-clamp-2">
+                                <p className="text-muted-foreground text-xs leading-relaxed pl-7 line-clamp-2">
                                   {reason}
                                 </p>
                               </div>
@@ -3670,24 +3745,24 @@ function CreateIPExpansionDialog({
                         Object.values(conflictResult?.충돌 || {}).every(
                           (items: any) => !items.length,
                         )) && (
-                        <div className="text-center py-10 text-slate-500">
+                        <div className="text-center py-10 text-muted-foreground">
                           충돌 사항이 발견되지 않았습니다.
                         </div>
                       )}
                     </div>
                   </ScrollArea>
-                  <CardFooter className="bg-slate-50/80 border-t p-4 shrink-0 backdrop-blur-sm">
+                  <CardFooter className="bg-muted/80 border-t p-4 shrink-0 backdrop-blur-sm">
                     <label
                       htmlFor="conflict-agree"
-                      className="flex items-center gap-3 w-full p-3 rounded-lg border border-transparent hover:bg-white hover:border-slate-200 hover:shadow-sm transition-all cursor-pointer group"
+                      className="flex items-center gap-3 w-full p-3 rounded-lg border border-transparent hover:bg-card hover:border-border hover:shadow-sm transition-all cursor-pointer group"
                     >
                       <Checkbox
                         id="conflict-agree"
                         checked={conflictConfirmed}
                         onCheckedChange={(c) => setConflictConfirmed(!!c)}
-                        className="w-4 h-4 border-2 border-slate-300 data-[state=checked]:bg-slate-900 data-[state=checked]:border-slate-900 transition-colors"
+                        className="w-4 h-4 border-2 border-input data-[state=checked]:bg-primary data-[state=checked]:border-primary transition-colors"
                       />
-                      <span className="text-sm font-medium text-slate-600 group-hover:text-slate-900 select-none block w-full transition-colors">
+                      <span className="text-sm font-medium text-muted-foreground group-hover:text-foreground select-none block w-full transition-colors">
                         위의 잠재적 충돌 내용을 확인하였으며, 이를 인지하고
                         프로젝트를 진행합니다.
                       </span>
@@ -3731,7 +3806,7 @@ function CreateIPExpansionDialog({
                           />
                         </TabsContent>
                         <TabsContent value="raw">
-                          <pre className="text-xs bg-slate-950 text-slate-50 p-4 rounded-md overflow-auto max-h-[300px]">
+                          <pre className="text-xs bg-muted text-foreground p-4 rounded-md overflow-auto max-h-[300px]">
                             {JSON.stringify(selectedConflict, null, 2)}
                           </pre>
                         </TabsContent>
@@ -3761,8 +3836,8 @@ function CreateIPExpansionDialog({
                         설정집 상세 정보입니다.
                       </DialogDescription>
                     </DialogHeader>
-                    <ScrollArea className="flex-1 p-4 bg-slate-50 rounded-md border border-slate-100">
-                      <pre className="text-xs whitespace-pre-wrap font-mono text-slate-700">
+                    <ScrollArea className="flex-1 p-4 bg-muted/50 rounded-md border border-border">
+                      <pre className="text-xs whitespace-pre-wrap font-mono text-muted-foreground">
                         {(() => {
                           if (!viewingLorebook) return '';
                           let content = viewingLorebook.setting;
@@ -3792,10 +3867,10 @@ function CreateIPExpansionDialog({
             {currentStep === 3 && (
               <div className="w-full max-w-[900px] mx-auto py-6 h-full">
                 <div className="text-center mb-8">
-                  <h2 className="text-xl font-bold mb-1 tracking-tight text-slate-900">
+                  <h2 className="text-xl font-bold mb-1 tracking-tight text-foreground">
                     확장 포맷 선택
                   </h2>
-                  <p className="text-sm text-slate-500">
+                  <p className="text-sm text-muted-foreground">
                     IP 확장의 방향성을 결정하는 포맷을 선택합니다.
                   </p>
                 </div>
@@ -3813,10 +3888,10 @@ function CreateIPExpansionDialog({
                           className={cn(
                             'cursor-pointer rounded-xl border-2 p-5 transition-all hover:-translate-y-1 duration-300 relative overflow-hidden group',
                             selectedFormat === format.id
-                              ? 'border-slate-900 bg-slate-50 shadow-md scale-[1.01]'
+                              ? 'border-primary bg-muted/50 shadow-md scale-[1.01]'
                               : isRecommended
                                 ? 'border-indigo-200 bg-indigo-50/30 hover:border-indigo-300 hover:shadow-md ring-1 ring-indigo-100'
-                                : 'border-slate-100 bg-white hover:border-slate-300 hover:shadow-sm',
+                                : 'border-border bg-card hover:border-border/80 hover:shadow-sm',
                           )}
                         >
                           {isRecommended && (
@@ -3828,20 +3903,20 @@ function CreateIPExpansionDialog({
                             className={cn(
                               'mb-3 w-10 h-10 rounded-lg flex items-center justify-center transition-colors',
                               selectedFormat === format.id
-                                ? 'bg-slate-900 text-white'
-                                : 'bg-slate-100 text-slate-500 group-hover:bg-slate-200',
+                                ? 'bg-primary text-primary-foreground'
+                                : 'bg-muted text-muted-foreground group-hover:bg-muted/80',
                             )}
                           >
                             <format.icon className="w-5 h-5" />
                           </div>
-                          <div className="font-bold text-slate-900 text-base mb-1.5">
+                          <div className="font-bold text-foreground text-base mb-1.5">
                             {format.title}
                           </div>
-                          <div className="text-xs text-slate-500 leading-relaxed opacity-90">
+                          <div className="text-xs text-muted-foreground leading-relaxed opacity-90">
                             {format.desc}
                           </div>
                           {selectedFormat === format.id && (
-                            <div className="absolute top-3 right-3 text-slate-900 bg-white rounded-full p-0.5 shadow-sm">
+                            <div className="absolute top-3 right-3 text-primary bg-card rounded-full p-0.5 shadow-sm">
                               <Check className="w-3 h-3" />
                             </div>
                           )}
@@ -3854,15 +3929,15 @@ function CreateIPExpansionDialog({
                 <div className="mt-8 pt-4 border-t flex justify-end">
                   <label
                     htmlFor="step3-confirm"
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer"
                   >
                     <Checkbox
                       id="step3-confirm"
                       checked={step3Confirmed}
                       onCheckedChange={(c) => setStep3Confirmed(!!c)}
-                      className="data-[state=checked]:bg-slate-900 data-[state=checked]:border-slate-900 w-4 h-4"
+                      className="data-[state=checked]:bg-primary data-[state=checked]:border-primary w-4 h-4"
                     />
-                    <span className="text-sm font-medium select-none text-slate-700">
+                    <span className="text-sm font-medium select-none text-muted-foreground">
                       위 포맷으로 확장을 진행합니다.
                     </span>
                   </label>
@@ -3874,21 +3949,21 @@ function CreateIPExpansionDialog({
             {currentStep === 4 && (
               <div className="w-full max-w-[700px] mx-auto py-6 h-full">
                 <div className="text-center mb-8">
-                  <h2 className="text-xl font-bold mb-1 tracking-tight text-slate-900">
+                  <h2 className="text-xl font-bold mb-1 tracking-tight text-foreground">
                     비즈니스 전략
                   </h2>
-                  <p className="text-sm text-slate-500">
+                  <p className="text-sm text-muted-foreground">
                     타겟 독자층과 예산 규모를 설정하여 현실적인 기획안을
                     도출합니다.
                   </p>
                 </div>
 
-                <Card className="border-slate-200 shadow-sm">
+                <Card className="border-border shadow-sm">
                   <CardContent className="p-6 space-y-6">
                     {/* Target Age & Gender */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <Label className="text-sm font-bold text-slate-800">
+                        <Label className="text-sm font-bold text-foreground">
                           타겟 연령대
                           <span className="text-red-500 ml-1">*</span>
                         </Label>
@@ -3910,8 +3985,8 @@ function CreateIPExpansionDialog({
                               className={cn(
                                 'cursor-pointer px-3 py-1.5 rounded-full border text-xs transition-all font-medium select-none',
                                 business.targetAge.includes(age)
-                                  ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
-                                  : 'bg-white hover:bg-slate-50 text-slate-600 border-slate-200',
+                                  ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                                  : 'bg-card hover:bg-muted/50 text-muted-foreground border-border',
                               )}
                             >
                               {age}
@@ -3921,7 +3996,7 @@ function CreateIPExpansionDialog({
                       </div>
 
                       <div className="space-y-2">
-                        <Label className="text-sm font-bold text-slate-800">
+                        <Label className="text-sm font-bold text-foreground">
                           타겟 성별<span className="text-red-500 ml-1">*</span>
                         </Label>
                         <div className="grid grid-cols-3 gap-2">
@@ -3941,8 +4016,8 @@ function CreateIPExpansionDialog({
                               className={cn(
                                 'cursor-pointer py-1.5 rounded-lg border text-xs transition-all font-medium text-center select-none',
                                 business.targetGender === opt.val
-                                  ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
-                                  : 'bg-white hover:bg-slate-50 text-slate-600 border-slate-200',
+                                  ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                                  : 'bg-card hover:bg-muted/50 text-muted-foreground border-border',
                               )}
                             >
                               {opt.label}
@@ -3952,11 +4027,11 @@ function CreateIPExpansionDialog({
                       </div>
                     </div>
 
-                    <div className="h-px bg-slate-100" />
+                    <div className="h-px bg-muted" />
 
                     {/* Budget */}
                     <div className="space-y-2">
-                      <Label className="text-sm font-bold text-slate-800">
+                      <Label className="text-sm font-bold text-foreground">
                         예산 규모<span className="text-red-500 ml-1">*</span>
                       </Label>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -3993,16 +4068,16 @@ function CreateIPExpansionDialog({
                             className={cn(
                               'cursor-pointer p-3 rounded-lg border text-left transition-all select-none',
                               business.budgetRange === opt.val
-                                ? 'bg-slate-900 border-slate-900 shadow-sm'
-                                : 'bg-white hover:bg-slate-50 border-slate-200',
+                                ? 'bg-primary border-primary shadow-sm'
+                                : 'bg-card hover:bg-muted/50 border-border',
                             )}
                           >
                             <div
                               className={cn(
                                 'font-bold text-xs',
                                 business.budgetRange === opt.val
-                                  ? 'text-white'
-                                  : 'text-slate-800',
+                                  ? 'text-primary-foreground'
+                                  : 'text-foreground',
                               )}
                             >
                               {opt.label}
@@ -4011,8 +4086,8 @@ function CreateIPExpansionDialog({
                               className={cn(
                                 'text-[10px] mt-0.5',
                                 business.budgetRange === opt.val
-                                  ? 'text-slate-300'
-                                  : 'text-slate-400',
+                                  ? 'text-primary-foreground/70'
+                                  : 'text-muted-foreground',
                               )}
                             >
                               {opt.sub}
@@ -4022,11 +4097,11 @@ function CreateIPExpansionDialog({
                       </div>
                     </div>
 
-                    <div className="h-px bg-slate-100" />
+                    <div className="h-px bg-muted" />
 
                     {/* Tone & Manner */}
                     <div className="space-y-2">
-                      <Label className="text-sm font-bold text-slate-800">
+                      <Label className="text-sm font-bold text-foreground">
                         톤앤매너 키워드
                         <span className="text-red-500 ml-1">*</span>
                       </Label>
@@ -4039,11 +4114,11 @@ function CreateIPExpansionDialog({
                             toneManner: e.target.value,
                           })
                         }
-                        className="h-9 text-sm bg-slate-50 border-slate-200 focus-visible:ring-slate-400"
+                        className="h-9 text-sm bg-muted/50 border-input focus-visible:ring-ring"
                       />
                     </div>
                   </CardContent>
-                  <CardFooter className="bg-slate-50 border-t p-4 flex justify-end">
+                  <CardFooter className="bg-muted/50 border-t p-4 flex justify-end">
                     <label
                       htmlFor="step4-confirm"
                       className="flex items-center gap-2 cursor-pointer"
@@ -4052,9 +4127,9 @@ function CreateIPExpansionDialog({
                         id="step4-confirm"
                         checked={step4Confirmed}
                         onCheckedChange={(c) => setStep4Confirmed(!!c)}
-                        className="data-[state=checked]:bg-slate-900 data-[state=checked]:border-slate-900 w-4 h-4"
+                        className="data-[state=checked]:bg-primary data-[state=checked]:border-primary w-4 h-4"
                       />
-                      <span className="text-sm font-medium select-none text-slate-700">
+                      <span className="text-sm font-medium select-none text-muted-foreground">
                         비즈니스 전략 확인 완료
                       </span>
                     </label>
@@ -4067,18 +4142,18 @@ function CreateIPExpansionDialog({
             {currentStep === 5 && (
               <div className="w-full max-w-[900px] mx-auto py-6 h-full flex flex-col">
                 <div className="text-center mb-6 shrink-0">
-                  <h2 className="text-xl font-bold mb-1 tracking-tight text-slate-900">
+                  <h2 className="text-xl font-bold mb-1 tracking-tight text-foreground">
                     매체 및 장르 상세 설정
                   </h2>
-                  <p className="text-sm text-slate-500">
-                    <span className="font-bold text-slate-900">
+                  <p className="text-sm text-muted-foreground">
+                    <span className="font-bold text-foreground">
                       {formats.find((f) => f.id === selectedFormat)?.title}
                     </span>{' '}
                     포맷에 최적화된 장르와 가이드라인을 설정합니다.
                   </p>
                 </div>
 
-                <Card className="flex-1 flex flex-col border-slate-200 shadow-sm bg-white">
+                <Card className="flex-1 flex flex-col border-border shadow-sm bg-card">
                   <ScrollArea className="flex-1">
                     <div className="p-6 space-y-8">
                       {/* Genre & Universe Section */}
@@ -4087,13 +4162,13 @@ function CreateIPExpansionDialog({
                         {!['commercial'].includes(selectedFormat || '') && (
                           <>
                             <div className="flex items-center justify-between">
-                              <Label className="text-base font-bold text-slate-800 flex items-center gap-2">
-                                <Wand2 className="w-4 h-4 text-slate-500" />
+                              <Label className="text-base font-bold text-foreground flex items-center gap-2">
+                                <Wand2 className="w-4 h-4 text-muted-foreground" />
                                 장르 선택 (단일 선택 가능)
                                 <span className="text-red-500 ml-1">*</span>
                               </Label>
                               <div className="flex items-center gap-3">
-                                <span className="text-xs text-slate-500 font-medium">
+                                <span className="text-xs text-muted-foreground font-medium">
                                   {selectedGenres.length}개 선택됨
                                 </span>
                                 <Button
@@ -4102,7 +4177,7 @@ function CreateIPExpansionDialog({
                                   onClick={() =>
                                     setShowAllGenres(!showAllGenres)
                                   }
-                                  className="h-6 text-xs text-slate-500 hover:text-slate-900"
+                                  className="h-6 text-xs text-muted-foreground hover:text-foreground"
                                 >
                                   {showAllGenres ? (
                                     <>
@@ -4147,8 +4222,8 @@ function CreateIPExpansionDialog({
                                       className={cn(
                                         'flex items-center justify-center p-2 rounded-lg border text-xs font-medium cursor-pointer transition-all text-center select-none',
                                         isSelected
-                                          ? 'bg-slate-900 text-white border-slate-900 shadow-md transform scale-[1.02]'
-                                          : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:border-slate-300',
+                                          ? 'bg-primary text-primary-foreground border-primary shadow-md transform scale-[1.02]'
+                                          : 'bg-card text-muted-foreground border-border hover:bg-muted/50 hover:border-border/80',
                                       )}
                                     >
                                       {genre.label}
@@ -4160,9 +4235,9 @@ function CreateIPExpansionDialog({
                         )}
 
                         {/* Universe Setting */}
-                        <div className="pt-6 border-t border-slate-100">
-                          <Label className="text-sm font-bold text-slate-800 flex items-center gap-2 mb-3">
-                            <Globe className="w-3.5 h-3.5 text-slate-500" />
+                        <div className="pt-6 border-t border-border">
+                          <Label className="text-sm font-bold text-foreground flex items-center gap-2 mb-3">
+                            <Globe className="w-3.5 h-3.5 text-muted-foreground" />
                             세계관 설정
                           </Label>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -4186,20 +4261,20 @@ function CreateIPExpansionDialog({
                                 className={cn(
                                   'flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer',
                                   universeSetting === option.id
-                                    ? 'bg-slate-900 border-slate-900 text-white shadow-md'
-                                    : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50',
+                                    ? 'bg-primary border-primary text-primary-foreground shadow-md'
+                                    : 'bg-card border-border hover:border-border/80 hover:bg-muted/50',
                                 )}
                               >
                                 <div
                                   className={cn(
                                     'w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0',
                                     universeSetting === option.id
-                                      ? 'border-white'
-                                      : 'border-slate-300',
+                                      ? 'border-primary-foreground'
+                                      : 'border-muted-foreground',
                                   )}
                                 >
                                   {universeSetting === option.id && (
-                                    <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                                    <div className="w-1.5 h-1.5 rounded-full bg-primary-foreground" />
                                   )}
                                 </div>
                                 <div>
@@ -4210,8 +4285,8 @@ function CreateIPExpansionDialog({
                                     className={cn(
                                       'text-[10px] mt-0.5',
                                       universeSetting === option.id
-                                        ? 'text-slate-300'
-                                        : 'text-slate-500',
+                                        ? 'text-primary-foreground/70'
+                                        : 'text-muted-foreground',
                                     )}
                                   >
                                     {option.desc}
@@ -4223,15 +4298,15 @@ function CreateIPExpansionDialog({
                         </div>
                       </div>
 
-                      <div className="h-px bg-slate-100" />
+                      <div className="h-px bg-border" />
 
                       {/* Dynamic Content based on selectedFormat */}
                       {selectedFormat === 'webtoon' && (
                         <div className="space-y-6">
                           {/* Style Selection */}
                           <div className="space-y-3">
-                            <Label className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                              <ImageIcon className="w-3.5 h-3.5 text-slate-500" />
+                            <Label className="text-sm font-bold text-foreground flex items-center gap-2">
+                              <ImageIcon className="w-3.5 h-3.5 text-muted-foreground" />
                               그림체 스타일
                               <span className="text-red-500 ml-1">*</span>
                             </Label>
@@ -4269,16 +4344,16 @@ function CreateIPExpansionDialog({
                                   className={cn(
                                     'cursor-pointer p-3 rounded-lg border text-left transition-all hover:-translate-y-1 duration-200',
                                     mediaDetails.style === style.id
-                                      ? 'bg-slate-900 border-slate-900 shadow-md'
-                                      : 'bg-white hover:bg-slate-50 border-slate-200',
+                                      ? 'bg-primary border-primary shadow-md'
+                                      : 'bg-card hover:bg-muted/50 border-border',
                                   )}
                                 >
                                   <div
                                     className={cn(
                                       'font-bold mb-1 text-xs',
                                       mediaDetails.style === style.id
-                                        ? 'text-white'
-                                        : 'text-slate-800',
+                                        ? 'text-primary-foreground'
+                                        : 'text-foreground',
                                     )}
                                   >
                                     {style.label}
@@ -4287,8 +4362,8 @@ function CreateIPExpansionDialog({
                                     className={cn(
                                       'text-[10px]',
                                       mediaDetails.style === style.id
-                                        ? 'text-slate-300'
-                                        : 'text-slate-400',
+                                        ? 'text-primary-foreground/70'
+                                        : 'text-muted-foreground',
                                     )}
                                   >
                                     {style.desc}
@@ -4300,8 +4375,8 @@ function CreateIPExpansionDialog({
 
                           {/* Pacing Selection */}
                           <div className="space-y-3">
-                            <Label className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                              <Clock className="w-3.5 h-3.5 text-slate-500" />
+                            <Label className="text-sm font-bold text-foreground flex items-center gap-2">
+                              <Clock className="w-3.5 h-3.5 text-muted-foreground" />
                               연출 호흡
                               <span className="text-red-500 ml-1">*</span>
                             </Label>
@@ -4334,20 +4409,20 @@ function CreateIPExpansionDialog({
                                   className={cn(
                                     'cursor-pointer p-3 rounded-lg border flex items-center justify-between transition-all',
                                     mediaDetails.pacing === pacing.id
-                                      ? 'bg-slate-50 border-slate-900 ring-1 ring-slate-900'
-                                      : 'bg-white border-slate-200 hover:bg-slate-50',
+                                      ? 'bg-muted border-primary ring-1 ring-primary'
+                                      : 'bg-card border-border hover:bg-muted/50',
                                   )}
                                 >
                                   <div>
-                                    <div className="font-bold text-slate-800 text-xs">
+                                    <div className="font-bold text-foreground text-xs">
                                       {pacing.label}
                                     </div>
-                                    <div className="text-[10px] text-slate-500 mt-0.5">
+                                    <div className="text-[10px] text-muted-foreground mt-0.5">
                                       {pacing.desc}
                                     </div>
                                   </div>
                                   {mediaDetails.pacing === pacing.id && (
-                                    <Check className="w-3.5 h-3.5 text-slate-900" />
+                                    <Check className="w-3.5 h-3.5 text-primary" />
                                   )}
                                 </div>
                               ))}
@@ -4357,7 +4432,7 @@ function CreateIPExpansionDialog({
                           {/* Detailed Inputs Grid */}
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
-                              <Label className="text-xs font-bold text-slate-700">
+                              <Label className="text-xs font-bold text-foreground">
                                 회차별 엔딩 포인트
                                 <span className="text-red-500 ml-1">*</span>
                               </Label>
@@ -4370,7 +4445,7 @@ function CreateIPExpansionDialog({
                                   })
                                 }
                               >
-                                <SelectTrigger className="h-9 text-xs bg-slate-50 border-slate-200">
+                                <SelectTrigger className="h-9 text-xs bg-muted/50 border-input">
                                   <SelectValue placeholder="선택하세요" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -4396,7 +4471,7 @@ function CreateIPExpansionDialog({
                               </Select>
                             </div>
                             <div className="space-y-2">
-                              <Label className="text-xs font-bold text-slate-700">
+                              <Label className="text-xs font-bold text-foreground">
                                 채색 톤
                                 <span className="text-red-500 ml-1">*</span>
                               </Label>
@@ -4409,7 +4484,7 @@ function CreateIPExpansionDialog({
                                     colorTone: e.target.value,
                                   })
                                 }
-                                className="h-9 text-xs bg-slate-50 border-slate-200"
+                                className="h-9 text-xs bg-muted/50 border-input"
                               />
                             </div>
                           </div>
@@ -4419,8 +4494,8 @@ function CreateIPExpansionDialog({
                       {selectedFormat === 'movie' && (
                         <div className="space-y-6">
                           <div className="space-y-3">
-                            <Label className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                              <Clock className="w-3.5 h-3.5 text-slate-500" />
+                            <Label className="text-sm font-bold text-foreground flex items-center gap-2">
+                              <Clock className="w-3.5 h-3.5 text-muted-foreground" />
                               러닝타임 & 구조
                               <span className="text-red-500 ml-1">*</span>
                             </Label>
@@ -4453,8 +4528,8 @@ function CreateIPExpansionDialog({
                                   className={cn(
                                     'cursor-pointer p-3 rounded-lg border text-center transition-all',
                                     mediaDetails.runningTime === time.id
-                                      ? 'bg-slate-900 border-slate-900 text-white'
-                                      : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50',
+                                      ? 'bg-primary border-primary text-primary-foreground'
+                                      : 'bg-card border-border text-muted-foreground hover:bg-muted/50',
                                   )}
                                 >
                                   <div className="font-bold text-xs">
@@ -4464,8 +4539,8 @@ function CreateIPExpansionDialog({
                                     className={cn(
                                       'text-[10px] mt-0.5',
                                       mediaDetails.runningTime === time.id
-                                        ? 'text-slate-300'
-                                        : 'text-slate-400',
+                                        ? 'text-primary-foreground/80'
+                                        : 'text-muted-foreground/80',
                                     )}
                                   >
                                     {time.desc}
@@ -4477,7 +4552,7 @@ function CreateIPExpansionDialog({
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
-                              <Label className="text-xs font-bold text-slate-700">
+                              <Label className="text-xs font-bold text-muted-foreground">
                                 시각적 컬러 테마
                                 <span className="text-red-500 ml-1">*</span>
                               </Label>
@@ -4490,11 +4565,11 @@ function CreateIPExpansionDialog({
                                     colorTheme: e.target.value,
                                   })
                                 }
-                                className="h-9 text-xs bg-slate-50 border-slate-200"
+                                className="h-9 text-xs bg-muted/50 border-input"
                               />
                             </div>
                             <div className="space-y-2">
-                              <Label className="text-xs font-bold text-slate-700">
+                              <Label className="text-xs font-bold text-muted-foreground">
                                 3막 구조 강조 구간
                                 <span className="text-red-500 ml-1">*</span>
                               </Label>
@@ -4507,7 +4582,7 @@ function CreateIPExpansionDialog({
                                   })
                                 }
                               >
-                                <SelectTrigger className="h-9 text-xs bg-slate-50 border-slate-200">
+                                <SelectTrigger className="h-9 text-xs bg-muted/50 border-input">
                                   <SelectValue placeholder="선택하세요" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -4530,8 +4605,8 @@ function CreateIPExpansionDialog({
                       {selectedFormat === 'drama' && (
                         <div className="space-y-6">
                           <div className="space-y-3">
-                            <Label className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                              <Calendar className="w-3.5 h-3.5 text-slate-500" />
+                            <Label className="text-sm font-bold text-foreground flex items-center gap-2">
+                              <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
                               편성 전략
                               <span className="text-red-500 ml-1">*</span>
                             </Label>
@@ -4546,18 +4621,18 @@ function CreateIPExpansionDialog({
                                 className={cn(
                                   'cursor-pointer p-3 rounded-lg border transition-all flex items-center gap-3',
                                   mediaDetails.seasonType === 'miniseries'
-                                    ? 'bg-slate-50 border-slate-900 ring-1 ring-slate-900'
-                                    : 'bg-white border-slate-200 hover:bg-slate-50',
+                                    ? 'bg-muted border-primary ring-1 ring-primary'
+                                    : 'bg-card border-border hover:bg-muted/50',
                                 )}
                               >
-                                <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
+                                <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
                                   <Film className="w-4 h-4" />
                                 </div>
                                 <div>
-                                  <div className="font-bold text-slate-800 text-xs">
+                                  <div className="font-bold text-foreground text-xs">
                                     단막극/미니시리즈
                                   </div>
-                                  <div className="text-[10px] text-slate-500">
+                                  <div className="text-[10px] text-muted-foreground">
                                     1시즌 완결, 밀도 높은 전개
                                   </div>
                                 </div>
@@ -4572,18 +4647,18 @@ function CreateIPExpansionDialog({
                                 className={cn(
                                   'cursor-pointer p-3 rounded-lg border transition-all flex items-center gap-3',
                                   mediaDetails.seasonType === 'multi_season'
-                                    ? 'bg-slate-50 border-slate-900 ring-1 ring-slate-900'
-                                    : 'bg-white border-slate-200 hover:bg-slate-50',
+                                    ? 'bg-muted border-primary ring-1 ring-primary'
+                                    : 'bg-card border-border hover:bg-muted/50',
                                 )}
                               >
-                                <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-600">
+                                <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 dark:text-purple-400">
                                   <Tv className="w-4 h-4" />
                                 </div>
                                 <div>
-                                  <div className="font-bold text-slate-800 text-xs">
+                                  <div className="font-bold text-foreground text-xs">
                                     멀티 시즌
                                   </div>
-                                  <div className="text-[10px] text-slate-500">
+                                  <div className="text-[10px] text-muted-foreground">
                                     장기적인 세계관 확장 가능
                                   </div>
                                 </div>
@@ -4593,7 +4668,7 @@ function CreateIPExpansionDialog({
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
-                              <Label className="text-xs font-bold text-slate-700">
+                              <Label className="text-xs font-bold text-muted-foreground">
                                 회차당 분량
                                 <span className="text-red-500 ml-1">*</span>
                               </Label>
@@ -4606,7 +4681,7 @@ function CreateIPExpansionDialog({
                                   })
                                 }
                               >
-                                <SelectTrigger className="h-9 text-xs bg-slate-50 border-slate-200">
+                                <SelectTrigger className="h-9 text-xs bg-muted/50 border-input">
                                   <SelectValue placeholder="선택하세요" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -4623,7 +4698,7 @@ function CreateIPExpansionDialog({
                               </Select>
                             </div>
                             <div className="space-y-2">
-                              <Label className="text-xs font-bold text-slate-700">
+                              <Label className="text-xs font-bold text-muted-foreground">
                                 강조하고 싶은 서브 요소
                                 <span className="text-red-500 ml-1">*</span>
                               </Label>
@@ -4636,7 +4711,7 @@ function CreateIPExpansionDialog({
                                     subFocus: e.target.value,
                                   })
                                 }
-                                className="h-9 text-xs bg-slate-50 border-slate-200"
+                                className="h-9 text-xs bg-muted/50 border-input"
                               />
                             </div>
                           </div>
@@ -4648,7 +4723,7 @@ function CreateIPExpansionDialog({
                           {/* Game Genre & Core Loop */}
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
-                              <Label className="text-xs font-bold text-slate-700">
+                              <Label className="text-xs font-bold text-muted-foreground">
                                 게임 장르
                                 <span className="text-red-500 ml-1">*</span>
                               </Label>
@@ -4661,11 +4736,11 @@ function CreateIPExpansionDialog({
                                     gameGenre: e.target.value,
                                   })
                                 }
-                                className="h-9 text-xs bg-slate-50 border-slate-200"
+                                className="h-9 text-xs bg-muted/50 border-input"
                               />
                             </div>
                             <div className="space-y-2">
-                              <Label className="text-xs font-bold text-slate-700">
+                              <Label className="text-xs font-bold text-muted-foreground">
                                 핵심 재미요소 (Core Loop)
                                 <span className="text-red-500 ml-1">*</span>
                               </Label>
@@ -4678,7 +4753,7 @@ function CreateIPExpansionDialog({
                                   })
                                 }
                               >
-                                <SelectTrigger className="h-9 text-xs bg-slate-50 border-slate-200">
+                                <SelectTrigger className="h-9 text-xs bg-muted/50 border-input">
                                   <SelectValue placeholder="선택하세요" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -4710,8 +4785,8 @@ function CreateIPExpansionDialog({
 
                           {/* Platform & BM */}
                           <div className="space-y-3">
-                            <Label className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                              <Gamepad2 className="w-3.5 h-3.5 text-slate-500" />
+                            <Label className="text-sm font-bold text-foreground flex items-center gap-2">
+                              <Gamepad2 className="w-3.5 h-3.5 text-muted-foreground" />
                               플랫폼 및 BM 전략
                               <span className="text-red-500 ml-1">*</span>
                             </Label>
@@ -4726,18 +4801,18 @@ function CreateIPExpansionDialog({
                                 className={cn(
                                   'cursor-pointer p-3 rounded-lg border transition-all flex items-center gap-3',
                                   mediaDetails.platform === 'mobile'
-                                    ? 'bg-slate-50 border-slate-900 ring-1 ring-slate-900'
-                                    : 'bg-white border-slate-200 hover:bg-slate-50',
+                                    ? 'bg-muted border-primary ring-1 ring-primary'
+                                    : 'bg-card border-border hover:bg-muted/50',
                                 )}
                               >
-                                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                                <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400">
                                   <Smartphone className="w-4 h-4" />
                                 </div>
                                 <div>
-                                  <div className="font-bold text-slate-800 text-xs">
+                                  <div className="font-bold text-foreground text-xs">
                                     모바일 (F2P)
                                   </div>
-                                  <div className="text-[10px] text-slate-500">
+                                  <div className="text-[10px] text-muted-foreground">
                                     광고/인앱결제 수익화
                                   </div>
                                 </div>
@@ -4752,18 +4827,18 @@ function CreateIPExpansionDialog({
                                 className={cn(
                                   'cursor-pointer p-3 rounded-lg border transition-all flex items-center gap-3',
                                   mediaDetails.platform === 'pc_console'
-                                    ? 'bg-slate-50 border-slate-900 ring-1 ring-slate-900'
-                                    : 'bg-white border-slate-200 hover:bg-slate-50',
+                                    ? 'bg-muted border-primary ring-1 ring-primary'
+                                    : 'bg-card border-border hover:bg-muted/50',
                                 )}
                               >
-                                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600">
+                                <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-secondary-foreground">
                                   <Monitor className="w-4 h-4" />
                                 </div>
                                 <div>
-                                  <div className="font-bold text-slate-800 text-xs">
+                                  <div className="font-bold text-foreground text-xs">
                                     PC/콘솔 (Package)
                                   </div>
-                                  <div className="text-[10px] text-slate-500">
+                                  <div className="text-[10px] text-muted-foreground">
                                     판매 수익 및 DLC
                                   </div>
                                 </div>
@@ -4776,8 +4851,8 @@ function CreateIPExpansionDialog({
                       {selectedFormat === 'spinoff' && (
                         <div className="space-y-6">
                           <div className="space-y-3">
-                            <Label className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                              <Zap className="w-3.5 h-3.5 text-slate-500" />
+                            <Label className="text-sm font-bold text-foreground flex items-center gap-2">
+                              <Zap className="w-3.5 h-3.5 text-muted-foreground" />
                               스핀오프 방향성
                               <span className="text-red-500 ml-1">*</span>
                             </Label>
@@ -4837,8 +4912,8 @@ function CreateIPExpansionDialog({
                                     className={cn(
                                       'cursor-pointer p-3 rounded-lg border text-center transition-all',
                                       mediaDetails.spinoffType === type.id
-                                        ? 'bg-slate-900 border-slate-900 text-white'
-                                        : 'bg-white border-slate-200 hover:bg-slate-50',
+                                        ? 'bg-primary border-primary text-primary-foreground'
+                                        : 'bg-card border-border hover:bg-muted/50',
                                     )}
                                   >
                                     <div className="font-bold text-xs">
@@ -4848,8 +4923,8 @@ function CreateIPExpansionDialog({
                                       className={cn(
                                         'text-[10px] mt-0.5',
                                         mediaDetails.spinoffType === type.id
-                                          ? 'text-slate-300'
-                                          : 'text-slate-500',
+                                          ? 'text-primary-foreground/80'
+                                          : 'text-muted-foreground',
                                       )}
                                     >
                                       {type.desc}
@@ -4859,12 +4934,12 @@ function CreateIPExpansionDialog({
                               {!showAllSpinoffs && (
                                 <div
                                   onClick={() => setShowAllSpinoffs(true)}
-                                  className="cursor-pointer p-3 rounded-lg border border-dashed border-slate-300 flex flex-col items-center justify-center hover:bg-slate-50 transition-all"
+                                  className="cursor-pointer p-3 rounded-lg border border-dashed border-border flex flex-col items-center justify-center hover:bg-muted/50 transition-all"
                                 >
-                                  <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center mb-1">
-                                    <Plus className="w-3 h-3 text-slate-500" />
+                                  <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center mb-1">
+                                    <Plus className="w-3 h-3 text-muted-foreground" />
                                   </div>
-                                  <span className="text-xs text-slate-500 font-medium">
+                                  <span className="text-xs text-muted-foreground font-medium">
                                     더보기
                                   </span>
                                 </div>
@@ -4874,7 +4949,7 @@ function CreateIPExpansionDialog({
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
-                              <Label className="text-xs font-bold text-slate-700">
+                              <Label className="text-xs font-bold text-muted-foreground">
                                 주인공 캐릭터 (Target Character)
                                 <span className="text-red-500 ml-1">*</span>
                               </Label>
@@ -4887,11 +4962,11 @@ function CreateIPExpansionDialog({
                                     targetCharacter: e.target.value,
                                   })
                                 }
-                                className="h-9 text-xs bg-slate-50 border-slate-200"
+                                className="h-9 text-xs bg-muted/50 border-input"
                               />
                             </div>
                             <div className="space-y-2">
-                              <Label className="text-xs font-bold text-slate-700">
+                              <Label className="text-xs font-bold text-muted-foreground">
                                 연재 호흡
                                 <span className="text-red-500 ml-1">*</span>
                               </Label>
@@ -4904,7 +4979,7 @@ function CreateIPExpansionDialog({
                                   })
                                 }
                               >
-                                <SelectTrigger className="h-9 text-xs bg-slate-50 border-slate-200">
+                                <SelectTrigger className="h-9 text-xs bg-muted/50 border-input">
                                   <SelectValue placeholder="선택하세요" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -4933,8 +5008,8 @@ function CreateIPExpansionDialog({
                       {selectedFormat === 'commercial' && (
                         <div className="space-y-6">
                           <div className="space-y-3">
-                            <Label className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                              <ImageIcon className="w-3.5 h-3.5 text-slate-500" />
+                            <Label className="text-sm font-bold text-foreground flex items-center gap-2">
+                              <ImageIcon className="w-3.5 h-3.5 text-muted-foreground" />
                               비주얼 포맷
                               <span className="text-red-500 ml-1">*</span>
                             </Label>
@@ -4967,8 +5042,8 @@ function CreateIPExpansionDialog({
                                   className={cn(
                                     'cursor-pointer p-3 rounded-lg border text-center transition-all',
                                     mediaDetails.visualFormat === type.id
-                                      ? 'bg-slate-900 border-slate-900 text-white'
-                                      : 'bg-white border-slate-200 hover:bg-slate-50',
+                                      ? 'bg-primary border-primary text-primary-foreground'
+                                      : 'bg-card border-border hover:bg-muted/50',
                                   )}
                                 >
                                   <div className="font-bold text-xs">
@@ -4978,8 +5053,8 @@ function CreateIPExpansionDialog({
                                     className={cn(
                                       'text-[10px] mt-0.5',
                                       mediaDetails.visualFormat === type.id
-                                        ? 'text-slate-300'
-                                        : 'text-slate-500',
+                                        ? 'text-primary-foreground/80'
+                                        : 'text-muted-foreground',
                                     )}
                                   >
                                     {type.desc}
@@ -4991,7 +5066,7 @@ function CreateIPExpansionDialog({
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
-                              <Label className="text-xs font-bold text-slate-700">
+                              <Label className="text-xs font-bold text-muted-foreground">
                                 활용 목적
                                 <span className="text-red-500 ml-1">*</span>
                               </Label>
@@ -5004,11 +5079,11 @@ function CreateIPExpansionDialog({
                                     usagePurpose: e.target.value,
                                   })
                                 }
-                                className="h-9 text-xs bg-slate-50 border-slate-200"
+                                className="h-9 text-xs bg-muted/50 border-input"
                               />
                             </div>
                             <div className="space-y-2">
-                              <Label className="text-xs font-bold text-slate-700">
+                              <Label className="text-xs font-bold text-muted-foreground">
                                 타겟 상품군
                                 <span className="text-red-500 ml-1">*</span>
                               </Label>
@@ -5021,7 +5096,7 @@ function CreateIPExpansionDialog({
                                     targetProduct: e.target.value,
                                   })
                                 }
-                                className="h-9 text-xs bg-slate-50 border-slate-200"
+                                className="h-9 text-xs bg-muted/50 border-input"
                               />
                             </div>
                           </div>
@@ -5029,25 +5104,25 @@ function CreateIPExpansionDialog({
                       )}
 
                       {/* Common Prompt Field (Enhanced) */}
-                      <div className="pt-6 border-t border-slate-100">
-                        <Label className="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2">
+                      <div className="pt-6 border-t border-border">
+                        <Label className="text-sm font-bold text-foreground mb-2 flex items-center gap-2">
                           <Sparkles className="w-3.5 h-3.5 text-amber-500" />
                           추가 프롬프트 (선택사항)
                         </Label>
-                        <p className="text-xs text-slate-500 mb-2">
+                        <p className="text-xs text-muted-foreground mb-2">
                           AI에게 전달할 특별한 지시사항이나 제약조건이 있다면
                           자유롭게 적어주세요.
                         </p>
                         <Textarea
                           placeholder="예: 주인공의 의상은 붉은색을 메인으로..."
-                          className="min-h-[100px] text-sm bg-slate-50 border-slate-200 focus-visible:ring-slate-400 resize-none"
+                          className="min-h-[100px] text-sm bg-muted/50 border-border focus-visible:ring-primary resize-none"
                           value={mediaPrompt}
                           onChange={(e) => setMediaPrompt(e.target.value)}
                         />
                       </div>
                     </div>
                   </ScrollArea>
-                  <CardFooter className="bg-slate-50 border-t p-4 flex justify-end shrink-0">
+                  <CardFooter className="bg-muted/50 border-t p-4 flex justify-end shrink-0">
                     <label
                       htmlFor="step5-confirm"
                       className="flex items-center gap-2 cursor-pointer group"
@@ -5056,9 +5131,9 @@ function CreateIPExpansionDialog({
                         id="step5-confirm"
                         checked={step5Confirmed}
                         onCheckedChange={(c) => setStep5Confirmed(!!c)}
-                        className="data-[state=checked]:bg-slate-900 data-[state=checked]:border-slate-900 w-4 h-4"
+                        className="data-[state=checked]:bg-primary data-[state=checked]:border-primary w-4 h-4"
                       />
-                      <span className="text-sm font-medium select-none text-slate-700 group-hover:text-slate-900">
+                      <span className="text-sm font-medium select-none text-muted-foreground group-hover:text-foreground">
                         매체 상세 설정 확인 완료
                       </span>
                     </label>
@@ -5656,8 +5731,8 @@ function CreateIPExpansionDialog({
                               label: '추가 프롬프트',
                               value: mediaPrompt || '없음',
                               icon: MessageSquare,
-                              color: 'text-slate-600',
-                              bg: 'bg-slate-50',
+                              color: 'text-muted-foreground',
+                              bg: 'bg-muted',
                             },
                           ]
                             .filter(
@@ -5672,7 +5747,7 @@ function CreateIPExpansionDialog({
                                   // Click handler removed since '원천 설정집' is filtered out
                                 }}
                                 className={cn(
-                                  'bg-white rounded-lg p-3 border border-slate-200 shadow-sm flex items-start gap-2.5 relative group',
+                                  'bg-card rounded-lg p-3 border border-border shadow-sm flex items-start gap-2.5 relative group',
                                 )}
                               >
                                 <div
@@ -5685,10 +5760,10 @@ function CreateIPExpansionDialog({
                                   <item.icon className="w-3.5 h-3.5" />
                                 </div>
                                 <div className="overflow-hidden">
-                                  <p className="text-[10px] font-bold text-slate-500 mb-0.5">
+                                  <p className="text-[10px] font-bold text-muted-foreground mb-0.5">
                                     {item.label}
                                   </p>
-                                  <p className="text-xs font-bold text-slate-800 truncate">
+                                  <p className="text-xs font-bold text-foreground truncate">
                                     {item.value}
                                   </p>
                                 </div>
@@ -5701,16 +5776,16 @@ function CreateIPExpansionDialog({
                   </ScrollArea>
 
                   {/* Final Consent Checkbox */}
-                  <div className="p-4 bg-white border-t border-slate-100 flex items-center justify-center gap-3 shrink-0">
-                    <label className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer group border border-transparent hover:border-slate-200">
+                  <div className="p-4 bg-background border-t border-border flex items-center justify-center gap-3 shrink-0">
+                    <label className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer group border border-transparent hover:border-border">
                       <Checkbox
                         ref={confirmCheckboxRef}
                         id="step6-confirm"
                         checked={step6Confirmed}
                         onCheckedChange={(c) => setStep6Confirmed(!!c)}
-                        className="w-4 h-4 border-2 border-slate-300 data-[state=checked]:border-slate-900 data-[state=checked]:bg-slate-900 transition-colors"
+                        className="w-4 h-4 border-input data-[state=checked]:border-primary data-[state=checked]:bg-primary transition-colors"
                       />
-                      <span className="text-sm font-bold text-slate-600 group-hover:text-slate-900 transition-colors select-none">
+                      <span className="text-sm font-bold text-muted-foreground group-hover:text-foreground transition-colors select-none">
                         위 내용으로 IP 확장 프로젝트 생성을 시작합니다.
                       </span>
                     </label>
@@ -5721,7 +5796,7 @@ function CreateIPExpansionDialog({
           </div>
 
           {/* Footer Navigation */}
-          <div className="px-6 py-3 border-t bg-white flex justify-between items-center z-10">
+          <div className="px-6 py-3 border-t bg-background flex justify-between items-center z-10">
             <Button
               variant="ghost"
               onClick={handleBack}
@@ -5828,10 +5903,10 @@ function CreateIPExpansionDialog({
                 .map((lorebook, i) => (
                   <div
                     key={i}
-                    className={`bg-white p-4 rounded-lg border shadow-sm relative ${
+                    className={`bg-card p-4 rounded-lg border shadow-sm relative ${
                       selectedCrownSetting === lorebook.lorebookId
                         ? 'border-amber-400 ring-1 ring-amber-400'
-                        : 'border-slate-200'
+                        : 'border-border'
                     }`}
                   >
                     {/* Crown Icon for Core Lorebook */}
@@ -5850,26 +5925,26 @@ function CreateIPExpansionDialog({
                       </div>
                     )}
                     <div className="flex justify-between items-start mb-2 pr-8">
-                      <div className="font-bold text-lg text-slate-800 flex items-center gap-2">
+                      <div className="font-bold text-lg text-foreground flex items-center gap-2">
                         {lorebook.keyword}
                       </div>
                       <Badge variant="secondary">{lorebook.category}</Badge>
                     </div>
-                    <div className="grid grid-cols-2 gap-2 text-sm text-slate-600 mb-3">
+                    <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground mb-3">
                       <div>
-                        <span className="font-semibold text-slate-500">
+                        <span className="font-semibold text-muted-foreground">
                           작가:
                         </span>{' '}
                         {lorebook.authorName}
                       </div>
                       <div>
-                        <span className="font-semibold text-slate-500">
+                        <span className="font-semibold text-muted-foreground">
                           작품:
                         </span>{' '}
                         {lorebook.workTitle}
                       </div>
                     </div>
-                    <div className="bg-slate-50 p-3 rounded text-sm text-slate-700 whitespace-pre-wrap">
+                    <div className="bg-muted p-3 rounded text-sm text-muted-foreground whitespace-pre-wrap">
                       {(() => {
                         let content = lorebook.description;
 
@@ -5953,7 +6028,7 @@ function CreateIPExpansionDialog({
                       plots: '사건',
                     }[referenceModalTab],
               ).length === 0 && (
-                <div className="text-center text-slate-500 py-10">
+                <div className="text-center text-muted-foreground py-10">
                   해당 카테고리의 원천 설정집이 없습니다.
                 </div>
               )}
@@ -5967,11 +6042,11 @@ function CreateIPExpansionDialog({
 
       {/* Full Screen Preview Modal */}
       <Dialog open={showPdfFullScreen} onOpenChange={setShowPdfFullScreen}>
-        <DialogContent className="!w-screen !h-screen !max-w-none rounded-none border-0 p-0 overflow-hidden bg-slate-50 [&>button:last-child]:hidden">
+        <DialogContent className="!w-screen !h-screen !max-w-none rounded-none border-0 p-0 overflow-hidden bg-background [&>button:last-child]:hidden">
           <div className="relative w-full h-full flex items-center justify-center p-8">
             <Button
               variant="ghost"
-              className="absolute top-4 right-4 text-slate-500 hover:bg-slate-200 z-50 rounded-full w-10 h-10 p-0"
+              className="absolute top-4 right-4 text-muted-foreground hover:bg-muted z-50 rounded-full w-10 h-10 p-0"
               onClick={() => setShowPdfFullScreen(false)}
             >
               <X className="w-6 h-6" />
@@ -6004,20 +6079,20 @@ function CreateIPExpansionDialog({
               analysisBadges.map((badge, idx) => (
                 <div
                   key={idx}
-                  className="bg-slate-50 p-3 rounded-lg border border-slate-100"
+                  className="bg-muted/50 p-3 rounded-lg border border-border"
                 >
                   <div className="flex items-center justify-between mb-2">
                     <Badge className={cn('text-xs', badge.color)}>
                       {badge.label}
                     </Badge>
                   </div>
-                  <p className="text-sm text-slate-600 leading-relaxed">
+                  <p className="text-sm text-muted-foreground leading-relaxed">
                     {badge.tooltip}
                   </p>
                 </div>
               ))
             ) : (
-              <div className="text-center text-slate-500 py-4">
+              <div className="text-center text-muted-foreground py-4">
                 분석된 기획 방향성이 없습니다.
               </div>
             )}
@@ -6050,23 +6125,23 @@ function CreateIPExpansionDialog({
               unselectedCategoryTips.map((tip, idx) => (
                 <div
                   key={idx}
-                  className="bg-slate-50 p-3 rounded-lg border border-slate-100 flex gap-3"
+                  className="bg-muted/50 p-3 rounded-lg border border-border flex gap-3"
                 >
-                  <div className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center shrink-0 text-slate-500 text-xs font-bold">
+                  <div className="w-8 h-8 rounded-full bg-card border border-border flex items-center justify-center shrink-0 text-muted-foreground text-xs font-bold">
                     {idx + 1}
                   </div>
                   <div>
-                    <div className="font-bold text-slate-800 text-sm mb-1">
+                    <div className="font-bold text-foreground text-sm mb-1">
                       {tip.label}
                     </div>
-                    <p className="text-sm text-slate-600 leading-relaxed">
+                    <p className="text-sm text-muted-foreground leading-relaxed">
                       {tip.text}
                     </p>
                   </div>
                 </div>
               ))
             ) : (
-              <div className="text-center text-slate-500 py-4 flex flex-col items-center gap-2">
+              <div className="text-center text-muted-foreground py-4 flex flex-col items-center gap-2">
                 <Check className="w-8 h-8 text-green-500" />
                 <p>모든 필수 설정 요소가 포함되어 있습니다.</p>
               </div>
