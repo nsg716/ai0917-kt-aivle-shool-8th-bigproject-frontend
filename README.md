@@ -30,7 +30,6 @@ AIVLE SCHOOL 8th Big Project - AI 기반 웹소설 창작 및 관리 플랫폼 �
 - **State Management**: [TanStack Query](https://tanstack.com/query/latest) (Server state), Context API (Client state)
 - **Routing**: [React Router](https://reactrouter.com/)
 - **Mocking**: [MSW (Mock Service Worker)](https://mswjs.io/) (백엔드 API 모킹)
-- **Deployment**: Vercel (예정)
 
 ## 📂 프로젝트 구조
 
@@ -85,21 +84,8 @@ src/
    npm run build
    ```
 
-## 📝 API 문서
-
-상세한 API 명세는 보안상 별도 관리되고 있습니다.
-(백엔드 레퍼런스: `backend_reference` 참고)
-
 ## 🔒 보안 및 인증
 
 - **JWT 인증**: Access Token은 메모리 변수/헤더로 관리, Refresh Token은 HttpOnly Cookie로 관리합니다.
 - **CSRF 보호**: 네이버 OAuth 로그인 시 State 토큰 검증을 수행합니다.
 - **RBAC**: 사용자 역할(Admin, Manager, Author)에 따른 철저한 접근 제어를 구현했습니다.
-
-## 🤝 기여 (Contribution)
-
-관련 내용 추가 예정
-
-## 📄 라이선스
-
-관련 내용 추가 예정
